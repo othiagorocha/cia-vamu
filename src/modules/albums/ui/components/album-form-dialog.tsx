@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImageIcon, Loader2Icon } from "lucide-react";
+import { ClipboardPasteIcon, ImageIcon, Loader2Icon } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,12 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ClipboardImageError,
+  clipboardImageToDataUrl,
+  imageFileFromClipboardItems,
+  readImageFileFromClipboard,
+} from "@/lib/clipboard-image";
 import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { albumFormSchema, type AlbumFormInput } from "@/modules/albums/schema";
 import type { AlbumRecord } from "@/modules/albums/types";
@@ -38,6 +45,7 @@ export const AlbumFormDialog = ({
   onSubmit,
 }: AlbumFormDialogProps) => {
   const [preview, setPreview] = useState<string | null>(null);
+  const [isPasting, setIsPasting] = useState(false);
 
   const form = useForm<AlbumFormInput>({
     resolver: zodResolver(albumFormSchema),
@@ -47,6 +55,24 @@ export const AlbumFormDialog = ({
       published: false,
     },
   });
+
+  const applyCoverFile = async (file: File) => {
+    try {
+      const dataUrl = await clipboardImageToDataUrl(file);
+      setPreview(dataUrl);
+      form.setValue("coverImage", dataUrl, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      toast.success("Capa colada da área de transferência.");
+    } catch (error) {
+      toast.error(
+        error instanceof ClipboardImageError
+          ? error.message
+          : "Não foi possível colar a imagem.",
+      );
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -60,13 +86,48 @@ export const AlbumFormDialog = ({
     }
   }, [open, album, form]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const onPaste = (clipboardEvent: ClipboardEvent) => {
+      const items = clipboardEvent.clipboardData?.items;
+      if (!items) return;
+
+      const file = imageFileFromClipboardItems(items);
+      if (!file) return;
+
+      clipboardEvent.preventDefault();
+      void applyCoverFile(file);
+    };
+
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, form]);
+
+  const handlePasteFromClipboard = async () => {
+    setIsPasting(true);
+    try {
+      const file = await readImageFileFromClipboard();
+      await applyCoverFile(file);
+    } catch (error) {
+      toast.error(
+        error instanceof ClipboardImageError
+          ? error.message
+          : "Não foi possível colar a imagem.",
+      );
+    } finally {
+      setIsPasting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{album ? "Editar álbum" : "Novo álbum"}</DialogTitle>
           <DialogDescription>
-            Preencha os dados do álbum de fotos.
+            Preencha os dados do álbum. Você pode anexar ou colar a capa.
           </DialogDescription>
         </DialogHeader>
 
@@ -83,7 +144,11 @@ export const AlbumFormDialog = ({
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="album-title">Título</FieldLabel>
-                  <Input {...field} id="album-title" aria-invalid={fieldState.invalid} />
+                  <Input
+                    {...field}
+                    id="album-title"
+                    aria-invalid={fieldState.invalid}
+                  />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}
@@ -106,7 +171,7 @@ export const AlbumFormDialog = ({
               render={({ field: { onChange, ...field } }) => (
                 <Field>
                   <FieldLabel htmlFor="album-cover">Capa</FieldLabel>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-start gap-3">
                     <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
                       {preview ? (
                         <Image src={preview} alt="" fill className="object-cover" />
@@ -114,20 +179,41 @@ export const AlbumFormDialog = ({
                         <ImageIcon className="size-6 text-muted-foreground" />
                       )}
                     </div>
-                    <Input
-                      {...field}
-                      id="album-cover"
-                      type="file"
-                      accept="image/*"
-                      value={undefined}
-                      onChange={async (event) => {
-                        const file = event.target.files?.[0];
-                        if (!file) return;
-                        const dataUrl = await fileToDataUrl(file);
-                        setPreview(dataUrl);
-                        onChange(dataUrl);
-                      }}
-                    />
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <Input
+                        {...field}
+                        id="album-cover"
+                        type="file"
+                        accept="image/*"
+                        value={undefined}
+                        onChange={async (inputEvent) => {
+                          const file = inputEvent.target.files?.[0];
+                          if (!file) return;
+                          const dataUrl = await fileToDataUrl(file);
+                          setPreview(dataUrl);
+                          onChange(dataUrl);
+                        }}
+                      />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isPasting}
+                          onClick={handlePasteFromClipboard}
+                        >
+                          {isPasting ? (
+                            <Loader2Icon className="animate-spin" />
+                          ) : (
+                            <ClipboardPasteIcon />
+                          )}
+                          Colar imagem
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          ou Ctrl+V / Cmd+V com o diálogo aberto
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </Field>
               )}
@@ -143,7 +229,9 @@ export const AlbumFormDialog = ({
                     type="checkbox"
                     className="size-4 rounded border-input"
                     checked={field.value}
-                    onChange={(event) => field.onChange(event.target.checked)}
+                    onChange={(inputEvent) =>
+                      field.onChange(inputEvent.target.checked)
+                    }
                   />
                   <FieldLabel htmlFor="album-published" className="font-normal">
                     Publicar na galeria pública
@@ -155,7 +243,11 @@ export const AlbumFormDialog = ({
         </form>
 
         <DialogFooter>
-          <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => onOpenChange(false)}
+          >
             Cancelar
           </Button>
           <Button type="submit" form="album-form" disabled={isSubmitting}>
