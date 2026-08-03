@@ -1,0 +1,32 @@
+---
+description: Arquitetura modular, App Router, tRPC, better-auth e Supabase DB/Storage
+alwaysApply: true
+---
+
+# Arquitetura CIA VAMU
+
+## Estrutura
+
+- `src/app/(public)`, `(auth)`, `(dashboard)` — route groups
+- `src/modules/<domínio>/` — home, about, contact, albums, events, auth, dashboard
+- Placeholder futuro: `modules/products` (sem e-commerce no MVP)
+- `src/components/ui` — shadcn; `src/db` (Drizzle), `src/trpc`, `src/lib` (better-auth + client Supabase Storage), `src/messages`
+
+## Backend
+
+- Postgres: **Supabase** + **Drizzle** (`DATABASE_URL`)
+- Auth admin: **better-auth** (não Supabase Auth)
+- Arquivos: **Supabase Storage**
+- API tipada: **tRPC** (procedures admin checam sessão better-auth)
+
+## Por módulo
+
+- `ui/views`, `ui/components`
+- `server/procedures.ts` (tRPC)
+- `schema.ts` (Zod), `types.ts`
+
+## Regras
+
+- Páginas em `app/` só orquestram (Suspense, prefetch, ErrorBoundary).
+- Lógica de UI nas views dos modules.
+- Preferir padrões do MeetAI (sem copiar call/premium/agents de IA). Auth = better-auth; DB/Storage = Supabase.

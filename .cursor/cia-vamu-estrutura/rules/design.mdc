@@ -1,0 +1,23 @@
+---
+description: Identidade visual preto/branco + orange-400 e UI do site
+alwaysApply: true
+---
+
+# Design CIA VAMU
+
+## Cores
+
+- Marca / fundos escuros: preto `#000000`
+- Contraste: branco `#FFFFFF`
+- Superfícies claras: branco / off-white
+- Muted: cinzas neutros
+- Alertas / highlights / badges de destaque: Tailwind **`orange-400`** (`#fb923c`)
+- Erros: `destructive` do shadcn
+
+## UI
+
+- Cantos arredondados (`rounded-lg` / `rounded-full` em CTAs), alinhados à logo.
+- Evitar tema roxo genérico de AI, glow excessivo e clutter.
+- Site público: marca forte no hero; uma composição limpa por seção; mobile-first.
+- Admin: sidebar, tabelas, empty/loading/error states.
+- Acessibilidade: contraste, labels, focus visível.
