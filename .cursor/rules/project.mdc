@@ -1,0 +1,26 @@
+---
+description: Visão do produto CIA VAMU, escopo MVP e restrições de feature
+alwaysApply: true
+---
+
+# Projeto CIA VAMU
+
+- Nome: **CIA VAMU** (Visão, Arte, Missão, Unção).
+- Site institucional de ministério: teatro, viagens, evangelismos e eventos.
+- Diretório do app: `cia-vamu`.
+- Idioma: **pt-BR** nas respostas do Agent e na UI.
+
+## MVP (fazer)
+
+- Home, Quem somos, Contato, Álbuns/fotos, Agenda (público).
+- Admin autenticado: CRUD de eventos, álbuns e fotos.
+
+## Fora do MVP (não implementar agora)
+
+- E-commerce / compra de produtos — só placeholder de módulo `products` se necessário.
+- Não inventar features fora do escopo documentado.
+
+## Rotas principais
+
+- Públicas: `/`, `/quem-somos`, `/contato`, `/albuns`, `/albuns/[albumId]`, `/agenda`
+- Admin: `/sign-in`, `/dashboard`, `/dashboard/events`, `/dashboard/albums`

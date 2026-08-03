@@ -1,0 +1,123 @@
+{
+  "common": {
+    "brand": "CIA VAMU",
+    "nav": {
+      "home": "Início",
+      "about": "Quem somos",
+      "albums": "Álbuns",
+      "agenda": "Agenda",
+      "contact": "Contato"
+    },
+    "actions": {
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "delete": "Excluir",
+      "edit": "Editar",
+      "viewAll": "Ver todos",
+      "signOut": "Sair"
+    },
+    "footer": {
+      "tagline": "Visão, Arte, Missão, Unção — teatro, viagens, evangelismos e eventos.",
+      "rights": "Todos os direitos reservados."
+    }
+  },
+  "home": {
+    "hero": {
+      "title": "CIA VAMU",
+      "subtitle": "Visão, Arte, Missão, Unção — um ministério que leva teatro, viagens e evangelismos a lugares e pessoas de todo lugar.",
+      "primaryCta": "Ver agenda",
+      "secondaryCta": "Conheça nossa história"
+    },
+    "albums": {
+      "title": "Álbuns",
+      "subtitle": "Momentos dos nossos trabalhos.",
+      "empty": "Em breve novos álbuns."
+    },
+    "events": {
+      "title": "Próximos eventos",
+      "subtitle": "Fique por dentro da nossa agenda.",
+      "viewAll": "Ver agenda completa",
+      "empty": "Nenhum evento programado no momento."
+    }
+  },
+  "about": {
+    "title": "Quem somos",
+    "intro": "A <strong>CIA VAMU</strong> é um ministério que une teatro, viagens e evangelismos para levar arte e fé a diferentes lugares e pessoas. Nosso nome carrega o que somos: <strong>Visão, Arte, Missão, Unção</strong>.",
+    "pillars": {
+      "vision": {
+        "title": "Visão",
+        "description": "Enxergar além do presente, sonhando com uma geração transformada pelo evangelho através da arte."
+      },
+      "art": {
+        "title": "Arte",
+        "description": "Usar o teatro e outras linguagens artísticas como ferramenta de expressão e comunicação da fé."
+      },
+      "mission": {
+        "title": "Missão",
+        "description": "Levar esperança através de evangelismos, viagens e ações que alcancem vidas onde quer que estejam."
+      },
+      "unction": {
+        "title": "Unção",
+        "description": "Servir com propósito espiritual, buscando impactar corações além do palco."
+      }
+    },
+    "missionSection": {
+      "title": "Nossa missão",
+      "description": "Impactar vidas por meio da arte, levando a mensagem do evangelho a teatros, ruas, comunidades e nações — dentro e fora do Brasil — através de peças, apresentações e ações missionárias."
+    }
+  },
+  "contact": {
+    "title": "Entre em contato",
+    "subtitle": "Tem alguma dúvida, convite ou quer fazer parte? Fale com a gente.",
+    "fields": {
+      "name": "Nome",
+      "email": "E-mail",
+      "message": "Mensagem"
+    },
+    "submit": "Enviar mensagem",
+    "success": "Mensagem enviada! Em breve entraremos em contato.",
+    "error": "Não foi possível enviar sua mensagem. Tente novamente."
+  },
+  "albums": {
+    "title": "Álbuns",
+    "subtitle": "Fotos dos nossos trabalhos, viagens e apresentações.",
+    "empty": "Nenhum álbum publicado no momento.",
+    "emptyPhotos": "Este álbum ainda não tem fotos."
+  },
+  "events": {
+    "title": "Agenda",
+    "subtitle": "Confira os próximos eventos da CIA VAMU.",
+    "empty": "Nenhum evento programado no momento.",
+    "types": {
+      "teatro": "Teatro",
+      "viagem": "Viagem",
+      "evangelismo": "Evangelismo",
+      "outro": "Outro"
+    }
+  },
+  "auth": {
+    "signIn": {
+      "title": "CIA VAMU",
+      "subtitle": "Acesse a área administrativa",
+      "email": "E-mail",
+      "password": "Senha",
+      "submit": "Entrar"
+    }
+  },
+  "dashboard": {
+    "nav": {
+      "groupLabel": "Gestão",
+      "overview": "Visão geral",
+      "events": "Agenda",
+      "albums": "Álbuns"
+    },
+    "overview": {
+      "title": "Visão geral",
+      "subtitle": "Resumo do conteúdo do site CIA VAMU.",
+      "publishedEvents": "Eventos publicados",
+      "publishedAlbums": "Álbuns publicados",
+      "unreadMessages": "Mensagens não lidas",
+      "ofTotal": "no total"
+    }
+  }
+}
