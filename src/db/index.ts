@@ -1,8 +1,13 @@
+import dns from "node:dns";
+
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import * as authSchema from "@/db/auth-schema";
 import * as schema from "@/db/schema";
+
+// Em alguns hosts o DNS devolve IPv6 primeiro e a conexão com o pooler estoura timeout.
+dns.setDefaultResultOrder("ipv4first");
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -15,7 +20,7 @@ const globalForDb = globalThis as unknown as {
 };
 
 // Transaction pooler (6543) aguenta várias conexões curtas.
-// Singleton evita vazamento no hot reload do Next.
+// Singleton no processo Node (dev hot reload e Hostinger persistente).
 const client =
   globalForDb.postgresClient ??
   postgres(connectionString, {
@@ -26,9 +31,7 @@ const client =
     connect_timeout: 10,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.postgresClient = client;
-}
+globalForDb.postgresClient = client;
 
 export const db = drizzle(client, {
   schema: { ...schema, ...authSchema },
