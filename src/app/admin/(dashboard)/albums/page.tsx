@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "Álbuns",
 };
 
-const DashboardAlbumsPage = async () => {
+const AdminAlbumsPage = async () => {
   await trpc.albums.listAll.prefetch();
 
   return (
@@ -28,4 +28,4 @@ const DashboardAlbumsPage = async () => {
   );
 };
 
-export default DashboardAlbumsPage;
+export default AdminAlbumsPage;

@@ -96,7 +96,7 @@
     }
   },
   "auth": {
-    "signIn": {
+    "login": {
       "title": "CIA VAMU",
       "subtitle": "Acesse a área administrativa",
       "email": "E-mail",

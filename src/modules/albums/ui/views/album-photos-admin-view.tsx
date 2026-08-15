@@ -138,7 +138,7 @@ export const AlbumPhotosAdminView = ({ albumId }: { albumId: string }) => {
       <div className="flex items-center justify-between gap-4">
         <div>
           <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1">
-            <Link href="/dashboard/albums">
+            <Link href="/admin/albums">
               <ArrowLeftIcon />
               Voltar para álbuns
             </Link>

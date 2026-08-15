@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Estrutura
 
-- `src/app/(public)`, `(auth)`, `(dashboard)` — route groups
+- `src/app/(public)`, `admin/(auth)`, `admin/(dashboard)` — route groups
 - `src/modules/<domínio>/` — home, about, contact, albums, events, auth, dashboard
 - Placeholder futuro: `modules/products` (sem e-commerce no MVP)
 - `src/components/ui` — shadcn; `src/db` (Drizzle), `src/trpc`, `src/lib` (better-auth + client Supabase Storage), `src/messages`

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "Painel",
 };
 
-const DashboardPage = async () => {
+const AdminPage = async () => {
   await Promise.all([
     trpc.events.listAll.prefetch(),
     trpc.albums.listAll.prefetch(),
@@ -32,4 +32,4 @@ const DashboardPage = async () => {
   );
 };
 
-export default DashboardPage;
+export default AdminPage;

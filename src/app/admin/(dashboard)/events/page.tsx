@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "Eventos",
 };
 
-const DashboardEventsPage = async () => {
+const AdminEventsPage = async () => {
   await trpc.events.listAll.prefetch();
 
   return (
@@ -28,4 +28,4 @@ const DashboardEventsPage = async () => {
   );
 };
 
-export default DashboardEventsPage;
+export default AdminEventsPage;

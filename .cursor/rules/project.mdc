@@ -23,4 +23,4 @@ alwaysApply: true
 ## Rotas principais
 
 - Públicas: `/`, `/quem-somos`, `/contato`, `/albuns`, `/albuns/[albumId]`, `/agenda`
-- Admin: `/sign-in`, `/dashboard`, `/dashboard/events`, `/dashboard/albums`
+- Admin: `/admin/login`, `/admin`, `/admin/events`, `/admin/albums`

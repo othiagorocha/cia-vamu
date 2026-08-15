@@ -39,26 +39,26 @@ export const DashboardSidebar = ({ user }: DashboardSidebarProps) => {
   const tCommon = useTranslations("common");
 
   const NAV_ITEMS = [
-    { href: "/dashboard", label: t("overview"), icon: LayoutDashboardIcon },
-    { href: "/dashboard/events", label: t("events"), icon: CalendarDaysIcon },
-    { href: "/dashboard/albums", label: t("albums"), icon: ImagesIcon },
+    { href: "/admin", label: t("overview"), icon: LayoutDashboardIcon },
+    { href: "/admin/events", label: t("events"), icon: CalendarDaysIcon },
+    { href: "/admin/albums", label: t("albums"), icon: ImagesIcon },
   ];
 
   const handleSignOut = async () => {
     await authClient.signOut();
-    router.push("/sign-in");
+    router.push("/admin/login");
     router.refresh();
   };
 
   const isActive = (href: string) =>
-    href === "/dashboard"
+    href === "/admin"
       ? pathname === href
       : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1.5">
+        <Link href="/admin" className="flex items-center gap-2 px-2 py-1.5">
           <Logo variant="white" className="size-8" />
           <span className="font-semibold">{tCommon("brand")}</span>
         </Link>

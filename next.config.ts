@@ -9,6 +9,13 @@ const supabaseHostname = supabaseUrl
   : undefined;
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: "/sign-in", destination: "/admin/login", permanent: true },
+      { source: "/dashboard", destination: "/admin", permanent: true },
+      { source: "/dashboard/:path*", destination: "/admin/:path*", permanent: true },
+    ];
+  },
   images: {
     remotePatterns: [
       ...(supabaseHostname

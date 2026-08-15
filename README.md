@@ -84,7 +84,7 @@ src/
    pnpm dev
    ```
 
-   Acesse `http://localhost:3000` (site público) e `http://localhost:3000/sign-in` (login do admin).
+   Acesse `http://localhost:3000` (site público) e `http://localhost:3000/admin/login` (login do admin).
 
 ## Scripts
 
@@ -103,13 +103,13 @@ src/
 
 ## Área administrativa
 
-Após o login em `/sign-in`, o admin tem acesso a `/dashboard` com:
+Após o login em `/admin/login`, o admin tem acesso a `/admin` com:
 
 - **Visão geral**: contadores de eventos, álbuns e mensagens de contato.
-- **Agenda** (`/dashboard/events`): CRUD de eventos (teatro, viagem, evangelismo, outro), com opção de publicar/despublicar.
-- **Álbuns** (`/dashboard/albums`): CRUD de álbuns (capa, título, descrição, publicado) e gestão de fotos de cada álbum (`/dashboard/albums/[id]`), com upload direto para o Supabase Storage.
+- **Agenda** (`/admin/events`): CRUD de eventos (teatro, viagem, evangelismo, outro), com opção de publicar/despublicar.
+- **Álbuns** (`/admin/albums`): CRUD de álbuns (capa, título, descrição, publicado) e gestão de fotos de cada álbum (`/admin/albums/[id]`), com upload direto para o Supabase Storage.
 
-O acesso a `/dashboard/**` é protegido tanto pelo middleware (`src/middleware.ts`) quanto pelo layout do grupo `(dashboard)` e pelas procedures `protectedProcedure` do tRPC.
+O acesso a `/admin/**` (exceto `/admin/login`) é protegido tanto pelo middleware (`src/middleware.ts`) quanto pelo layout do grupo `admin/(dashboard)` e pelas procedures `protectedProcedure` do tRPC.
 
 ## Área pública
 

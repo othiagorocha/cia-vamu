@@ -5,11 +5,11 @@ import { Separator } from "@/components/ui/separator";
 import { getSession } from "@/lib/session";
 import { DashboardSidebar } from "@/modules/dashboard/ui/components/dashboard-sidebar";
 
-const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
+const AdminLayout = async ({ children }: { children: React.ReactNode }) => {
   const session = await getSession();
 
   if (!session) {
-    redirect("/sign-in");
+    redirect("/admin/login");
   }
 
   return (
@@ -34,4 +34,4 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export default DashboardLayout;
+export default AdminLayout;

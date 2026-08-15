@@ -124,7 +124,7 @@ export const AlbumsAdminView = () => {
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon-sm" asChild>
                         <Link
-                          href={`/dashboard/albums/${album.id}`}
+                          href={`/admin/albums/${album.id}`}
                           aria-label="Gerenciar fotos"
                         >
                           <ImagesIcon className="size-4" />

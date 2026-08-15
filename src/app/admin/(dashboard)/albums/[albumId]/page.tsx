@@ -11,7 +11,7 @@ type AlbumPhotosPageProps = {
   params: Promise<{ albumId: string }>;
 };
 
-const AlbumPhotosPage = async ({ params }: AlbumPhotosPageProps) => {
+const AdminAlbumPhotosPage = async ({ params }: AlbumPhotosPageProps) => {
   const { albumId } = await params;
 
   void trpc.albums.getById.prefetch({ id: albumId });
@@ -27,4 +27,4 @@ const AlbumPhotosPage = async ({ params }: AlbumPhotosPageProps) => {
   );
 };
 
-export default AlbumPhotosPage;
+export default AdminAlbumPhotosPage;

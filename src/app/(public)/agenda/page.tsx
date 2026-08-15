@@ -10,7 +10,7 @@ import {
 import { HydrateClient, trpc } from "@/trpc/server";
 
 export const metadata: Metadata = {
-  title: "Agenda | CIA VAMU",
+  title: "Agenda",
   description: "Próximos eventos da CIA VAMU: teatro, viagens e evangelismos.",
 };
 
