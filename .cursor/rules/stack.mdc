@@ -15,6 +15,7 @@ alwaysApply: true
 - **Supabase Storage** para fotos/capas de álbuns
 - Zod + react-hook-form + @hookform/resolvers
 - nuqs, date-fns, sonner, lucide-react
+- @dnd-kit (`core` + `sortable`) — apenas para reordenar seções/itens no painel
 - next-intl (pt-BR padrão)
 - Package manager: **pnpm**
 

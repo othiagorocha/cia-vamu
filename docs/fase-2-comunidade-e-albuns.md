@@ -1,6 +1,6 @@
 # Prompt para modo Plan — Fase 2: comunidade, conteúdo gerenciável e álbuns
 
-Use este arquivo como entrada do modo Plan. Ele descreve o estado atual do repositório, o que precisa ser construído, em que ordem, e quais decisões precisam ser confirmadas antes de escrever código.
+Use este arquivo como entrada do modo Plan. Ele descreve o estado atual do repositório, o que precisa ser construído, em que ordem, e as decisões já fechadas (questionário em `docs/lacunas.md`). **Não reabrir** as perguntas da seção 4.
 
 ---
 
@@ -17,7 +17,7 @@ Repositório `cia-vamu` (Next.js 15 App Router, React 19, TypeScript, Tailwind 4
 | Capability | Cobre |
 |---|---|
 | `events:write` | agenda no painel |
-| `albums:write` | álbuns e fotos no painel |
+| `albums:write` | criar/editar/apagar álbuns e fotos |
 | `users:manage` | criar/editar/remover contas, e hoje também mensagens de contato |
 
 `requireCapability(...)` em `src/trpc/init.ts` bloqueia procedures; páginas do painel fazem `redirect("/admin")` sem a capability; a sidebar esconde itens. Contas só são criadas por quem tem `users:manage` (`emailAndPassword.disableSignUp: true`).
@@ -33,8 +33,10 @@ Repositório `cia-vamu` (Next.js 15 App Router, React 19, TypeScript, Tailwind 4
 1. Deixar explícito que a CIA VAMU é um **ministério evangelístico missionário** pertencente à **Igreja Evangélica Batista de Ibitinga**.
 2. Tornar gerenciáveis pelo painel: redes sociais, integrantes do ministério e mensagens de contato.
 3. Melhorar a usabilidade do painel (linhas clicáveis, acesso ao site público).
-4. Evoluir os álbuns: sub-álbuns, contadores, upload com metadados, curtidas e comentários.
+4. Evoluir os álbuns: sub-álbuns, contadores, upload com metadados; curtidas e comentários **só no painel**.
 5. Corrigir o lightbox de fotos no site público.
+
+**Fora desta fase:** editor de layout/estrutura de `/quem-somos` (ex-B4). A página continua estática via next-intl; integrantes entram como seção nova no `about-view`. Reavaliar o editor numa fase futura.
 
 ---
 
@@ -58,7 +60,7 @@ Diretrizes:
 - O caráter evangelístico missionário é posicionamento, não nota de rodapé: deve aparecer com destaque no hero da home e na abertura de `/quem-somos`, junto do nome e do significado da sigla (Visão, Arte, Missão, Unção). O vínculo com a igreja pode vir logo abaixo, em tom institucional.
 - Onde mexer: hero da home (`src/modules/home/ui/views/home-view.tsx`), abertura de `/quem-somos` (`src/modules/about/ui/views/about-view.tsx`) e rodapé (`src/components/site-footer.tsx`, incluindo `common.footer.tagline`).
 - Revisar também `about.intro` e `about.missionSection` em `src/messages/pt-BR.json`, hoje escritos sem essas duas informações, e os metadados/`description` das páginas para refletir o posicionamento.
-- Texto estático via next-intl. Não criar tabela para isso.
+- **Texto estático via next-intl.** Não criar tabela para isso. `/quem-somos` permanece estática nesta fase (identidade + pilares + missão + seção de integrantes do B3).
 - Aceite: as duas informações aparecem na home, em `/quem-somos` e no rodapé; o caráter evangelístico missionário está em posição de destaque, não escondido em texto secundário; nenhuma string hardcoded no componente.
 
 #### A2. Contato: remover "quer fazer parte?"
@@ -97,6 +99,7 @@ Direção da correção:
 - Container ocupando a viewport (algo como `max-h-[100dvh]`/`max-w-[100vw]` com padding mínimo), sem proporção fixa; a imagem se ajusta por `object-contain` respeitando altura e largura disponíveis.
 - Escurecer o overlay só para o lightbox. Hoje `DialogOverlay` é renderizado dentro de `DialogContent` sem prop de classe — avaliar duas saídas: adicionar `overlayClassName` opcional ao `DialogContent` (mudança pequena e reaproveitável) ou montar o lightbox direto sobre os primitivos do Radix. Escolher uma e justificar.
 - Manter navegação anterior/próxima, botão de fechar visível sobre a foto, legenda legível e `DialogTitle` acessível.
+- Site público: só a foto (sem curtidas/comentários). Lightbox do painel (C3) pode reutilizar o mesmo container e acrescentar os controles.
 - Aceite: foto retrato e foto paisagem ocupam o máximo possível da tela sem corte nem distorção, em mobile e desktop.
 
 ### Fase B — Conteúdo gerenciável (schema novo)
@@ -104,98 +107,130 @@ Direção da correção:
 #### B1. Redes sociais no site público
 
 - Exibir as redes no site público (rodapé como base; avaliar `/contato`).
-- Gerenciáveis no painel por quem tiver permissão.
-- Dados: nova tabela (ex.: `social_links`) com plataforma, rótulo, URL, ordem e publicado.
-- Permissão: nova capability para conteúdo institucional do site (ex.: `site:write`), somada ao conjunto atual em `src/lib/permissions.ts`, ao formulário de `/admin/equipe` e à sidebar.
-- Validar URL com Zod; ícones do `lucide-react` conforme a plataforma.
-- Aceite: uma rede cadastrada e publicada aparece no site público; despublicada some; quem não tem a capability não vê a tela nem consegue chamar as procedures.
+- Gerenciáveis no painel por quem tiver `site:write`.
+- Dados: nova tabela (ex.: `social_links`) com plataforma, rótulo, URL, ordem, publicado e ícone.
+- Plataformas: lista fechada **Instagram, YouTube, Facebook, WhatsApp, Spotify** (ícone fixo do `lucide-react`) + **Outro** (URL e rótulo livres, ícone escolhido com busca na paleta do `lucide-react`). Sem `react-icons`.
+- Validar URL com Zod.
+- **Não** fazer backfill de `site:write` nos gestores atuais. Marcar na mão em `/admin/equipe`. No formulário de equipe, **legenda explicando cada capability**.
+- Aceite: uma rede cadastrada e publicada aparece no site público; despublicada some; quem não tem `site:write` não vê a tela nem consegue chamar as procedures.
 
 #### B2. Mensagens de contato no painel
 
 - Nova página no painel para ver e gerenciar o que chega pelo formulário de `/contato`.
-- Base já existe: tabela `contact_messages` e procedures `contact.listAll` / `contact.markAsRead` (`src/modules/contact/server/procedures.ts`), hoje sem tela.
+- Base já existe: tabela `contact_messages` e procedures `contact.listAll` / `contact.markAsRead` (`src/modules/contact/server/procedures.ts`), hoje sem tela. Falta `delete`.
 - Funções: listar (não lidas primeiro), abrir/ler a mensagem completa, marcar como lida/não lida, excluir. Indicador de não lidas na navegação.
-- Permissão: separar de `users:manage` criando `contact:manage`. Atualizar as procedures, o card de mensagens do overview (`src/modules/dashboard/ui/views/dashboard-overview-view.tsx`) e o prefetch condicional em `src/app/admin/(dashboard)/page.tsx`.
-- Aceite: gestor com `contact:manage` vê e gerencia; quem só tem agenda recebe `FORBIDDEN` e não enxerga o item no menu.
+- Permissão: `contact:manage` (separada de `users:manage`). Atualizar as procedures, o card de mensagens do overview (`src/modules/dashboard/ui/views/dashboard-overview-view.tsx`) e o prefetch condicional em `src/app/admin/(dashboard)/page.tsx`. Sem backfill automático — marcar na mão em `/admin/equipe`.
+- Aceite: quem tem `contact:manage` vê e gerencia; quem só tem agenda recebe `FORBIDDEN` e não enxerga o item no menu.
 
 #### B3. Integrantes do ministério em "Quem somos"
 
-Seção nova em `/quem-somos` apresentando os integrantes.
+Seção nova na **página estática** `/quem-somos` (`about-view.tsx`), não um bloco de CMS.
 
-Regras de negócio:
+Conta de login ≠ integrante ≠ aparição na página. Dois controles, ambos só com `users:manage`:
 
-- Quem é criado na área administrativa vira integrante e **aparece por padrão** em "Quem somos".
-- Exibir: nome, função no ministério, foto (se houver) e depoimento (se houver).
-- **Autoedição:** o próprio integrante altera nome, foto e depoimento.
-- **Função no ministério:** só quem tem permissão de admin altera; o integrante não muda a própria função.
-- Admins podem gerenciar todos os campos de qualquer integrante.
+1. **É integrante** — faz parte do ministério (perfil, função, autoedição).
+2. **Mostrar em Quem somos** — entra na grade pública. Pode ser da equipe e não aparecer no site.
 
-Implicações a resolver no plano:
+Criar em `/admin/equipe` **não** coloca a pessoa na página nem a marca como integrante por padrão. O admin faz isso depois.
 
-- Perfil de integrante é uma extensão da conta de login (`user`), já que a criação acontece em `/admin/equipe` e existe autoedição. Recomendação: tabela 1:1 própria (ex.: `member_profiles` com `userId` como PK/FK, função, foto, `storagePath`, depoimento, visibilidade e ordem) em vez de novos campos em `user` — o `auth-schema.ts` é gerado pelo CLI do better-auth (`pnpm auth:generate`) e tende a ser sobrescrito.
-- Criar perfil automaticamente junto do usuário em `src/lib/staff-user.ts` (`createStaffUser`) e fazer backfill dos usuários existentes.
-- Nova rota de autoedição no painel (ex.: `/admin/perfil`), acessível a **qualquer** pessoa logada, sem capability. O campo de função aparece desabilitado/oculto para quem não tem permissão de admin.
-- Upload de foto seguindo o padrão de `src/lib/storage.ts` (data URL → Supabase Storage), com remoção do arquivo antigo ao trocar.
-- Query pública deve devolver só integrantes visíveis, ordenados, sem e-mail nem dados sensíveis.
-- Aceite: criar conta em `/admin/equipe` faz a pessoa aparecer em `/quem-somos`; ela consegue editar nome/foto/depoimento e **não** consegue mudar a própria função; o admin consegue.
+Exibir no público (só quem está ativo, é integrante e com "mostrar" ligado): nome, função no ministério, foto (se houver) e depoimento (se houver).
+
+- **Autoedição:** o próprio usuário logado altera nome, foto e depoimento em `/admin/perfil` (qualquer sessão, sem capability). Função desabilitada/oculta para quem não tem `users:manage`.
+- **Função no ministério:** só `users:manage`.
+- `users:manage` pode editar todos os campos de qualquer integrante.
+
+Sair do ministério: o admin **escolhe desativar ou remover**.
+
+- **Desativar:** não loga mais; some de "Quem somos" na hora; o interruptor "mostrar em Quem somos" é **desligado** (reativar **não** recoloca na página — o admin marca de novo); comentários e curtidas somem do painel **para todo mundo**, como se não tivessem existido.
+- **Remover:** apaga a conta (e o perfil).
+
+Implicações para o plano:
+
+- Perfil em tabela 1:1 (ex.: `member_profiles` com `userId` PK/FK, função, foto, `storagePath`, depoimento, `isMember`, `showOnAbout`, ordem). Não inflar `user` em `auth-schema.ts` (CLI do better-auth tende a sobrescrever). Desativação da conta: campo na `user` ou equivalente do better-auth que impeça sessão nova e invalide as atuais.
+- Criar o perfil junto em `createStaffUser` com `isMember` e `showOnAbout` falsos; backfill dos usuários existentes no mesmo estado.
+- Upload de foto pelo padrão de `src/lib/storage.ts`, removendo o arquivo antigo ao trocar.
+- Query pública: só ativos + integrante + mostrar, ordenados, sem e-mail nem dados sensíveis.
+- Aceite: criar conta **não** aparece em `/quem-somos` até marcar os dois controles; autoedição não muda a função; desativar some da página e das interações no painel; reativar não recoloca na página sozinho.
+
+#### B4. Editor de "Quem somos" — fora desta fase
+
+Adiado. `/quem-somos` continua no `about-view` + `pt-BR.json`. SEO da página permanece nos metadados estáticos. Não criar `page_sections` nem rota `/admin/quem-somos`. Não usar `@dnd-kit` nesta fase.
 
 ### Fase C — Álbuns
 
 #### C1. Sub-álbuns
 
-- Permitir criar sub-álbuns dentro de um álbum (hierarquia).
-- O admin controla **como isso aparece no site público**: um sub-álbum pode ser promovido e exibido como álbum principal em `/albuns`.
-- Em `/albuns`, contador sutil por card: quantas fotos e quantos sub-álbuns o álbum tem.
-- Dados: `albums.parentId` (auto-relacionamento) e um sinalizador de exibição no nível principal (ex.: `showAsRoot`). Definir o comportamento do `onDelete` do pai (cascatear ou promover filhos) e evitar ciclos ao mover um álbum.
-- Definir profundidade suportada (recomendação: um nível de sub-álbum no MVP) e explicitar no plano.
-- Painel: escolher álbum pai no formulário; a listagem precisa deixar a hierarquia legível.
-- Público: `/albuns` lista os álbuns raiz mais os sub-álbuns promovidos; a página do álbum mostra sub-álbuns e fotos.
-- Contagem eficiente (agregação em uma query, sem N+1).
-- Aceite: sub-álbum criado, promovido e despromovido reflete corretamente no site público; contadores batem com o conteúdo real.
+- Hierarquia de **um nível** (álbum → sub-álbum). Sem `showAsRoot` / "promovido".
+- Cada álbum tem `published` **independente** do pai. Rascunho **nunca** aparece no site público (nem em `/albuns`, nem como card dentro do pai).
+- Lugar do card no público (só álbuns publicados):
+
+  | Situação | Onde o card aparece |
+  |---|---|
+  | Sem pai | `/albuns`, como hoje |
+  | Pai em rascunho | `/albuns` (card solto; o pai não está no ar) |
+  | Pai publicado | **dentro da página do pai**, não na lista da frente |
+
+- Em `/albuns`, contador sutil por card: fotos e sub-álbuns **publicados**.
+- Dados: `albums.parentId` (auto-relacionamento). Definir `onDelete` do pai (cascatear ou orphanar filhos publicados) e recusar ciclo ao mover. Um nível: filho não pode ter filhos.
+- Painel: escolher álbum pai no formulário; listagem com hierarquia legível. **Qualquer pessoa logada** vê rascunho e publicado (área interna). Criar/editar/apagar só com `albums:write`.
+- Contagem eficiente (agregação, sem N+1).
+- Aceite: filho publicado com pai rascunho vira card em `/albuns`; pai publicado mostra os filhos publicados como cards internos; rascunho invisível no público.
 
 #### C2. Upload de fotos em duas etapas
 
 - Hoje `AlbumPhotosAdminView` envia o arquivo imediatamente ao selecionar/colar.
 - Novo fluxo: selecionar (ou colar) as imagens, revisar em uma fila com preview e, **para cada foto**, informar nome e descrição — ambos opcionais — e só então confirmar o envio.
 - Permitir remover itens da fila antes de enviar e mostrar progresso por item.
-- Dados: `photos` precisa de título além do texto descritivo. Hoje existe só `caption`. Decidir entre adicionar `title` e reaproveitar `caption` como descrição (renomeando a coluna com migration que preserve dados) ou adicionar dois campos novos. Ajustar `addPhotoSchema` em `src/modules/albums/schema.ts`.
+- Dados: somar `photos.title`; **manter** `caption` como descrição. Ajustar `addPhotoSchema` em `src/modules/albums/schema.ts`.
 - Aceite: nada sobe antes da confirmação; nome e descrição chegam ao banco; enviar sem preencher os textos continua funcionando.
 
-#### C3. Curtidas e comentários nas fotos
+#### C3. Curtidas e comentários nas fotos (só no painel)
 
-- Integrantes (pessoas com login) podem curtir e comentar as fotos.
-- Como o cadastro público está desabilitado, o público envolvido é a equipe/integrantes já criados no painel.
-- Onde: página pública do álbum e/ou lightbox. Visitante sem sessão vê os totais mas recebe convite para entrar em vez dos controles.
-- Dados: tabela de curtidas com unicidade por foto + usuário; tabela de comentários com autor, texto, data e estratégia de remoção.
-- Procedures: `protectedProcedure` para curtir/descurtir/comentar; leitura pública dos totais e comentários. Moderação (remover comentário) para admins, além do próprio autor.
-- UX: curtida com atualização otimista; contadores agregados sem N+1; limite de tamanho do comentário via Zod.
-- Aceite: curtir alterna estado e persiste; um usuário conta uma curtida só; comentário aparece com autor e data; autor e admin removem.
+- Site público: **somente as fotos**. Sem totais, sem comentários, sem convite para entrar.
+- No painel: qualquer pessoa **logada** abre álbuns em modo leitura, curte e comenta, **sem aprovação**. Criar/editar/apagar álbum e foto continua `albums:write`.
+- Dados: curtidas com unicidade foto + usuário; comentários com autor, texto, data, `deletedAt` (soft delete).
+- Soft delete: some da UI padrão; quem tem `users:manage` **vê ocultos no próprio álbum** e pode restaurar ou apagar de vez. Sem painel extra. Comentários/curtidas de conta **desativada** não entram nessa lista — somem para todo mundo.
+- Procedures: `protectedProcedure` para curtir/comentar (qualquer sessão); leitura no painel. Sem procedures públicas de like/comentário.
+- UX: curtida otimista; contadores sem N+1; limite de tamanho via Zod.
+- Aceite: visitante em `/albuns/[id]` não vê interação; no admin, qualquer logado curte/comenta; gestor restaura ou apaga de vez no próprio álbum; desativado some das interações.
 
 ---
 
-## 4. Decisões a confirmar antes de planejar a implementação
+## 4. Decisões fechadas
 
-Pergunte ao usuário (uma ou duas por vez) antes de fechar o plano:
+Fonte: `docs/lacunas.md`. O Plan **não pergunta de novo**.
 
-1. **Integrante x conta de login** — todo mundo criado em `/admin/equipe` deve aparecer em "Quem somos", ou é preciso permitir integrante sem login (e login que não aparece no site)?
-2. **Quem cura a lista pública** — se um integrante sai do ministério, o admin remove a conta ou apenas oculta o perfil?
-3. **Profundidade dos sub-álbuns** — um nível é suficiente ou precisa aninhar indefinidamente?
-4. **Comentários** — precisam de moderação antes de aparecer no site público, ou publicam direto?
-5. **Novas capabilities** — criar `site:write` (redes sociais/conteúdo) e `contact:manage` (mensagens), ou manter tudo sob `users:manage`?
-6. **Campos de foto** — pode renomear `photos.caption` para `description` (migration com preservação de dados) ou prefere manter `caption` e só somar `title`?
+| Tema | Decisão |
+|---|---|
+| Conta vs integrante vs página | Dois controles (`isMember`, `showOnAbout`); criar conta não marca nenhum |
+| Quem marca os dois | Só `users:manage` |
+| Função no ministério | Só `users:manage` |
+| Sair | Desativar **ou** remover |
+| Desativar | Não loga; some de Quem somos; desliga `showOnAbout`; reativar não recoloca; interações somem para todo mundo |
+| Capabilities novas | `site:write` (redes) e `contact:manage` (mensagens) |
+| Backfill das novas | Não; marcar na mão + legendas em `/admin/equipe` |
+| `/quem-somos` | Estática nesta fase; editor adiado |
+| Identidade (A1) | JSON agora, inclusive em `/quem-somos` |
+| SEO de Quem somos | Metadados estáticos |
+| Redes | Lista fechada + Outro; ícone Outro com busca no `lucide-react` |
+| Curtir/comentar | Só no painel; público só fotos |
+| Quem curte no painel | Qualquer logado; vê rascunho e publicado |
+| Comentários | Sem aprovação; soft delete; restaurar/apagar no álbum só com `users:manage` |
+| Sub-álbuns | Um nível; só `published`; sem promovido; lugar do card conforme tabela do C1 |
+| Campos de foto | Somar `title`; manter `caption` |
 
 ---
 
 ## 5. Restrições
 
 - Seguir `.cursor/rules/*.mdc`: stack fechada, arquitetura em módulos por domínio (`ui/views`, `ui/components`, `server/procedures.ts`, `schema.ts`, `types.ts`), tema preto/branco com acento `orange-400`, TypeScript tipado, i18n via next-intl.
-- Não introduzir biblioteca fora de `stack.mdc` sem justificativa clara.
+- Não introduzir biblioteca fora de `stack.mdc`. **Não usar `@dnd-kit` nesta fase** (era para o editor adiado). Não adicionar `react-icons`.
 - Rotas `/admin` permanecem como estão; não renomear nesta fase.
 - Toda regra de permissão vale nos dois lados: a UI esconde, o tRPC recusa.
 - Páginas em `app/` só orquestram (Suspense, prefetch, ErrorBoundary); lógica nas views dos módulos.
 - Estados de carregando, vazio e erro em toda tela nova.
 - Migrations com `pnpm db:push`; sempre planejar o backfill dos registros existentes.
-- Fora do escopo: e-commerce, Supabase Auth, recursos de IA, cadastro público de usuários.
+- Fora do escopo: e-commerce, Supabase Auth, recursos de IA, cadastro público de usuários, editor de "Quem somos".
 
 ## 6. Formato esperado do plano
 
