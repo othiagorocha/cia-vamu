@@ -32,7 +32,7 @@ import type { EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
 import { trpc } from "@/trpc/client";
 
-export const EventsAdminView = () => {
+export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   const utils = trpc.useUtils();
   const [events] = trpc.events.listAll.useSuspenseQuery();
   const [formOpen, setFormOpen] = useState(false);
@@ -88,15 +88,17 @@ export const EventsAdminView = () => {
             Gerencie os eventos exibidos na agenda pública.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedEvent(null);
-            setFormOpen(true);
-          }}
-        >
-          <PlusIcon />
-          Novo evento
-        </Button>
+        {canWrite ? (
+          <Button
+            onClick={() => {
+              setSelectedEvent(null);
+              setFormOpen(true);
+            }}
+          >
+            <PlusIcon />
+            Novo evento
+          </Button>
+        ) : null}
       </div>
 
       {events.length === 0 ? (
@@ -118,7 +120,33 @@ export const EventsAdminView = () => {
             </TableHeader>
             <TableBody>
               {events.map((event) => (
-                <TableRow key={event.id}>
+                <TableRow
+                  key={event.id}
+                  tabIndex={canWrite ? 0 : undefined}
+                  className={canWrite ? "cursor-pointer" : undefined}
+                  onClick={() => {
+                    if (!canWrite) {
+                      return;
+                    }
+
+                    setSelectedEvent(event);
+                    setFormOpen(true);
+                  }}
+                  onKeyDown={(keyboardEvent) => {
+                    if (!canWrite) {
+                      return;
+                    }
+
+                    if (
+                      keyboardEvent.key === "Enter" ||
+                      keyboardEvent.key === " "
+                    ) {
+                      keyboardEvent.preventDefault();
+                      setSelectedEvent(event);
+                      setFormOpen(true);
+                    }
+                  }}
+                >
                   <TableCell className="font-medium">{event.title}</TableCell>
                   <TableCell>
                     <EventTypeBadge type={event.type} />
@@ -139,11 +167,13 @@ export const EventsAdminView = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    {canWrite ? (
                     <div className="flex items-center gap-1">
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => {
+                        onClick={(clickEvent) => {
+                          clickEvent.stopPropagation();
                           setSelectedEvent(event);
                           setFormOpen(true);
                         }}
@@ -154,12 +184,16 @@ export const EventsAdminView = () => {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => setDeleteTarget(event)}
+                        onClick={(clickEvent) => {
+                          clickEvent.stopPropagation();
+                          setDeleteTarget(event);
+                        }}
                         aria-label="Excluir"
                       >
                         <Trash2Icon className="size-4 text-destructive" />
                       </Button>
                     </div>
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))}

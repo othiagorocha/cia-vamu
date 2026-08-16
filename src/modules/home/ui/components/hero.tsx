@@ -16,6 +16,7 @@ export const Hero = () => {
           {t("title")}
         </h1>
         <p className="max-w-xl text-lg text-white/70">{t("subtitle")}</p>
+        <p className="max-w-xl text-sm text-white/55">{t("affiliation")}</p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button
             asChild

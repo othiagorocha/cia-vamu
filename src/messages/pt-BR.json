@@ -13,18 +13,20 @@
       "cancel": "Cancelar",
       "delete": "Excluir",
       "edit": "Editar",
+      "close": "Fechar",
       "viewAll": "Ver todos",
       "signOut": "Sair"
     },
     "footer": {
-      "tagline": "Visão, Arte, Missão, Unção — teatro, viagens, evangelismos e eventos.",
+      "tagline": "Ministério evangelístico missionário da Igreja Evangélica Batista de Ibitinga — Visão, Arte, Missão, Unção.",
       "rights": "Todos os direitos reservados."
     }
   },
   "home": {
     "hero": {
       "title": "CIA VAMU",
-      "subtitle": "Visão, Arte, Missão, Unção — um ministério que leva teatro, viagens e evangelismos a lugares e pessoas de todo lugar.",
+      "subtitle": "Ministério evangelístico missionário — Visão, Arte, Missão, Unção.",
+      "affiliation": "Pertencemos à Igreja Evangélica Batista de Ibitinga.",
       "primaryCta": "Ver agenda",
       "secondaryCta": "Conheça nossa história"
     },
@@ -42,7 +44,8 @@
   },
   "about": {
     "title": "Quem somos",
-    "intro": "A <strong>CIA VAMU</strong> é um ministério que une teatro, viagens e evangelismos para levar arte e fé a diferentes lugares e pessoas. Nosso nome carrega o que somos: <strong>Visão, Arte, Missão, Unção</strong>.",
+    "intro": "A <strong>CIA VAMU</strong> é um <strong>ministério evangelístico missionário</strong>. Nosso nome carrega o que somos: <strong>Visão, Arte, Missão, Unção</strong>.",
+    "affiliation": "Pertencemos à Igreja Evangélica Batista de Ibitinga.",
     "pillars": {
       "vision": {
         "title": "Visão",
@@ -63,12 +66,16 @@
     },
     "missionSection": {
       "title": "Nossa missão",
-      "description": "Impactar vidas por meio da arte, levando a mensagem do evangelho a teatros, ruas, comunidades e nações — dentro e fora do Brasil — através de peças, apresentações e ações missionárias."
+      "description": "Como ministério evangelístico missionário da Igreja Evangélica Batista de Ibitinga, impactamos vidas por meio da arte, levando o evangelho a teatros, ruas, comunidades e nações — dentro e fora do Brasil."
+    },
+    "members": {
+      "title": "Integrantes",
+      "empty": "Em breve apresentamos nossa equipe."
     }
   },
   "contact": {
     "title": "Entre em contato",
-    "subtitle": "Tem alguma dúvida, convite ou quer fazer parte? Fale com a gente.",
+    "subtitle": "Tem alguma dúvida ou convite? Fale com a gente.",
     "fields": {
       "name": "Nome",
       "email": "E-mail",
@@ -82,7 +89,34 @@
     "title": "Álbuns",
     "subtitle": "Fotos dos nossos trabalhos, viagens e apresentações.",
     "empty": "Nenhum álbum publicado no momento.",
-    "emptyPhotos": "Este álbum ainda não tem fotos."
+    "emptyPhotos": "Este álbum ainda não tem fotos.",
+    "photoCount": "{count, plural, one {# foto} other {# fotos}}",
+    "childCount": "{count, plural, one {# álbum} other {# álbuns}}",
+    "parent": "Álbum pai",
+    "noParent": "Nenhum (álbum principal)",
+    "queueTitle": "Fila de envio",
+    "queueConfirm": "Enviar fotos",
+    "queueEmpty": "Nenhuma foto na fila.",
+    "photoTitle": "Nome",
+    "photoCaption": "Descrição",
+    "like": "Curtir",
+    "unlike": "Descurtir",
+    "comment": "Comentar",
+    "comments": "Comentários",
+    "addComment": "Adicione um comentário...",
+    "post": "Postar",
+    "likeCount": "{count, plural, one {# curtida} other {# curtidas}}",
+    "likedBy": "Curtido por {name}",
+    "likedByOthers": "Curtido por {name} e outras {count} pessoas",
+    "likedByYou": "Curtido por você",
+    "likedByYouAnd": "Curtido por você e outras {count} pessoas",
+    "liked": "Curtido",
+    "beFirstLike": "Nenhuma curtida ainda — toque em Curtir",
+    "emptyComments": "Nenhum comentário ainda. Escreva o primeiro abaixo.",
+    "commentActions": "Ações do comentário",
+    "hiddenComment": "Ocultar",
+    "restore": "Restaurar",
+    "deleteForever": "Excluir de vez"
   },
   "events": {
     "title": "Agenda",
@@ -102,6 +136,17 @@
       "email": "E-mail",
       "password": "Senha",
       "submit": "Entrar"
+    },
+    "invite": {
+      "title": "Criar acesso",
+      "subtitle": "Você foi convidado para a equipe da CIA VAMU.",
+      "name": "Nome",
+      "email": "E-mail",
+      "password": "Senha",
+      "submit": "Criar conta",
+      "success": "Conta criada. Entre com o e-mail e a senha.",
+      "invalidTitle": "Convite inválido",
+      "invalidDescription": "Este link já foi usado ou expirou. Peça um novo convite a um gestor."
     }
   },
   "dashboard": {
@@ -110,7 +155,11 @@
       "overview": "Visão geral",
       "events": "Agenda",
       "albums": "Álbuns",
-      "staff": "Equipe"
+      "staff": "Equipe",
+      "viewSite": "Ver site",
+      "social": "Redes",
+      "messages": "Mensagens",
+      "profile": "Meu perfil"
     },
     "overview": {
       "title": "Visão geral",
@@ -127,7 +176,35 @@
     "subtitle": "Gerencie quem pode publicar conteúdo no site.",
     "empty": "Nenhum acesso cadastrado ainda.",
     "new": "Novo acesso",
+    "invite": {
+      "button": "Gerar convite",
+      "title": "Gerar convite",
+      "description": "Escolha o papel, se o link vale para uma ou várias pessoas, e gere o convite.",
+      "generate": "Gerar link",
+      "createdTitle": "Convite gerado",
+      "createdDescription": "Copie o link. Convites abertos também podem ser copiados de novo na lista.",
+      "link": "Link do convite",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "copyAgain": "Copiar link",
+      "pendingTitle": "Convites pendentes",
+      "empty": "Nenhum convite pendente.",
+      "expires": "Expira {when}",
+      "expiresColumn": "Validade",
+      "noExpiry": "Até revogar",
+      "mode": "Este link",
+      "single": "Uma pessoa (uso único)",
+      "reusable": "Várias pessoas, até eu revogar",
+      "reusableWarning": "Este link cria vários editores ou gestores se for encaminhado. Use só se tiver certeza.",
+      "uses": "{count, plural, one {# uso} other {# usos}}",
+      "modeColumn": "Tipo",
+      "roleColumn": "Papel",
+      "revoke": "Revogar",
+      "revoked": "Convite revogado.",
+      "created": "Convite gerado."
+    },
     "you": "Você",
+    "expandPhoto": "Ampliar foto de {name}",
     "created": "Acesso criado.",
     "updated": "Acesso atualizado.",
     "passwordUpdated": "Senha redefinida.",
@@ -141,7 +218,14 @@
     "capabilities": {
       "events": "Agenda",
       "albums": "Álbuns",
-      "users": "Gerenciar equipe"
+      "users": "Gerenciar equipe",
+      "site": "Site (redes)",
+      "contact": "Mensagens de contato",
+      "eventsHint": "Criar e editar eventos da agenda pública.",
+      "albumsHint": "Criar, editar e apagar álbuns e fotos.",
+      "usersHint": "Criar acessos, permissões, integrantes e desativar contas.",
+      "siteHint": "Gerenciar redes sociais exibidas no site.",
+      "contactHint": "Ler e excluir mensagens enviadas pelo formulário de contato."
     },
     "form": {
       "createTitle": "Novo acesso",
@@ -153,10 +237,88 @@
       "name": "Nome",
       "email": "E-mail",
       "password": "Senha",
+      "accessRole": "Papel no painel",
+      "modules": "Pode publicar",
+      "modulesHint": "Escolha o que esta pessoa pode editar no site.",
       "permissions": "Permissões",
       "permissionsHint": "Selecione o que esta pessoa pode editar."
     },
+    "roles": {
+      "member": "Membro",
+      "editor": "Editor",
+      "gestor": "Gestor",
+      "memberHint": "Vê agenda e álbuns, curte, comenta e edita o próprio perfil. Não publica conteúdo.",
+      "editorHint": "Publica o conteúdo dos módulos marcados abaixo.",
+      "gestorHint": "Acesso total: conteúdo, equipe, convites e mensagens."
+    },
     "deleteTitle": "Excluir acesso?",
-    "deleteDescription": "A pessoa \"{name}\" não poderá mais entrar no painel."
+    "deleteDescription": "A pessoa \"{name}\" não poderá mais entrar no painel.",
+    "deactivate": "Desativar",
+    "reactivate": "Reativar",
+    "deactivated": "Desativado",
+    "isMember": "É integrante",
+    "showOnAbout": "Mostrar em Quem somos",
+    "role": "Função no ministério",
+    "profile": {
+      "title": "Meu perfil",
+      "subtitle": "Atualize seu nome, foto e depoimento.",
+      "name": "Nome",
+      "role": "Função",
+      "testimony": "Depoimento",
+      "photo": "Foto",
+      "photoHint": "Clique na foto para ampliar.",
+      "photoReposition": "Reposicionar",
+      "photoRepositionHint": "Arraste para mover e use a roda do mouse para aproximar. Clique de novo no botão para sair.",
+      "photoCropError": "Não foi possível recortar a foto. Tente de novo.",
+      "saved": "Perfil atualizado."
+    }
+  },
+  "social": {
+    "title": "Redes sociais",
+    "subtitle": "Links exibidos no rodapé do site público.",
+    "empty": "Nenhuma rede cadastrada ainda.",
+    "new": "Nova rede",
+    "saved": "Rede salva.",
+    "removed": "Rede removida.",
+    "published": "Publicada",
+    "draft": "Despublicada",
+    "moveUp": "Mover para cima",
+    "moveDown": "Mover para baixo",
+    "deleteTitle": "Excluir rede?",
+    "deleteDescription": "A rede \"{name}\" deixará de aparecer no site.",
+    "columns": {
+      "label": "Rótulo",
+      "platform": "Plataforma",
+      "status": "Status",
+      "actions": "Ações"
+    },
+    "platforms": {
+      "instagram": "Instagram",
+      "youtube": "YouTube",
+      "facebook": "Facebook",
+      "whatsapp": "WhatsApp",
+      "spotify": "Spotify",
+      "other": "Outro"
+    },
+    "form": {
+      "createTitle": "Nova rede",
+      "editTitle": "Editar rede",
+      "platform": "Plataforma",
+      "label": "Rótulo",
+      "url": "URL",
+      "icon": "Ícone",
+      "iconSearch": "Buscar ícone",
+      "published": "Publicar no site"
+    }
+  },
+  "contactAdmin": {
+    "title": "Mensagens",
+    "subtitle": "O que chega pelo formulário de contato.",
+    "empty": "Nenhuma mensagem ainda.",
+    "read": "Lida",
+    "unread": "Não lida",
+    "markRead": "Marcar como lida",
+    "markUnread": "Marcar como não lida",
+    "deleted": "Mensagem excluída."
   }
 }

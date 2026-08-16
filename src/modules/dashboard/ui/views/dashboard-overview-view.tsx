@@ -9,13 +9,13 @@ import { trpc } from "@/trpc/client";
 type DashboardOverviewViewProps = {
   canEvents: boolean;
   canAlbums: boolean;
-  canManageUsers: boolean;
+  canContact: boolean;
 };
 
 export const DashboardOverviewView = ({
   canEvents,
   canAlbums,
-  canManageUsers,
+  canContact,
 }: DashboardOverviewViewProps) => {
   const t = useTranslations("dashboard.overview");
   const eventsQuery = trpc.events.listAll.useQuery(undefined, {
@@ -25,7 +25,7 @@ export const DashboardOverviewView = ({
     enabled: canAlbums,
   });
   const messagesQuery = trpc.contact.listAll.useQuery(undefined, {
-    enabled: canManageUsers,
+    enabled: canContact,
   });
 
   const events = eventsQuery.data ?? [];
@@ -53,7 +53,7 @@ export const DashboardOverviewView = ({
           icon: ImagesIcon,
         }
       : null,
-    canManageUsers
+    canContact
       ? {
           label: t("unreadMessages"),
           value: unreadMessages,

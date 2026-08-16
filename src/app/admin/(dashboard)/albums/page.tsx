@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -19,10 +18,7 @@ export const metadata: Metadata = {
 
 const AdminAlbumsPage = async () => {
   const session = await getSession();
-
-  if (!hasCapability(session, "albums:write")) {
-    redirect("/admin");
-  }
+  const canWrite = hasCapability(session, "albums:write");
 
   await trpc.albums.listAll.prefetch();
 
@@ -30,7 +26,7 @@ const AdminAlbumsPage = async () => {
     <HydrateClient>
       <ErrorBoundary fallbackTitle="Não foi possível carregar os álbuns.">
         <Suspense fallback={<AlbumsAdminViewSkeleton />}>
-          <AlbumsAdminView />
+          <AlbumsAdminView canWrite={canWrite} />
         </Suspense>
       </ErrorBoundary>
     </HydrateClient>

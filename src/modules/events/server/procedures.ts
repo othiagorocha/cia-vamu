@@ -10,7 +10,7 @@ import {
   removeEventSchema,
   updateEventSchema,
 } from "@/modules/events/schema";
-import { baseProcedure, createTRPCRouter, requireCapability } from "@/trpc/init";
+import { baseProcedure, createTRPCRouter, protectedProcedure, requireCapability } from "@/trpc/init";
 
 export const eventsRouter = createTRPCRouter({
   listUpcoming: baseProcedure.query(async () => {
@@ -23,7 +23,7 @@ export const eventsRouter = createTRPCRouter({
       .orderBy(asc(events.startsAt));
   }),
 
-  listAll: requireCapability("events:write").query(async () => {
+  listAll: protectedProcedure.query(async () => {
     return db.select().from(events).orderBy(desc(events.startsAt));
   }),
 

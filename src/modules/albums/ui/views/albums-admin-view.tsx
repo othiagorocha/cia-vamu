@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ImagesIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -30,7 +30,8 @@ import type { AlbumFormInput } from "@/modules/albums/schema";
 import type { AlbumRecord } from "@/modules/albums/types";
 import { trpc } from "@/trpc/client";
 
-export const AlbumsAdminView = () => {
+export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
+  const router = useRouter();
   const utils = trpc.useUtils();
   const [albums] = trpc.albums.listAll.useSuspenseQuery();
   const [formOpen, setFormOpen] = useState(false);
@@ -86,6 +87,7 @@ export const AlbumsAdminView = () => {
             Gerencie os álbuns e fotos da galeria pública.
           </p>
         </div>
+        {canWrite ? (
         <Button
           onClick={() => {
             setSelectedAlbum(null);
@@ -95,6 +97,7 @@ export const AlbumsAdminView = () => {
           <PlusIcon />
           Novo álbum
         </Button>
+        ) : null}
       </div>
 
       {albums.length === 0 ? (
@@ -113,27 +116,37 @@ export const AlbumsAdminView = () => {
             </TableHeader>
             <TableBody>
               {albums.map((album) => (
-                <TableRow key={album.id}>
-                  <TableCell className="font-medium">{album.title}</TableCell>
+                <TableRow
+                  key={album.id}
+                  tabIndex={0}
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/admin/albums/${album.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(`/admin/albums/${album.id}`);
+                    }
+                  }}
+                >
+                  <TableCell className="font-medium">
+                    <span className={album.parentId ? "pl-4 text-muted-foreground" : ""}>
+                      {album.parentId ? "↳ " : ""}
+                      {album.title}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <Badge variant={album.published ? "default" : "secondary"}>
                       {album.published ? "Publicado" : "Rascunho"}
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    {canWrite ? (
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon-sm" asChild>
-                        <Link
-                          href={`/admin/albums/${album.id}`}
-                          aria-label="Gerenciar fotos"
-                        >
-                          <ImagesIcon className="size-4" />
-                        </Link>
-                      </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => {
+                        onClick={(event) => {
+                          event.stopPropagation();
                           setSelectedAlbum(album);
                           setFormOpen(true);
                         }}
@@ -144,12 +157,16 @@ export const AlbumsAdminView = () => {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => setDeleteTarget(album)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setDeleteTarget(album);
+                        }}
                         aria-label="Excluir"
                       >
                         <Trash2Icon className="size-4 text-destructive" />
                       </Button>
                     </div>
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))}

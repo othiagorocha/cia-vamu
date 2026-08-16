@@ -30,6 +30,11 @@ async function main() {
 
   if (existing) {
     await ensureGestorCapabilities(normalizedEmail);
+    const { memberProfiles } = await import("@/db/schema");
+    await db
+      .insert(memberProfiles)
+      .values({ userId: existing.id, isMember: false, showOnAbout: false })
+      .onConflictDoNothing();
     console.log(`Usuário admin atualizado: ${normalizedEmail}`);
     return;
   }

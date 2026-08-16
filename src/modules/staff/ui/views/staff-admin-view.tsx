@@ -1,10 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRoundIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  CopyIcon,
+  KeyRoundIcon,
+  LinkIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { PhotoExpandDialog } from "@/components/photo-expand-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,17 +35,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { SiteCapability } from "@/lib/permissions";
+import type { EditorCapability } from "@/lib/permissions";
+import {
+  editorModulesFromCapabilities,
+  roleFromCapabilities,
+} from "@/lib/permissions";
 import { StaffFormDialog } from "@/modules/staff/ui/components/staff-form-dialog";
+import { StaffInviteDialog } from "@/modules/staff/ui/components/staff-invite-dialog";
 import { StaffPasswordDialog } from "@/modules/staff/ui/components/staff-password-dialog";
-import type { StaffFormInput, UpdateStaffFormInput } from "@/modules/staff/schema";
+import type {
+  CreateInviteInput,
+  StaffFormInput,
+  UpdateStaffFormInput,
+} from "@/modules/staff/schema";
 import type { StaffRecord } from "@/modules/staff/types";
 import { trpc } from "@/trpc/client";
 
-const CAPABILITY_LABELS: Record<SiteCapability, "events" | "albums" | "users"> = {
+const MODULE_LABELS: Record<EditorCapability, "events" | "albums" | "site"> = {
   "events:write": "events",
   "albums:write": "albums",
-  "users:manage": "users",
+  "site:write": "site",
 };
 
 type StaffAdminViewProps = {
@@ -47,13 +66,23 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
   const tCommon = useTranslations("common");
   const utils = trpc.useUtils();
   const [staffList] = trpc.staff.list.useSuspenseQuery();
+  const [inviteList] = trpc.staff.listInvites.useSuspenseQuery();
   const [formOpen, setFormOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [createdInvite, setCreatedInvite] = useState<{ url: string } | null>(
+    null,
+  );
   const [selectedStaff, setSelectedStaff] = useState<StaffRecord | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<StaffRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StaffRecord | null>(null);
+  const [expandedPhoto, setExpandedPhoto] = useState<{
+    src: string;
+    alt: string;
+  } | null>(null);
 
   const invalidate = () => {
     utils.staff.list.invalidate();
+    utils.staff.listInvites.invalidate();
   };
 
   const createMutation = trpc.staff.create.useMutation({
@@ -82,11 +111,41 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
     onError: (error) => toast.error(error.message),
   });
 
+  const disableMutation = trpc.staff.setDisabled.useMutation({
+    onSuccess: invalidate,
+    onError: (error) => toast.error(error.message),
+  });
+
   const removeMutation = trpc.staff.remove.useMutation({
     onSuccess: () => {
       toast.success(t("removed"));
       setDeleteTarget(null);
       invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const createInviteMutation = trpc.staff.createInvite.useMutation({
+    onSuccess: (invite) => {
+      toast.success(t("invite.created"));
+      setCreatedInvite({ url: invite.url });
+      invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const revokeInviteMutation = trpc.staff.revokeInvite.useMutation({
+    onSuccess: () => {
+      toast.success(t("invite.revoked"));
+      invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const revealInviteMutation = trpc.staff.revealInvite.useMutation({
+    onSuccess: async (invite) => {
+      await navigator.clipboard.writeText(invite.url);
+      toast.success(t("invite.copied"));
     },
     onError: (error) => toast.error(error.message),
   });
@@ -110,15 +169,27 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
           <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedStaff(null);
-            setFormOpen(true);
-          }}
-        >
-          <PlusIcon />
-          {t("new")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setCreatedInvite(null);
+              setInviteOpen(true);
+            }}
+          >
+            <LinkIcon />
+            {t("invite.button")}
+          </Button>
+          <Button
+            onClick={() => {
+              setSelectedStaff(null);
+              setFormOpen(true);
+            }}
+          >
+            <PlusIcon />
+            {t("new")}
+          </Button>
+        </div>
       </div>
 
       {staffList.length === 0 ? (
@@ -143,21 +214,60 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                 return (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {member.name}
-                        {isCurrentUser ? (
-                          <Badge variant="outline">{t("you")}</Badge>
-                        ) : null}
+                      <div className="flex items-center gap-3">
+                        {member.photoUrl ? (
+                          <button
+                            type="button"
+                            className="size-10 shrink-0 overflow-hidden rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            onClick={() =>
+                              setExpandedPhoto({
+                                src: member.photoUrl!,
+                                alt: member.name,
+                              })
+                            }
+                            aria-label={t("expandPhoto", { name: member.name })}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={member.photoUrl}
+                              alt=""
+                              className="size-full object-cover"
+                            />
+                          </button>
+                        ) : (
+                          <div
+                            aria-hidden
+                            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"
+                          >
+                            {member.name.trim().charAt(0).toUpperCase() || "?"}
+                          </div>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {member.name}
+                          {isCurrentUser ? (
+                            <Badge variant="outline">{t("you")}</Badge>
+                          ) : null}
+                          {member.disabled ? (
+                            <Badge variant="secondary">{t("deactivated")}</Badge>
+                          ) : null}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {member.capabilities.map((capability) => (
-                          <Badge key={capability} variant="secondary">
-                            {t(`capabilities.${CAPABILITY_LABELS[capability]}`)}
-                          </Badge>
-                        ))}
+                        <Badge variant="secondary">
+                          {t(`roles.${roleFromCapabilities(member.capabilities)}`)}
+                        </Badge>
+                        {roleFromCapabilities(member.capabilities) === "editor"
+                          ? editorModulesFromCapabilities(member.capabilities).map(
+                              (capability) => (
+                                <Badge key={capability} variant="outline">
+                                  {t(`capabilities.${MODULE_LABELS[capability]}`)}
+                                </Badge>
+                              ),
+                            )
+                          : null}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -183,6 +293,19 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                         </Button>
                         <Button
                           variant="ghost"
+                          size="sm"
+                          disabled={isCurrentUser}
+                          onClick={() =>
+                            disableMutation.mutate({
+                              id: member.id,
+                              disabled: !member.disabled,
+                            })
+                          }
+                        >
+                          {member.disabled ? t("reactivate") : t("deactivate")}
+                        </Button>
+                        <Button
+                          variant="ghost"
                           size="icon-sm"
                           disabled={isCurrentUser}
                           onClick={() => setDeleteTarget(member)}
@@ -200,6 +323,104 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
         </div>
       )}
 
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold tracking-tight">
+          {t("invite.pendingTitle")}
+        </h2>
+        {inviteList.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("invite.empty")}</p>
+        ) : (
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("invite.roleColumn")}</TableHead>
+                  <TableHead>{t("invite.modeColumn")}</TableHead>
+                  <TableHead>{t("invite.expiresColumn")}</TableHead>
+                  <TableHead className="w-0">{t("columns.actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {inviteList.map((invite) => {
+                  const role = roleFromCapabilities(invite.capabilities);
+                  const reusable = invite.maxUses !== 1;
+
+                  return (
+                  <TableRow key={invite.id}>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="secondary">{t(`roles.${role}`)}</Badge>
+                        {role === "editor"
+                          ? editorModulesFromCapabilities(invite.capabilities).map(
+                              (capability) => (
+                                <Badge key={capability} variant="outline">
+                                  {t(`capabilities.${MODULE_LABELS[capability]}`)}
+                                </Badge>
+                              ),
+                            )
+                          : null}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-0.5">
+                        <span>
+                          {reusable ? t("invite.reusable") : t("invite.single")}
+                        </span>
+                        {reusable ? (
+                          <span className="text-xs text-muted-foreground">
+                            {t("invite.uses", { count: invite.usedCount })}
+                          </span>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {invite.expiresAt
+                        ? t("invite.expires", {
+                            when: formatDistanceToNow(invite.expiresAt, {
+                              locale: ptBR,
+                              addSuffix: true,
+                            }),
+                          })
+                        : t("invite.noExpiry")}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() =>
+                            revealInviteMutation.mutate({ id: invite.id })
+                          }
+                          aria-label={t("invite.copyAgain")}
+                        >
+                          <CopyIcon className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            revokeInviteMutation.mutate({ id: invite.id })
+                          }
+                        >
+                          {t("invite.revoke")}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
+      <PhotoExpandDialog
+        src={expandedPhoto?.src ?? null}
+        alt={expandedPhoto?.alt ?? ""}
+        onClose={() => setExpandedPhoto(null)}
+      />
+
       <StaffFormDialog
         key={selectedStaff?.id ?? "create"}
         open={formOpen}
@@ -208,6 +429,21 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         onCreate={handleCreate}
         onUpdate={handleUpdate}
+      />
+
+      <StaffInviteDialog
+        open={inviteOpen}
+        onOpenChange={(open) => {
+          setInviteOpen(open);
+          if (!open) {
+            setCreatedInvite(null);
+          }
+        }}
+        isSubmitting={createInviteMutation.isPending}
+        createdInvite={createdInvite}
+        onCreate={(values: CreateInviteInput) =>
+          createInviteMutation.mutate(values)
+        }
       />
 
       <StaffPasswordDialog

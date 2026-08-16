@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { account, user } from "@/db/auth-schema";
+import { memberProfiles } from "@/db/schema";
 import { ALL_CAPABILITIES, type SiteCapability } from "@/lib/permissions";
 
 export class StaffUserError extends Error {
@@ -23,9 +24,14 @@ type CreateStaffUserInput = {
   capabilities: SiteCapability[];
 };
 
-export const createStaffUser = async (input: CreateStaffUserInput) => {
+type StaffExecutor = Pick<typeof db, "select" | "insert">;
+
+const insertStaffUser = async (
+  executor: StaffExecutor,
+  input: CreateStaffUserInput,
+) => {
   const email = input.email.toLowerCase().trim();
-  const [existing] = await db
+  const [existing] = await executor
     .select({ id: user.id })
     .from(user)
     .where(eq(user.email, email));
@@ -38,35 +44,54 @@ export const createStaffUser = async (input: CreateStaffUserInput) => {
   const now = new Date();
   const passwordHash = await hashPassword(input.password);
 
-  await db.transaction(async (tx) => {
-    await tx.insert(user).values({
-      id: userId,
-      name: input.name.trim(),
-      email,
-      emailVerified: true,
-      capabilities: input.capabilities,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    await tx.insert(account).values({
-      id: generateId(),
-      accountId: userId,
-      providerId: "credential",
-      userId,
-      password: passwordHash,
-      createdAt: now,
-      updatedAt: now,
-    });
+  await executor.insert(user).values({
+    id: userId,
+    name: input.name.trim(),
+    email,
+    emailVerified: true,
+    capabilities: input.capabilities,
+    disabled: false,
+    createdAt: now,
+    updatedAt: now,
   });
 
-  const [created] = await db.select().from(user).where(eq(user.id, userId));
+  await executor.insert(account).values({
+    id: generateId(),
+    accountId: userId,
+    providerId: "credential",
+    userId,
+    password: passwordHash,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await executor.insert(memberProfiles).values({
+    userId,
+    isMember: false,
+    showOnAbout: false,
+  });
+
+  const [created] = await executor
+    .select()
+    .from(user)
+    .where(eq(user.id, userId));
 
   if (!created) {
     throw new StaffUserError("Não foi possível criar o usuário.", "NOT_FOUND");
   }
 
   return created;
+};
+
+export const createStaffUser = async (
+  input: CreateStaffUserInput,
+  executor: StaffExecutor = db,
+) => {
+  if (executor === db) {
+    return db.transaction((tx) => insertStaffUser(tx, input));
+  }
+
+  return insertStaffUser(executor, input);
 };
 
 export const setStaffPassword = async (userId: string, password: string) => {

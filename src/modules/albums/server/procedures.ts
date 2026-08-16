@@ -1,9 +1,17 @@
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { albums, photos } from "@/db/schema";
+import { user } from "@/db/auth-schema";
+import {
+  albums,
+  memberProfiles,
+  photoComments,
+  photoLikes,
+  photos,
+} from "@/db/schema";
 import { deleteImageFromStorage, uploadImageToStorage } from "@/lib/storage";
 import {
   addPhotoSchema,
@@ -12,14 +20,73 @@ import {
   removePhotoSchema,
   updateAlbumSchema,
 } from "@/modules/albums/schema";
-import { baseProcedure, createTRPCRouter, requireCapability } from "@/trpc/init";
+import {
+  baseProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+  requireCapability,
+} from "@/trpc/init";
+
+const parentAlbum = alias(albums, "parent_album");
+
+const assertValidParent = async (parentId: string | null | undefined, selfId?: string) => {
+  if (!parentId) {
+    return;
+  }
+
+  if (selfId && parentId === selfId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Um álbum não pode ser pai de si mesmo.",
+    });
+  }
+
+  const [parent] = await db.select().from(albums).where(eq(albums.id, parentId));
+
+  if (!parent) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Álbum pai não encontrado.",
+    });
+  }
+
+  if (parent.parentId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Só é permitido um nível de sub-álbum.",
+    });
+  }
+};
 
 export const albumsRouter = createTRPCRouter({
   listPublished: baseProcedure.query(async () => {
     return db
-      .select()
+      .select({
+        id: albums.id,
+        title: albums.title,
+        description: albums.description,
+        coverImageUrl: albums.coverImageUrl,
+        parentId: albums.parentId,
+        published: albums.published,
+        publishedAt: albums.publishedAt,
+        createdAt: albums.createdAt,
+        updatedAt: albums.updatedAt,
+        photoCount: sql<number>`(
+          select count(*)::int from photos where photos.album_id = ${albums.id}
+        )`,
+        publishedChildCount: sql<number>`(
+          select count(*)::int from albums as child
+          where child.parent_id = ${albums.id} and child.published = true
+        )`,
+      })
       .from(albums)
-      .where(eq(albums.published, true))
+      .leftJoin(parentAlbum, eq(albums.parentId, parentAlbum.id))
+      .where(
+        and(
+          eq(albums.published, true),
+          or(isNull(albums.parentId), eq(parentAlbum.published, false)),
+        ),
+      )
       .orderBy(desc(albums.publishedAt), desc(albums.createdAt));
   }),
 
@@ -27,12 +94,13 @@ export const albumsRouter = createTRPCRouter({
     .input(z.object({ id: z.uuid() }))
     .query(async ({ input }) => {
       const album = await db.query.albums.findFirst({
-        where: (fields, { eq: equals, and }) =>
-          and(equals(fields.id, input.id), equals(fields.published, true)),
+        where: (fields, { eq: equals, and: andFn }) =>
+          andFn(equals(fields.id, input.id), equals(fields.published, true)),
         with: {
           photos: {
             orderBy: (fields, { asc: ascending }) => ascending(fields.sortOrder),
           },
+          children: true,
         },
       });
 
@@ -40,14 +108,25 @@ export const albumsRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Álbum não encontrado." });
       }
 
-      return album;
+      return {
+        ...album,
+        children: album.children.filter((child) => child.published),
+      };
     }),
 
-  listAll: requireCapability("albums:write").query(async () => {
+  listAll: protectedProcedure.query(async () => {
     return db.select().from(albums).orderBy(desc(albums.createdAt));
   }),
 
-  getById: requireCapability("albums:write")
+  listRoots: protectedProcedure.query(async () => {
+    return db
+      .select({ id: albums.id, title: albums.title })
+      .from(albums)
+      .where(isNull(albums.parentId))
+      .orderBy(desc(albums.createdAt));
+  }),
+
+  getById: protectedProcedure
     .input(z.object({ id: z.uuid() }))
     .query(async ({ input }) => {
       const album = await db.query.albums.findFirst({
@@ -69,6 +148,8 @@ export const albumsRouter = createTRPCRouter({
   create: requireCapability("albums:write")
     .input(createAlbumSchema)
     .mutation(async ({ input }) => {
+      await assertValidParent(input.parentId);
+
       let coverImageUrl: string | undefined;
 
       const [album] = await db
@@ -77,6 +158,7 @@ export const albumsRouter = createTRPCRouter({
           title: input.title,
           description: input.description,
           published: input.published,
+          parentId: input.parentId || null,
           publishedAt: input.published ? new Date() : null,
         })
         .returning();
@@ -110,6 +192,8 @@ export const albumsRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Álbum não encontrado." });
       }
 
+      await assertValidParent(input.data.parentId, input.id);
+
       let coverImageUrl = existing.coverImageUrl;
 
       if (input.data.coverImage) {
@@ -130,6 +214,7 @@ export const albumsRouter = createTRPCRouter({
           title: input.data.title,
           description: input.data.description,
           published: willBePublished,
+          parentId: input.data.parentId || null,
           coverImageUrl,
           publishedAt:
             !wasPublished && willBePublished
@@ -178,6 +263,7 @@ export const albumsRouter = createTRPCRouter({
           albumId: input.albumId,
           imageUrl: uploaded.imageUrl,
           storagePath: uploaded.storagePath,
+          title: input.title,
           caption: input.caption,
           sortOrder: existingPhotos.length,
         })
@@ -201,12 +287,135 @@ export const albumsRouter = createTRPCRouter({
       await db.delete(photos).where(eq(photos.id, input.id));
 
       if (photo.storagePath) {
-        await deleteImageFromStorage(photo.storagePath).catch(() => {
-          // best-effort: se falhar, o registro já foi removido do banco.
-        });
+        await deleteImageFromStorage(photo.storagePath).catch(() => undefined);
       }
 
       return { success: true };
     }),
-});
 
+  photoSocial: protectedProcedure
+    .input(z.object({ photoId: z.uuid() }))
+    .query(async ({ ctx, input }) => {
+      const likes = await db
+        .select({
+          userId: photoLikes.userId,
+          disabled: user.disabled,
+        })
+        .from(photoLikes)
+        .innerJoin(user, eq(user.id, photoLikes.userId))
+        .where(eq(photoLikes.photoId, input.photoId));
+
+      const activeLikes = likes.filter((like) => !like.disabled);
+      const comments = await db
+        .select({
+          id: photoComments.id,
+          body: photoComments.body,
+          createdAt: photoComments.createdAt,
+          deletedAt: photoComments.deletedAt,
+          authorId: photoComments.authorId,
+          authorName: user.name,
+          authorPhotoUrl: memberProfiles.photoUrl,
+          authorDisabled: user.disabled,
+        })
+        .from(photoComments)
+        .innerJoin(user, eq(user.id, photoComments.authorId))
+        .leftJoin(memberProfiles, eq(memberProfiles.userId, user.id))
+        .where(eq(photoComments.photoId, input.photoId))
+        .orderBy(asc(photoComments.createdAt));
+
+      const visibleComments = comments.filter((comment) => !comment.authorDisabled);
+
+      const likers = await db
+        .select({
+          userId: photoLikes.userId,
+          name: user.name,
+          photoUrl: memberProfiles.photoUrl,
+          disabled: user.disabled,
+        })
+        .from(photoLikes)
+        .innerJoin(user, eq(user.id, photoLikes.userId))
+        .leftJoin(memberProfiles, eq(memberProfiles.userId, user.id))
+        .where(eq(photoLikes.photoId, input.photoId))
+        .orderBy(desc(photoLikes.createdAt));
+
+      const activeLikers = likers.filter((like) => !like.disabled);
+
+      return {
+        likeCount: activeLikes.length,
+        liked: activeLikes.some((like) => like.userId === ctx.session.user.id),
+        likers: activeLikers.slice(0, 3).map((like) => ({
+          userId: like.userId,
+          name: like.name,
+          photoUrl: like.photoUrl,
+        })),
+        comments: visibleComments,
+      };
+    }),
+
+  toggleLike: protectedProcedure
+    .input(z.object({ photoId: z.uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      const [existing] = await db
+        .select()
+        .from(photoLikes)
+        .where(
+          and(eq(photoLikes.photoId, input.photoId), eq(photoLikes.userId, userId)),
+        );
+
+      if (existing) {
+        await db.delete(photoLikes).where(eq(photoLikes.id, existing.id));
+        return { liked: false };
+      }
+
+      await db.insert(photoLikes).values({ photoId: input.photoId, userId });
+      return { liked: true };
+    }),
+
+  addComment: protectedProcedure
+    .input(
+      z.object({
+        photoId: z.uuid(),
+        body: z.string().min(1).max(1000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [comment] = await db
+        .insert(photoComments)
+        .values({
+          photoId: input.photoId,
+          authorId: ctx.session.user.id,
+          body: input.body.trim(),
+        })
+        .returning();
+
+      return comment;
+    }),
+
+  hideComment: requireCapability("users:manage")
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input }) => {
+      await db
+        .update(photoComments)
+        .set({ deletedAt: new Date() })
+        .where(eq(photoComments.id, input.id));
+      return { success: true };
+    }),
+
+  restoreComment: requireCapability("users:manage")
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input }) => {
+      await db
+        .update(photoComments)
+        .set({ deletedAt: null })
+        .where(eq(photoComments.id, input.id));
+      return { success: true };
+    }),
+
+  deleteComment: requireCapability("users:manage")
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input }) => {
+      await db.delete(photoComments).where(eq(photoComments.id, input.id));
+      return { success: true };
+    }),
+});

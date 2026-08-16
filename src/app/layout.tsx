@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     template: "%s | CIA VAMU",
   },
   description:
-    "CIA VAMU — Visão, Arte, Missão, Unção. Ministério de teatro, viagens, evangelismos e eventos.",
+    "CIA VAMU — ministério evangelístico missionário da Igreja Evangélica Batista de Ibitinga. Visão, Arte, Missão, Unção.",
 };
 
 export default async function RootLayout({

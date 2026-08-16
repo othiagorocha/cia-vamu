@@ -18,14 +18,14 @@ export const metadata: Metadata = {
 
 const AdminPage = async () => {
   const session = await getSession();
-  const canEvents = hasCapability(session, "events:write");
-  const canAlbums = hasCapability(session, "albums:write");
-  const canManageUsers = hasCapability(session, "users:manage");
+  const canEvents = Boolean(session);
+  const canAlbums = Boolean(session);
+  const canContact = hasCapability(session, "contact:manage");
 
   await Promise.all([
-    canEvents ? trpc.events.listAll.prefetch() : Promise.resolve(),
-    canAlbums ? trpc.albums.listAll.prefetch() : Promise.resolve(),
-    canManageUsers ? trpc.contact.listAll.prefetch() : Promise.resolve(),
+    trpc.events.listAll.prefetch(),
+    trpc.albums.listAll.prefetch(),
+    canContact ? trpc.contact.listAll.prefetch() : Promise.resolve(),
   ]);
 
   return (
@@ -35,7 +35,7 @@ const AdminPage = async () => {
           <DashboardOverviewView
             canEvents={canEvents}
             canAlbums={canAlbums}
-            canManageUsers={canManageUsers}
+            canContact={canContact}
           />
         </Suspense>
       </ErrorBoundary>

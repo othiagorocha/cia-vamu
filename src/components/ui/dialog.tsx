@@ -51,13 +51,35 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeButtonPlacement = "content",
+  overlayClassName,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  closeButtonPlacement?: "content" | "viewport"
+  overlayClassName?: string
 }) {
+  const closeButton = showCloseButton ? (
+    <DialogPrimitive.Close data-slot="dialog-close" asChild>
+      <Button
+        variant="ghost"
+        size={closeButtonPlacement === "viewport" ? "icon-lg" : "icon-sm"}
+        className={
+          closeButtonPlacement === "viewport"
+            ? "fixed top-4 right-4 z-[60] rounded-full text-white hover:bg-white/15 hover:text-white"
+            : "absolute top-2 right-2"
+        }
+      >
+        <XIcon />
+        <span className="sr-only">Fechar</span>
+      </Button>
+    </DialogPrimitive.Close>
+  ) : null
+
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
+      {closeButtonPlacement === "viewport" ? closeButton : null}
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
@@ -67,19 +89,7 @@ function DialogContent({
         {...props}
       >
         {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button
-              variant="ghost"
-              className="absolute top-2 right-2"
-              size="icon-sm"
-            >
-              <XIcon
-              />
-              <span className="sr-only">Close</span>
-            </Button>
-          </DialogPrimitive.Close>
-        )}
+        {closeButtonPlacement === "content" ? closeButton : null}
       </DialogPrimitive.Content>
     </DialogPortal>
   )

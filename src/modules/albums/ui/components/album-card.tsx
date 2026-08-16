@@ -1,13 +1,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ImageIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-import type { AlbumRecord } from "@/modules/albums/types";
+import type { PublishedAlbumCard } from "@/modules/albums/types";
 
-export const AlbumCard = ({ album }: { album: AlbumRecord }) => {
+export const AlbumCard = ({
+  album,
+  href,
+}: {
+  album: Pick<
+    PublishedAlbumCard,
+    "id" | "title" | "description" | "coverImageUrl" | "photoCount" | "publishedChildCount"
+  >;
+  href?: string;
+}) => {
+  const t = useTranslations("albums");
+
   return (
     <Link
-      href={`/albuns/${album.id}`}
+      href={href ?? `/albuns/${album.id}`}
       className="group flex flex-col overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
     >
       <div className="relative aspect-4/3 w-full overflow-hidden bg-muted">
@@ -32,6 +44,12 @@ export const AlbumCard = ({ album }: { album: AlbumRecord }) => {
             {album.description}
           </p>
         )}
+        <p className="text-xs text-muted-foreground">
+          {t("photoCount", { count: album.photoCount ?? 0 })}
+          {album.publishedChildCount
+            ? ` · ${t("childCount", { count: album.publishedChildCount })}`
+            : null}
+        </p>
       </div>
     </Link>
   );

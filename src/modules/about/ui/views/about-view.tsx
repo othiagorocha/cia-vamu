@@ -2,6 +2,7 @@ import { Compass, Drama, HeartHandshake, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Logo } from "@/components/logo";
+import { AboutMembers } from "@/modules/about/ui/components/about-members";
 
 const PILLARS = [
   { key: "vision", letter: "V", icon: Compass },
@@ -27,6 +28,7 @@ export const AboutView = () => {
             ),
           })}
         </p>
+        <p className="text-sm text-muted-foreground">{t("affiliation")}</p>
       </section>
 
       <section className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -59,6 +61,8 @@ export const AboutView = () => {
           {t("missionSection.description")}
         </p>
       </section>
+
+      <AboutMembers />
     </div>
   );
 };

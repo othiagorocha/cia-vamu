@@ -6,6 +6,7 @@ import { ImageOffIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { PhotoLightbox } from "@/modules/albums/ui/components/photo-lightbox";
+import { AlbumCard } from "@/modules/albums/ui/components/album-card";
 import { trpc } from "@/trpc/client";
 
 export const AlbumDetailView = ({ albumId }: { albumId: string }) => {
@@ -21,6 +22,21 @@ export const AlbumDetailView = ({ albumId }: { albumId: string }) => {
           <p className="max-w-2xl text-muted-foreground">{album.description}</p>
         )}
       </div>
+
+      {album.children.length > 0 ? (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {album.children.map((child) => (
+            <AlbumCard
+              key={child.id}
+              album={{
+                ...child,
+                photoCount: 0,
+                publishedChildCount: 0,
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
 
       {album.photos.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-24 text-center text-muted-foreground">

@@ -8,6 +8,7 @@ export const albumFormSchema = z.object({
   title: z.string().min(2, "Informe um título."),
   description: z.string().optional(),
   published: z.boolean(),
+  parentId: z.uuid().optional().or(z.literal("")),
   coverImage: dataUrlSchema.optional(),
 });
 
@@ -27,6 +28,7 @@ export const removeAlbumSchema = z.object({
 export const addPhotoSchema = z.object({
   albumId: z.uuid(),
   image: dataUrlSchema,
+  title: z.string().optional(),
   caption: z.string().optional(),
 });
 

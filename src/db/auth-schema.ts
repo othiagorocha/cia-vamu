@@ -11,6 +11,7 @@ export const user = pgTable("user", {
     .array()
     .notNull()
     .default(sql`'{}'`),
+  disabled: boolean("disabled").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

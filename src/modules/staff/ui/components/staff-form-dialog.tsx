@@ -16,7 +16,12 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { SITE_CAPABILITIES, type SiteCapability } from "@/lib/permissions";
+import {
+  capabilitiesFromRole,
+  editorModulesFromCapabilities,
+  roleFromCapabilities,
+} from "@/lib/permissions";
+import { AccessRoleFields } from "@/modules/staff/ui/components/access-role-fields";
 import {
   getStaffDialogSchema,
   type StaffDialogInput,
@@ -24,12 +29,6 @@ import {
   type UpdateStaffFormInput,
 } from "@/modules/staff/schema";
 import type { StaffRecord } from "@/modules/staff/types";
-
-const CAPABILITY_LABELS: Record<SiteCapability, "events" | "albums" | "users"> = {
-  "events:write": "events",
-  "albums:write": "albums",
-  "users:manage": "users",
-};
 
 type StaffFormDialogProps = {
   open: boolean;
@@ -58,32 +57,35 @@ export const StaffFormDialog = ({
       name: "",
       email: "",
       password: "",
-      capabilities: [],
+      accessRole: "member",
+      editorModules: [],
+      role: "",
+      isMember: false,
+      showOnAbout: false,
     },
   });
 
-  const capabilities = form.watch("capabilities");
+  const accessRole = form.watch("accessRole");
+  const editorModules = form.watch("editorModules");
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
+    const capabilities = staff?.capabilities ?? [];
+
     form.reset({
       name: staff?.name ?? "",
       email: staff?.email ?? "",
       password: "",
-      capabilities: staff?.capabilities ?? [],
+      accessRole: roleFromCapabilities(capabilities),
+      editorModules: editorModulesFromCapabilities(capabilities),
+      role: staff?.role ?? "",
+      isMember: staff?.isMember ?? false,
+      showOnAbout: staff?.showOnAbout ?? false,
     });
   }, [open, staff, form]);
-
-  const toggleCapability = (capability: SiteCapability, checked: boolean) => {
-    const next = checked
-      ? [...capabilities, capability]
-      : capabilities.filter((item) => item !== capability);
-
-    form.setValue("capabilities", next, { shouldValidate: true, shouldDirty: true });
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,15 +102,28 @@ export const StaffFormDialog = ({
         <form
           className="flex flex-col gap-4"
           onSubmit={form.handleSubmit((values) => {
+            const capabilities = capabilitiesFromRole(
+              values.accessRole,
+              values.editorModules,
+            );
+
             if (isEditing) {
               onUpdate({
                 name: values.name,
-                capabilities: values.capabilities,
+                capabilities,
+                role: values.role,
+                isMember: values.isMember,
+                showOnAbout: values.showOnAbout,
               });
               return;
             }
 
-            onCreate(values as StaffFormInput);
+            onCreate({
+              name: values.name,
+              email: values.email,
+              password: values.password,
+              capabilities,
+            });
           })}
         >
           <FieldGroup>
@@ -144,28 +159,39 @@ export const StaffFormDialog = ({
               </>
             ) : null}
 
-            <Field data-invalid={Boolean(form.formState.errors.capabilities)}>
-              <FieldLabel>{t("form.permissions")}</FieldLabel>
-              <p className="text-sm text-muted-foreground">{t("form.permissionsHint")}</p>
-              <div className="flex flex-col gap-2">
-                {SITE_CAPABILITIES.map((capability) => (
-                  <label
-                    key={capability}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      className="size-4 rounded border-input accent-orange-400"
-                      checked={capabilities.includes(capability)}
-                      onChange={(event) =>
-                        toggleCapability(capability, event.target.checked)
-                      }
-                    />
-                    {t(`capabilities.${CAPABILITY_LABELS[capability]}`)}
-                  </label>
-                ))}
-              </div>
-              <FieldError errors={[form.formState.errors.capabilities]} />
+            <AccessRoleFields
+              accessRole={accessRole}
+              modules={editorModules}
+              onRoleChange={(role) =>
+                form.setValue("accessRole", role, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              onModulesChange={(modules) =>
+                form.setValue("editorModules", modules, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              modulesError={form.formState.errors.editorModules}
+            />
+
+            <Field>
+              <FieldLabel htmlFor="staff-role">{t("role")}</FieldLabel>
+              <Input id="staff-role" {...form.register("role")} />
+            </Field>
+            <Field>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" {...form.register("isMember")} />
+                {t("isMember")}
+              </label>
+            </Field>
+            <Field>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" {...form.register("showOnAbout")} />
+                {t("showOnAbout")}
+              </label>
             </Field>
           </FieldGroup>
 

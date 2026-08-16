@@ -4,9 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarDaysIcon,
+  ExternalLinkIcon,
   ImagesIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  MailIcon,
+  Share2Icon,
+  UserRoundIcon,
   UsersIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -47,11 +51,14 @@ export const DashboardSidebar = ({
 
   const NAV_ITEMS = [
     { href: "/admin", label: t("overview"), icon: LayoutDashboardIcon },
-    ...(hasCapability(session, "events:write")
-      ? [{ href: "/admin/events", label: t("events"), icon: CalendarDaysIcon }]
+    { href: "/admin/perfil", label: t("profile"), icon: UserRoundIcon },
+    { href: "/admin/events", label: t("events"), icon: CalendarDaysIcon },
+    { href: "/admin/albums", label: t("albums"), icon: ImagesIcon },
+    ...(hasCapability(session, "site:write")
+      ? [{ href: "/admin/redes", label: t("social"), icon: Share2Icon }]
       : []),
-    ...(hasCapability(session, "albums:write")
-      ? [{ href: "/admin/albums", label: t("albums"), icon: ImagesIcon }]
+    ...(hasCapability(session, "contact:manage")
+      ? [{ href: "/admin/mensagens", label: t("messages"), icon: MailIcon }]
       : []),
     ...(hasCapability(session, "users:manage")
       ? [{ href: "/admin/equipe", label: t("staff"), icon: UsersIcon }]
@@ -107,6 +114,14 @@ export const DashboardSidebar = ({
                 {user.email}
               </span>
             </div>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <a href="/" target="_blank" rel="noopener noreferrer">
+                <ExternalLinkIcon />
+                <span>{t("viewSite")}</span>
+              </a>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleSignOut}>

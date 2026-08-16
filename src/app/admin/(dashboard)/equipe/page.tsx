@@ -25,6 +25,7 @@ const AdminStaffPage = async () => {
   }
 
   await trpc.staff.list.prefetch();
+  await trpc.staff.listInvites.prefetch();
 
   return (
     <HydrateClient>

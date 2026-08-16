@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -16,11 +15,8 @@ type AlbumPhotosPageProps = {
 
 const AdminAlbumPhotosPage = async ({ params }: AlbumPhotosPageProps) => {
   const session = await getSession();
-
-  if (!hasCapability(session, "albums:write")) {
-    redirect("/admin");
-  }
-
+  const canWrite = hasCapability(session, "albums:write");
+  const canModerate = hasCapability(session, "users:manage");
   const { albumId } = await params;
 
   void trpc.albums.getById.prefetch({ id: albumId });
@@ -29,7 +25,11 @@ const AdminAlbumPhotosPage = async ({ params }: AlbumPhotosPageProps) => {
     <HydrateClient>
       <ErrorBoundary fallbackTitle="Não foi possível carregar o álbum.">
         <Suspense fallback={<AlbumPhotosAdminViewSkeleton />}>
-          <AlbumPhotosAdminView albumId={albumId} />
+          <AlbumPhotosAdminView
+            albumId={albumId}
+            canWrite={canWrite}
+            canModerate={canModerate}
+          />
         </Suspense>
       </ErrorBoundary>
     </HydrateClient>

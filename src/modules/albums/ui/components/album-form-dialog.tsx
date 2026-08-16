@@ -28,6 +28,7 @@ import {
 import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { albumFormSchema, type AlbumFormInput } from "@/modules/albums/schema";
 import type { AlbumRecord } from "@/modules/albums/types";
+import { trpc } from "@/trpc/client";
 
 type AlbumFormDialogProps = {
   open: boolean;
@@ -46,6 +47,7 @@ export const AlbumFormDialog = ({
 }: AlbumFormDialogProps) => {
   const [preview, setPreview] = useState<string | null>(null);
   const [isPasting, setIsPasting] = useState(false);
+  const rootsQuery = trpc.albums.listRoots.useQuery(undefined, { enabled: open });
 
   const form = useForm<AlbumFormInput>({
     resolver: zodResolver(albumFormSchema),
@@ -53,6 +55,7 @@ export const AlbumFormDialog = ({
       title: "",
       description: "",
       published: false,
+      parentId: "",
     },
   });
 
@@ -80,6 +83,7 @@ export const AlbumFormDialog = ({
         title: album?.title ?? "",
         description: album?.description ?? "",
         published: album?.published ?? false,
+        parentId: album?.parentId ?? "",
         coverImage: undefined,
       });
       setPreview(album?.coverImageUrl ?? null);
@@ -150,6 +154,31 @@ export const AlbumFormDialog = ({
                     aria-invalid={fieldState.invalid}
                   />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="parentId"
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel htmlFor="album-parent">Álbum pai</FieldLabel>
+                  <select
+                    id="album-parent"
+                    className="h-9 rounded-lg border bg-background px-3 text-sm"
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                  >
+                    <option value="">Nenhum (álbum principal)</option>
+                    {(rootsQuery.data ?? [])
+                      .filter((root) => root.id !== album?.id)
+                      .map((root) => (
+                        <option key={root.id} value={root.id}>
+                          {root.title}
+                        </option>
+                      ))}
+                  </select>
                 </Field>
               )}
             />

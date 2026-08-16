@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { Logo } from "@/components/logo";
+import { SiteSocialLinks } from "@/modules/social/ui/components/site-social-links";
 
 export const SiteFooter = () => {
   const t = useTranslations("common");
@@ -18,6 +19,7 @@ export const SiteFooter = () => {
           <p className="max-w-xs text-sm text-muted-foreground">
             {t("footer.tagline")}
           </p>
+          <SiteSocialLinks />
         </div>
 
         <nav className="flex flex-col gap-2 text-sm text-muted-foreground">
