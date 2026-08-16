@@ -17,6 +17,7 @@ import {
   capabilitiesFromRole,
   parseCapabilities,
 } from "@/lib/permissions";
+import { uploadImageToStorage } from "@/lib/storage";
 import { isSuperAdminEmail } from "@/lib/super-admin";
 import {
   createStaffUser,
@@ -502,6 +503,7 @@ export const staffRouter = createTRPCRouter({
     .input(acceptInviteSchema)
     .mutation(async ({ input }) => {
       const tokenHash = hashInviteToken(input.token);
+      let createdUserId: string | undefined;
 
       try {
         await db.transaction(async (tx) => {
@@ -548,7 +550,7 @@ export const staffRouter = createTRPCRouter({
               );
           }
 
-          await createStaffUser(
+          const created = await createStaffUser(
             {
               name: input.name,
               email: input.email,
@@ -557,9 +559,31 @@ export const staffRouter = createTRPCRouter({
             },
             tx,
           );
+          createdUserId = created.id;
         });
       } catch (error) {
         mapStaffError(error);
+      }
+
+      if (input.photo && createdUserId) {
+        try {
+          const uploaded = await uploadImageToStorage({
+            dataUrl: input.photo,
+            folder: `members/${createdUserId}`,
+            fileName: `photo-${Date.now()}.jpg`,
+          });
+
+          await db
+            .update(memberProfiles)
+            .set({
+              photoUrl: uploaded.imageUrl,
+              storagePath: uploaded.storagePath,
+              updatedAt: new Date(),
+            })
+            .where(eq(memberProfiles.userId, createdUserId));
+        } catch {
+          // A conta já foi criada; a foto pode ser enviada depois no perfil.
+        }
       }
 
       return { success: true };

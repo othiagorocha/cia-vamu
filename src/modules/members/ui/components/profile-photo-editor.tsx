@@ -12,6 +12,7 @@ import {
   coverScaleFor,
   type PhotoFrame,
 } from "@/lib/crop-photo";
+import { cn } from "@/lib/utils";
 
 type ProfilePhotoEditorProps = {
   source: string | null;
@@ -20,6 +21,7 @@ type ProfilePhotoEditorProps = {
   onFrameChange: (frame: PhotoFrame) => void;
   onFile: (dataUrl: string) => void;
   onRemove?: () => void;
+  align?: "start" | "center";
 };
 
 export const ProfilePhotoEditor = ({
@@ -29,6 +31,7 @@ export const ProfilePhotoEditor = ({
   onFrameChange,
   onFile,
   onRemove,
+  align = "start",
 }: ProfilePhotoEditorProps) => {
   const t = useTranslations("staff.profile");
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -96,7 +99,12 @@ export const ProfilePhotoEditor = ({
       : 1;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div
+      className={cn(
+        "flex flex-col gap-3",
+        align === "center" && "items-center",
+      )}
+    >
       {displaySrc ? (
         <div
           ref={viewportRef}
@@ -175,8 +183,18 @@ export const ProfilePhotoEditor = ({
         />
       )}
       {canMove ? (
-        <div className="flex flex-col items-start gap-2">
-          <div className="flex flex-wrap gap-2">
+        <div
+          className={cn(
+            "flex flex-col gap-2",
+            align === "center" ? "items-center" : "items-start",
+          )}
+        >
+          <div
+            className={cn(
+              "flex flex-wrap gap-2",
+              align === "center" && "justify-center",
+            )}
+          >
             <Button
               type="button"
               size="sm"
@@ -199,7 +217,12 @@ export const ProfilePhotoEditor = ({
               </Button>
             ) : null}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p
+            className={cn(
+              "text-xs text-muted-foreground",
+              align === "center" && "text-center",
+            )}
+          >
             {repositioning ? t("photoRepositionHint") : t("photoHint")}
           </p>
         </div>
