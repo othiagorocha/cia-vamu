@@ -21,6 +21,7 @@ import {
   editorModulesFromCapabilities,
   roleFromCapabilities,
 } from "@/lib/permissions";
+import { isSuperAdminEmail } from "@/lib/super-admin";
 import { AccessRoleFields } from "@/modules/staff/ui/components/access-role-fields";
 import {
   getStaffDialogSchema,
@@ -162,6 +163,7 @@ export const StaffFormDialog = ({
             <AccessRoleFields
               accessRole={accessRole}
               modules={editorModules}
+              disabled={Boolean(staff && isSuperAdminEmail(staff.email))}
               onRoleChange={(role) =>
                 form.setValue("accessRole", role, {
                   shouldValidate: true,

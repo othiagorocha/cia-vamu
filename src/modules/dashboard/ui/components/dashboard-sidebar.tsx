@@ -10,12 +10,12 @@ import {
   LogOutIcon,
   MailIcon,
   Share2Icon,
-  UserRoundIcon,
   UsersIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Logo } from "@/components/logo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { hasCapability, type SiteCapability } from "@/lib/permissions";
 import {
   Sidebar,
@@ -30,6 +30,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { trpc } from "@/trpc/client";
 
 type DashboardSidebarProps = {
   user: {
@@ -48,10 +49,13 @@ export const DashboardSidebar = ({
   const t = useTranslations("dashboard.nav");
   const tCommon = useTranslations("common");
   const session = { user: { capabilities } };
+  const meQuery = trpc.members.getMe.useQuery();
+  const photoUrl = meQuery.data?.photoUrl ?? null;
+  const displayName = meQuery.data?.name ?? user.name;
+  const initial = displayName.trim().charAt(0).toUpperCase() || "?";
 
   const NAV_ITEMS = [
     { href: "/admin", label: t("overview"), icon: LayoutDashboardIcon },
-    { href: "/admin/perfil", label: t("profile"), icon: UserRoundIcon },
     { href: "/admin/events", label: t("events"), icon: CalendarDaysIcon },
     { href: "/admin/albums", label: t("albums"), icon: ImagesIcon },
     ...(hasCapability(session, "site:write")
@@ -108,12 +112,24 @@ export const DashboardSidebar = ({
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex flex-col gap-2 px-2 py-1.5 text-sm">
-              <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-xs text-muted-foreground">
-                {user.email}
-              </span>
-            </div>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive("/admin/perfil")}
+              className="h-auto py-1.5"
+            >
+              <Link href="/admin/perfil" aria-label={t("profile")}>
+                <Avatar>
+                  {photoUrl ? <AvatarImage src={photoUrl} alt="" /> : null}
+                  <AvatarFallback>{initial}</AvatarFallback>
+                </Avatar>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate font-medium">{displayName}</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
+                </div>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>

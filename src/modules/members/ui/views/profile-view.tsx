@@ -36,6 +36,7 @@ export const ProfileView = () => {
     defaultValues: {
       name: me?.name ?? "",
       testimony: me?.testimony ?? "",
+      removePhoto: false,
     },
   });
 
@@ -43,6 +44,7 @@ export const ProfileView = () => {
     form.reset({
       name: me?.name ?? "",
       testimony: me?.testimony ?? "",
+      removePhoto: false,
     });
     setSource(null);
     setFrame(DEFAULT_FRAME);
@@ -71,10 +73,11 @@ export const ProfileView = () => {
           const cropSource = source ?? me?.photoUrl ?? null;
           const frameChanged =
             frame.offsetX !== 0 || frame.offsetY !== 0 || frame.zoom !== 1;
+          const removePhoto = Boolean(values.removePhoto) && !source;
 
           let photo = values.photo;
 
-          if (cropSource && (source || frameChanged)) {
+          if (!removePhoto && cropSource && (source || frameChanged)) {
             try {
               photo = await cropPhotoToSquare(
                 cropSource,
@@ -87,7 +90,7 @@ export const ProfileView = () => {
             }
           }
 
-          mutation.mutate({ ...values, photo });
+          mutation.mutate({ ...values, photo, removePhoto });
         })}
       >
         <FieldGroup>
@@ -106,14 +109,25 @@ export const ProfileView = () => {
             <FieldLabel>{t("photo")}</FieldLabel>
             <ProfilePhotoEditor
               source={source}
-              savedUrl={me?.photoUrl ?? null}
+              savedUrl={form.watch("removePhoto") ? null : (me?.photoUrl ?? null)}
               frame={frame}
               onFrameChange={setFrame}
               onFile={(dataUrl) => {
                 setSource(dataUrl);
                 setFrame(DEFAULT_FRAME);
                 form.setValue("photo", dataUrl, { shouldDirty: true });
+                form.setValue("removePhoto", false, { shouldDirty: true });
               }}
+              onRemove={
+                source || me?.photoUrl
+                  ? () => {
+                      setSource(null);
+                      setFrame(DEFAULT_FRAME);
+                      form.setValue("photo", undefined, { shouldDirty: true });
+                      form.setValue("removePhoto", true, { shouldDirty: true });
+                    }
+                  : undefined
+              }
             />
           </Field>
           <Field>

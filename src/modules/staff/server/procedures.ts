@@ -13,9 +13,11 @@ import {
   inviteExpiresAt,
 } from "@/lib/invite-token";
 import {
+  ALL_CAPABILITIES,
   capabilitiesFromRole,
   parseCapabilities,
 } from "@/lib/permissions";
+import { isSuperAdminEmail } from "@/lib/super-admin";
 import {
   createStaffUser,
   setStaffPassword,
@@ -151,12 +153,20 @@ export const staffRouter = createTRPCRouter({
         });
       }
 
+      const isSuperAdmin = isSuperAdminEmail(existing.email);
       const wasGestor = parseCapabilities(existing.capabilities).includes(
         "users:manage",
       );
       const willBeGestor = input.capabilities.includes("users:manage");
 
-      if (wasGestor && !willBeGestor) {
+      if (isSuperAdmin && !willBeGestor) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "O papel do super admin não pode ser alterado.",
+        });
+      }
+
+      if (!isSuperAdmin && wasGestor && !willBeGestor) {
         const remainingGestores = await countGestores(input.id);
 
         if (remainingGestores === 0) {
@@ -167,11 +177,15 @@ export const staffRouter = createTRPCRouter({
         }
       }
 
+      const capabilities = isSuperAdmin
+        ? [...ALL_CAPABILITIES]
+        : input.capabilities;
+
       const [updated] = await db
         .update(user)
         .set({
           name: input.name.trim(),
-          capabilities: input.capabilities,
+          capabilities,
           updatedAt: new Date(),
         })
         .where(eq(user.id, input.id))
@@ -257,6 +271,13 @@ export const staffRouter = createTRPCRouter({
         });
       }
 
+      if (isSuperAdminEmail(existing.email)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "O super admin não pode ser desativado.",
+        });
+      }
+
       if (input.disabled) {
         const isGestor = parseCapabilities(existing.capabilities).includes(
           "users:manage",
@@ -303,6 +324,13 @@ export const staffRouter = createTRPCRouter({
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Usuário não encontrado.",
+        });
+      }
+
+      if (isSuperAdminEmail(existing.email)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "O super admin não pode ser excluído.",
         });
       }
 

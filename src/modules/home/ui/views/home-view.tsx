@@ -16,15 +16,15 @@ export const HomeView = () => {
     <div className="flex flex-col">
       <Hero />
 
-      <ErrorBoundary fallbackTitle="Não foi possível carregar os álbuns.">
-        <Suspense fallback={<FeaturedAlbumsSkeleton />}>
-          <FeaturedAlbums />
-        </Suspense>
-      </ErrorBoundary>
-
       <ErrorBoundary fallbackTitle="Não foi possível carregar a agenda.">
         <Suspense fallback={<UpcomingEventsSkeleton />}>
           <UpcomingEvents />
+        </Suspense>
+      </ErrorBoundary>
+
+      <ErrorBoundary fallbackTitle="Não foi possível carregar os álbuns.">
+        <Suspense fallback={<FeaturedAlbumsSkeleton />}>
+          <FeaturedAlbums />
         </Suspense>
       </ErrorBoundary>
     </div>

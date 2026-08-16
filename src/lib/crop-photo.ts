@@ -1,3 +1,5 @@
+import { parseDataUrl } from "@/lib/data-url";
+
 export type PhotoFrame = {
   offsetX: number;
   offsetY: number;
@@ -7,20 +9,15 @@ export type PhotoFrame = {
 const OUTPUT_SIZE = 512;
 
 const dataUrlToBlob = (dataUrl: string) => {
-  const match = dataUrl.match(/^data:(.+);base64,(.*)$/);
-
-  if (!match) {
-    throw new Error("Imagem inválida.");
-  }
-
-  const bytes = atob(match[2]);
+  const { contentType, base64 } = parseDataUrl(dataUrl);
+  const bytes = atob(base64);
   const buffer = new Uint8Array(bytes.length);
 
   for (let index = 0; index < bytes.length; index += 1) {
     buffer[index] = bytes.charCodeAt(index);
   }
 
-  return new Blob([buffer], { type: match[1] });
+  return new Blob([buffer], { type: contentType });
 };
 
 export const bitmapFromSrc = async (src: string) => {

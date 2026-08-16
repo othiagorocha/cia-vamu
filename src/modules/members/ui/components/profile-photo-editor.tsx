@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MoveIcon } from "lucide-react";
+import { MoveIcon, Trash2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { PhotoExpandDialog } from "@/components/photo-expand-dialog";
@@ -19,6 +19,7 @@ type ProfilePhotoEditorProps = {
   frame: PhotoFrame;
   onFrameChange: (frame: PhotoFrame) => void;
   onFile: (dataUrl: string) => void;
+  onRemove?: () => void;
 };
 
 export const ProfilePhotoEditor = ({
@@ -27,6 +28,7 @@ export const ProfilePhotoEditor = ({
   frame,
   onFrameChange,
   onFile,
+  onRemove,
 }: ProfilePhotoEditorProps) => {
   const t = useTranslations("staff.profile");
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -174,16 +176,29 @@ export const ProfilePhotoEditor = ({
       )}
       {canMove ? (
         <div className="flex flex-col items-start gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={repositioning ? "default" : "outline"}
-            aria-pressed={repositioning}
-            onClick={() => setRepositioning((current) => !current)}
-          >
-            <MoveIcon />
-            {t("photoReposition")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={repositioning ? "default" : "outline"}
+              aria-pressed={repositioning}
+              onClick={() => setRepositioning((current) => !current)}
+            >
+              <MoveIcon />
+              {t("photoReposition")}
+            </Button>
+            {onRemove ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={onRemove}
+              >
+                <Trash2Icon />
+                {t("photoRemove")}
+              </Button>
+            ) : null}
+          </div>
           <p className="text-xs text-muted-foreground">
             {repositioning ? t("photoRepositionHint") : t("photoHint")}
           </p>

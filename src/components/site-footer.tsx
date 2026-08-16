@@ -19,6 +19,7 @@ export const SiteFooter = () => {
           <p className="max-w-xs text-sm text-muted-foreground">
             {t("footer.tagline")}
           </p>
+          <p className="text-sm font-medium">{t("social.follow")}</p>
           <SiteSocialLinks />
         </div>
 

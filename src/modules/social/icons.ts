@@ -1,54 +1,58 @@
+import type { IconType } from "react-icons";
 import {
-  Camera,
-  Globe,
-  Heart,
-  Link as LinkIcon,
-  Mail,
-  MessageCircle,
-  Music,
-  Play,
-  Share2,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+  FaCamera,
+  FaEnvelope,
+  FaFacebook,
+  FaGlobe,
+  FaHeart,
+  FaInstagram,
+  FaLink,
+  FaMusic,
+  FaPlay,
+  FaSpotify,
+  FaWhatsapp,
+  FaYoutube,
+} from "react-icons/fa";
 
 import type { SocialPlatform } from "@/modules/social/schema";
 import { OTHER_ICON_NAMES } from "@/modules/social/schema";
 
-export const PLATFORM_ICONS: Record<Exclude<SocialPlatform, "other">, LucideIcon> =
-  {
-    instagram: Camera,
-    youtube: Play,
-    facebook: Users,
-    whatsapp: MessageCircle,
-    spotify: Music,
-  };
+export const PLATFORM_ICONS: Record<
+  Exclude<SocialPlatform, "other">,
+  IconType
+> = {
+  instagram: FaInstagram,
+  youtube: FaYoutube,
+  facebook: FaFacebook,
+  whatsapp: FaWhatsapp,
+  spotify: FaSpotify,
+};
 
 export const OTHER_ICON_OPTIONS: {
   name: (typeof OTHER_ICON_NAMES)[number];
-  icon: LucideIcon;
+  icon: IconType;
 }[] = [
-  { name: "Globe", icon: Globe },
-  { name: "Link", icon: LinkIcon },
-  { name: "Play", icon: Play },
-  { name: "Camera", icon: Camera },
-  { name: "Heart", icon: Heart },
-  { name: "Music", icon: Music },
-  { name: "Mail", icon: Mail },
-  { name: "Instagram", icon: Camera },
-  { name: "Youtube", icon: Play },
-  { name: "Facebook", icon: Users },
+  { name: "Globe", icon: FaGlobe },
+  { name: "Link", icon: FaLink },
+  { name: "Play", icon: FaPlay },
+  { name: "Camera", icon: FaCamera },
+  { name: "Heart", icon: FaHeart },
+  { name: "Music", icon: FaMusic },
+  { name: "Mail", icon: FaEnvelope },
+  { name: "Instagram", icon: FaInstagram },
+  { name: "Youtube", icon: FaYoutube },
+  { name: "Facebook", icon: FaFacebook },
 ];
 
 export const getSocialIcon = (
   platform: SocialPlatform,
   iconName?: string | null,
-): LucideIcon => {
+): IconType => {
   if (platform !== "other") {
     return PLATFORM_ICONS[platform];
   }
 
   return (
-    OTHER_ICON_OPTIONS.find((item) => item.name === iconName)?.icon ?? Globe
+    OTHER_ICON_OPTIONS.find((item) => item.name === iconName)?.icon ?? FaGlobe
   );
 };

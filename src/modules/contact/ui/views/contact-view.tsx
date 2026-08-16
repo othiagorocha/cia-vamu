@@ -14,6 +14,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { contactFormSchema, type ContactFormInput } from "@/modules/contact/schema";
+import { SiteSocialLinks } from "@/modules/social/ui/components/site-social-links";
 import { trpc } from "@/trpc/client";
 
 export const ContactView = () => {
@@ -41,6 +42,8 @@ export const ContactView = () => {
           <Logo variant="white" className="size-14" />
           <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("subtitle")}</p>
+          <p className="text-sm text-muted-foreground">{t("socialHint")}</p>
+          <SiteSocialLinks variant="icons" className="justify-center" />
         </div>
       </Reveal>
 

@@ -7,4 +7,7 @@ export type PublishedAlbumCard = AlbumRecord & {
   publishedChildCount: number;
 };
 
-export type AlbumWithPhotos = AlbumRecord & { photos: PhotoRecord[] };
+export type AlbumWithPhotos = AlbumRecord & {
+  photos: PhotoRecord[];
+  children: AlbumRecord[];
+};

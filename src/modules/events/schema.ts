@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isImageDataUrl } from "@/lib/data-url";
+
 export const eventTypeSchema = z.enum([
   "teatro",
   "viagem",
@@ -9,7 +11,7 @@ export const eventTypeSchema = z.enum([
 
 const dataUrlSchema = z
   .string()
-  .regex(/^data:image\/(png|jpe?g|webp|gif);base64,/, "Imagem inválida.");
+  .refine(isImageDataUrl, "Imagem inválida.");
 
 export const eventFormSchema = z
   .object({

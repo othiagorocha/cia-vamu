@@ -28,6 +28,7 @@ type AccessRoleFieldsProps = {
   onRoleChange: (role: SiteRole) => void;
   onModulesChange: (modules: EditorCapability[]) => void;
   modulesError?: { message?: string };
+  disabled?: boolean;
 };
 
 export const AccessRoleFields = ({
@@ -36,6 +37,7 @@ export const AccessRoleFields = ({
   onRoleChange,
   onModulesChange,
   modulesError,
+  disabled = false,
 }: AccessRoleFieldsProps) => {
   const t = useTranslations("staff");
 
@@ -53,6 +55,7 @@ export const AccessRoleFields = ({
         <Select
           value={accessRole}
           onValueChange={(value) => onRoleChange(value as SiteRole)}
+          disabled={disabled}
         >
           <SelectTrigger className="w-full">
             <SelectValue />
@@ -81,6 +84,7 @@ export const AccessRoleFields = ({
                   type="checkbox"
                   className="mt-1 size-4 rounded border-input accent-orange-400"
                   checked={modules.includes(capability)}
+                  disabled={disabled}
                   onChange={(event) =>
                     toggleModule(capability, event.target.checked)
                   }

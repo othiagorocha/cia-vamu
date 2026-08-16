@@ -40,6 +40,7 @@ import {
   editorModulesFromCapabilities,
   roleFromCapabilities,
 } from "@/lib/permissions";
+import { isSuperAdminEmail } from "@/lib/super-admin";
 import { StaffFormDialog } from "@/modules/staff/ui/components/staff-form-dialog";
 import { StaffInviteDialog } from "@/modules/staff/ui/components/staff-invite-dialog";
 import { StaffPasswordDialog } from "@/modules/staff/ui/components/staff-password-dialog";
@@ -210,6 +211,8 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
             <TableBody>
               {staffList.map((member) => {
                 const isCurrentUser = member.id === currentUserId;
+                const isSuperAdmin = isSuperAdminEmail(member.email);
+                const canMutateAccess = !isCurrentUser && !isSuperAdmin;
 
                 return (
                   <TableRow key={member.id}>
@@ -246,6 +249,11 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                           {member.name}
                           {isCurrentUser ? (
                             <Badge variant="outline">{t("you")}</Badge>
+                          ) : null}
+                          {isSuperAdmin ? (
+                            <Badge className="bg-orange-400 text-black hover:bg-orange-400">
+                              {t("superAdmin")}
+                            </Badge>
                           ) : null}
                           {member.disabled ? (
                             <Badge variant="secondary">{t("deactivated")}</Badge>
@@ -294,7 +302,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          disabled={isCurrentUser}
+                          disabled={!canMutateAccess}
                           onClick={() =>
                             disableMutation.mutate({
                               id: member.id,
@@ -307,7 +315,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          disabled={isCurrentUser}
+                          disabled={!canMutateAccess}
                           onClick={() => setDeleteTarget(member)}
                           aria-label={tCommon("actions.delete")}
                         >

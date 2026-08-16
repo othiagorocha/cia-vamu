@@ -20,6 +20,9 @@
     "footer": {
       "tagline": "Ministério evangelístico missionário da Igreja Evangélica Batista de Ibitinga — Visão, Arte, Missão, Unção.",
       "rights": "Todos os direitos reservados."
+    },
+    "social": {
+      "follow": "Siga nas redes"
     }
   },
   "home": {
@@ -37,6 +40,7 @@
     },
     "events": {
       "title": "Próximos eventos",
+      "eyebrow": "Agenda",
       "subtitle": "Fique por dentro da nossa agenda.",
       "viewAll": "Ver agenda completa",
       "empty": "Nenhum evento programado no momento."
@@ -76,6 +80,7 @@
   "contact": {
     "title": "Entre em contato",
     "subtitle": "Tem alguma dúvida ou convite? Fale com a gente.",
+    "socialHint": "Ou chame a gente pelas redes.",
     "fields": {
       "name": "Nome",
       "email": "E-mail",
@@ -90,15 +95,35 @@
     "subtitle": "Fotos dos nossos trabalhos, viagens e apresentações.",
     "empty": "Nenhum álbum publicado no momento.",
     "emptyPhotos": "Este álbum ainda não tem fotos.",
+    "backToAlbums": "Voltar aos álbuns",
+    "backToParent": "Voltar para {title}",
+    "previousAlbum": "Álbum anterior",
+    "nextAlbum": "Próximo álbum",
     "photoCount": "{count, plural, one {# foto} other {# fotos}}",
     "childCount": "{count, plural, one {# álbum} other {# álbuns}}",
     "parent": "Álbum pai",
     "noParent": "Nenhum (álbum principal)",
+    "newChild": "Novo subálbum",
+    "childrenTitle": "Subálbuns",
+    "childrenEmpty": "Nenhum subálbum neste álbum ainda.",
+    "childCreated": "Subálbum criado com sucesso.",
+    "newChildDescription": "O subálbum ficará dentro de {title}.",
+    "move": "Mover",
+    "moveTitle": "Mover foto",
+    "moveTo": "Álbum de destino",
+    "moved": "Foto movida com sucesso.",
+    "moveEmpty": "Não há outro álbum para receber esta foto.",
+    "setCover": "Definir como capa",
+    "coverSet": "Capa atualizada.",
+    "cover": "Capa",
+    "photoActions": "Opções da foto",
     "queueTitle": "Fila de envio",
     "queueConfirm": "Enviar fotos",
     "queueEmpty": "Nenhuma foto na fila.",
     "photoTitle": "Nome",
     "photoCaption": "Descrição",
+    "editPhoto": "Editar foto",
+    "photoUpdated": "Foto atualizada.",
     "like": "Curtir",
     "unlike": "Descurtir",
     "comment": "Comentar",
@@ -204,6 +229,7 @@
       "created": "Convite gerado."
     },
     "you": "Você",
+    "superAdmin": "Super admin",
     "expandPhoto": "Ampliar foto de {name}",
     "created": "Acesso criado.",
     "updated": "Acesso atualizado.",
@@ -270,6 +296,7 @@
       "photoReposition": "Reposicionar",
       "photoRepositionHint": "Arraste para mover e use a roda do mouse para aproximar. Clique de novo no botão para sair.",
       "photoCropError": "Não foi possível recortar a foto. Tente de novo.",
+      "photoRemove": "Remover foto",
       "saved": "Perfil atualizado."
     }
   },

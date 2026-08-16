@@ -12,13 +12,22 @@ import {
   photoLikes,
   photos,
 } from "@/db/schema";
-import { deleteImageFromStorage, uploadImageToStorage } from "@/lib/storage";
+import {
+  createSignedImageUpload,
+  deleteImageFromStorage,
+  publicUrlForStoragePath,
+  uploadImageToStorage,
+} from "@/lib/storage";
 import {
   addPhotoSchema,
   createAlbumSchema,
+  createPhotoUploadSchema,
+  movePhotoSchema,
   removeAlbumSchema,
   removePhotoSchema,
+  setCoverSchema,
   updateAlbumSchema,
+  updatePhotoSchema,
 } from "@/modules/albums/schema";
 import {
   baseProcedure,
@@ -28,6 +37,18 @@ import {
 } from "@/trpc/init";
 
 const parentAlbum = alias(albums, "parent_album");
+
+const isAlbumPhotoPath = (albumId: string, storagePath: string) => {
+  const prefix = `albums/${albumId}/`;
+  if (!storagePath.startsWith(prefix)) {
+    return false;
+  }
+
+  const fileName = storagePath.slice(prefix.length);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpe?g|webp|gif)$/i.test(
+    fileName,
+  );
+};
 
 const assertValidParent = async (parentId: string | null | undefined, selfId?: string) => {
   if (!parentId) {
@@ -100,7 +121,20 @@ export const albumsRouter = createTRPCRouter({
           photos: {
             orderBy: (fields, { asc: ascending }) => ascending(fields.sortOrder),
           },
-          children: true,
+          parent: {
+            columns: {
+              id: true,
+              title: true,
+              published: true,
+            },
+          },
+          children: {
+            with: {
+              photos: {
+                columns: { id: true },
+              },
+            },
+          },
         },
       });
 
@@ -108,9 +142,52 @@ export const albumsRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Álbum não encontrado." });
       }
 
+      const siblings = album.parentId
+        ? await db
+            .select({
+              id: albums.id,
+              title: albums.title,
+            })
+            .from(albums)
+            .where(
+              and(eq(albums.parentId, album.parentId), eq(albums.published, true)),
+            )
+            .orderBy(asc(albums.createdAt))
+        : [];
+
+      const siblingIndex = siblings.findIndex((item) => item.id === album.id);
+      const previousAlbum =
+        siblingIndex > 0 ? siblings[siblingIndex - 1] : null;
+      const nextAlbum =
+        siblingIndex >= 0 && siblingIndex < siblings.length - 1
+          ? siblings[siblingIndex + 1]
+          : null;
+
+      const { parent, ...albumData } = album;
+
       return {
-        ...album,
-        children: album.children.filter((child) => child.published),
+        ...albumData,
+        parent:
+          parent?.published
+            ? { id: parent.id, title: parent.title }
+            : null,
+        previousAlbum,
+        nextAlbum,
+        children: album.children
+          .filter((child) => child.published)
+          .map((child) => ({
+            id: child.id,
+            title: child.title,
+            description: child.description,
+            coverImageUrl: child.coverImageUrl,
+            parentId: child.parentId,
+            published: child.published,
+            publishedAt: child.publishedAt,
+            createdAt: child.createdAt,
+            updatedAt: child.updatedAt,
+            photoCount: child.photos.length,
+            publishedChildCount: 0,
+          })),
       };
     }),
 
@@ -134,6 +211,10 @@ export const albumsRouter = createTRPCRouter({
         with: {
           photos: {
             orderBy: (fields, { asc: ascending }) => ascending(fields.sortOrder),
+          },
+          children: {
+            orderBy: (fields, { desc: descending }) =>
+              descending(fields.createdAt),
           },
         },
       });
@@ -247,22 +328,24 @@ export const albumsRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Álbum não encontrado." });
       }
 
+      if (!isAlbumPhotoPath(input.albumId, input.storagePath)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Caminho de arquivo inválido.",
+        });
+      }
+
       const existingPhotos = await db
         .select({ id: photos.id })
         .from(photos)
         .where(eq(photos.albumId, input.albumId));
 
-      const uploaded = await uploadImageToStorage({
-        dataUrl: input.image,
-        folder: `albums/${input.albumId}`,
-      });
-
       const [photo] = await db
         .insert(photos)
         .values({
           albumId: input.albumId,
-          imageUrl: uploaded.imageUrl,
-          storagePath: uploaded.storagePath,
+          imageUrl: publicUrlForStoragePath(input.storagePath),
+          storagePath: input.storagePath,
           title: input.title,
           caption: input.caption,
           sortOrder: existingPhotos.length,
@@ -270,6 +353,51 @@ export const albumsRouter = createTRPCRouter({
         .returning();
 
       return photo;
+    }),
+
+  createPhotoUpload: requireCapability("albums:write")
+    .input(createPhotoUploadSchema)
+    .mutation(async ({ input }) => {
+      const [album] = await db
+        .select({ id: albums.id })
+        .from(albums)
+        .where(eq(albums.id, input.albumId));
+
+      if (!album) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Álbum não encontrado." });
+      }
+
+      return createSignedImageUpload({
+        folder: `albums/${input.albumId}`,
+        contentType: input.contentType,
+      });
+    }),
+
+  updatePhoto: requireCapability("albums:write")
+    .input(updatePhotoSchema)
+    .mutation(async ({ input }) => {
+      const [photo] = await db
+        .select({ id: photos.id })
+        .from(photos)
+        .where(eq(photos.id, input.id));
+
+      if (!photo) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Foto não encontrada.",
+        });
+      }
+
+      const [updated] = await db
+        .update(photos)
+        .set({
+          title: input.title.trim() || null,
+          caption: input.caption.trim() || null,
+        })
+        .where(eq(photos.id, input.id))
+        .returning();
+
+      return updated;
     }),
 
   removePhoto: requireCapability("albums:write")
@@ -291,6 +419,91 @@ export const albumsRouter = createTRPCRouter({
       }
 
       return { success: true };
+    }),
+
+  movePhoto: requireCapability("albums:write")
+    .input(movePhotoSchema)
+    .mutation(async ({ input }) => {
+      const [photo] = await db
+        .select()
+        .from(photos)
+        .where(eq(photos.id, input.id));
+
+      if (!photo) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Foto não encontrada.",
+        });
+      }
+
+      if (photo.albumId === input.albumId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "A foto já está neste álbum.",
+        });
+      }
+
+      const [destination] = await db
+        .select({ id: albums.id })
+        .from(albums)
+        .where(eq(albums.id, input.albumId));
+
+      if (!destination) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Álbum de destino não encontrado.",
+        });
+      }
+
+      const destinationPhotos = await db
+        .select({ id: photos.id })
+        .from(photos)
+        .where(eq(photos.albumId, input.albumId));
+
+      const [moved] = await db
+        .update(photos)
+        .set({
+          albumId: input.albumId,
+          sortOrder: destinationPhotos.length,
+        })
+        .where(eq(photos.id, input.id))
+        .returning();
+
+      return moved;
+    }),
+
+  setCover: requireCapability("albums:write")
+    .input(setCoverSchema)
+    .mutation(async ({ input }) => {
+      const [photo] = await db
+        .select()
+        .from(photos)
+        .where(eq(photos.id, input.photoId));
+
+      if (!photo || photo.albumId !== input.albumId) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Foto não encontrada neste álbum.",
+        });
+      }
+
+      const [album] = await db
+        .update(albums)
+        .set({
+          coverImageUrl: photo.imageUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(albums.id, input.albumId))
+        .returning();
+
+      if (!album) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Álbum não encontrado.",
+        });
+      }
+
+      return album;
     }),
 
   photoSocial: protectedProcedure

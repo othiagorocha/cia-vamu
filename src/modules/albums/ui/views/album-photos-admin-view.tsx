@@ -5,8 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeftIcon,
+  ArrowRightLeftIcon,
   ClipboardPasteIcon,
+  FolderPlusIcon,
+  ImageIcon,
   Loader2Icon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  StarIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -25,14 +31,34 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ClipboardImageError,
-  clipboardImageToDataUrl,
   imageFileFromClipboardItems,
   readImageFileFromClipboard,
 } from "@/lib/clipboard-image";
-import { fileToDataUrl } from "@/lib/file-to-data-url";
+import { normalizeImageContentType } from "@/lib/image-file";
+import { uploadFileToSignedUrl } from "@/lib/upload-to-signed-url";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import type { AlbumFormInput } from "@/modules/albums/schema";
 import type { PhotoRecord } from "@/modules/albums/types";
+import { AlbumFormDialog } from "@/modules/albums/ui/components/album-form-dialog";
 import { PhotoLightbox } from "@/modules/albums/ui/components/photo-lightbox";
 import { PhotoSocial } from "@/modules/albums/ui/components/photo-social";
 import { trpc } from "@/trpc/client";
@@ -47,17 +73,30 @@ export const AlbumPhotosAdminView = ({
   canModerate: boolean;
 }) => {
   const t = useTranslations("albums");
+  const tCommon = useTranslations("common");
   const utils = trpc.useUtils();
   const [album] = trpc.albums.getById.useSuspenseQuery({ id: albumId });
   const [deleteTarget, setDeleteTarget] = useState<PhotoRecord | null>(null);
+  const [moveTarget, setMoveTarget] = useState<PhotoRecord | null>(null);
+  const [editTarget, setEditTarget] = useState<PhotoRecord | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCaption, setEditCaption] = useState("");
+  const [destinationAlbumId, setDestinationAlbumId] = useState("");
+  const [childFormOpen, setChildFormOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [queue, setQueue] = useState<
-    { id: string; preview: string; title: string; caption: string }[]
+    { id: string; file: File; preview: string; title: string; caption: string }[]
   >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queueRef = useRef(queue);
+  queueRef.current = queue;
 
   const addPhotoMutation = trpc.albums.addPhoto.useMutation({
+    onError: (error) => toast.error(error.message),
+  });
+
+  const createPhotoUploadMutation = trpc.albums.createPhotoUpload.useMutation({
     onError: (error) => toast.error(error.message),
   });
 
@@ -70,38 +109,113 @@ export const AlbumPhotosAdminView = ({
     onError: (error) => toast.error(error.message),
   });
 
-  const enqueueFiles = async (files: File[]) => {
-    const items = await Promise.all(
-      files.map(async (file) => ({
-        id: crypto.randomUUID(),
-        preview: await fileToDataUrl(file),
-        title: "",
-        caption: "",
-      })),
-    );
-    setQueue((current) => [...current, ...items]);
+  const albumsQuery = trpc.albums.listAll.useQuery(undefined, {
+    enabled: !!moveTarget,
+  });
+
+  const destinationAlbums = (albumsQuery.data ?? []).filter(
+    (item) => item.id !== albumId,
+  );
+
+  const albumOptionLabel = (item: (typeof destinationAlbums)[number]) => {
+    if (!item.parentId) {
+      return item.title;
+    }
+
+    const parent = albumsQuery.data?.find((albumItem) => albumItem.id === item.parentId);
+    return parent ? `${parent.title} › ${item.title}` : item.title;
   };
 
-  const handleFilesSelected = async (files: FileList | null) => {
+  const movePhotoMutation = trpc.albums.movePhoto.useMutation({
+    onSuccess: () => {
+      toast.success(t("moved"));
+      setMoveTarget(null);
+      setDestinationAlbumId("");
+      setActiveIndex(null);
+      utils.albums.getById.invalidate({ id: albumId });
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const setCoverMutation = trpc.albums.setCover.useMutation({
+    onSuccess: () => {
+      toast.success(t("coverSet"));
+      utils.albums.getById.invalidate({ id: albumId });
+      utils.albums.listAll.invalidate();
+      utils.albums.listPublished.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const updatePhotoMutation = trpc.albums.updatePhoto.useMutation({
+    onSuccess: () => {
+      toast.success(t("photoUpdated"));
+      setEditTarget(null);
+      utils.albums.getById.invalidate({ id: albumId });
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const createChildMutation = trpc.albums.create.useMutation({
+    onSuccess: () => {
+      toast.success(t("childCreated"));
+      setChildFormOpen(false);
+      utils.albums.getById.invalidate({ id: albumId });
+      utils.albums.listAll.invalidate();
+      utils.albums.listRoots.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const handleCreateChild = (values: AlbumFormInput) => {
+    createChildMutation.mutate({ ...values, parentId: albumId });
+  };
+
+  const isRootAlbum = !album.parentId;
+
+  const enqueueFiles = (files: File[]) => {
+    const accepted: typeof queue = [];
+
+    for (const file of files) {
+      if (!normalizeImageContentType(file.type)) {
+        toast.error("Use uma imagem PNG, JPEG, WebP ou GIF.");
+        continue;
+      }
+
+      accepted.push({
+        id: crypto.randomUUID(),
+        file,
+        preview: URL.createObjectURL(file),
+        title: "",
+        caption: "",
+      });
+    }
+
+    if (accepted.length === 0) {
+      return;
+    }
+
+    setQueue((current) => [...current, ...accepted]);
+  };
+
+  const removeQueueItem = (id: string) => {
+    setQueue((current) => {
+      const target = current.find((entry) => entry.id === id);
+      if (target) {
+        URL.revokeObjectURL(target.preview);
+      }
+      return current.filter((entry) => entry.id !== id);
+    });
+  };
+
+  const handleFilesSelected = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    await enqueueFiles(Array.from(files));
+    enqueueFiles(Array.from(files));
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const pastePhoto = async (file: File) => {
-    try {
-      const dataUrl = await clipboardImageToDataUrl(file);
-      setQueue((current) => [
-        ...current,
-        { id: crypto.randomUUID(), preview: dataUrl, title: "", caption: "" },
-      ]);
-    } catch (error) {
-      toast.error(
-        error instanceof ClipboardImageError
-          ? error.message
-          : "Não foi possível colar a foto.",
-      );
-    }
+  const pastePhoto = (file: File) => {
+    enqueueFiles([file]);
   };
 
   const confirmQueue = async () => {
@@ -109,16 +223,41 @@ export const AlbumPhotosAdminView = ({
     setIsUploading(true);
     try {
       for (const item of queue) {
+        const contentType = normalizeImageContentType(item.file.type);
+        if (!contentType) {
+          throw new Error("Use uma imagem PNG, JPEG, WebP ou GIF.");
+        }
+
+        const upload = await createPhotoUploadMutation.mutateAsync({
+          albumId,
+          contentType,
+        });
+        await uploadFileToSignedUrl(upload.signedUrl, item.file);
         await addPhotoMutation.mutateAsync({
           albumId,
-          image: item.preview,
+          storagePath: upload.path,
           title: item.title || undefined,
           caption: item.caption || undefined,
         });
+        URL.revokeObjectURL(item.preview);
+        setQueue((current) => current.filter((entry) => entry.id !== item.id));
       }
       toast.success("Fotos enviadas com sucesso.");
-      setQueue([]);
       utils.albums.getById.invalidate({ id: albumId });
+    } catch (error) {
+      const isTrpcError =
+        typeof error === "object" &&
+        error !== null &&
+        "data" in error &&
+        "shape" in error;
+
+      if (!isTrpcError) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível enviar as fotos.",
+        );
+      }
     } finally {
       setIsUploading(false);
     }
@@ -130,6 +269,14 @@ export const AlbumPhotosAdminView = ({
     }
 
     const onPaste = (clipboardEvent: ClipboardEvent) => {
+      const target = clipboardEvent.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
       const items = clipboardEvent.clipboardData?.items;
       if (!items) return;
 
@@ -145,6 +292,12 @@ export const AlbumPhotosAdminView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albumId]);
 
+  useEffect(() => {
+    return () => {
+      queueRef.current.forEach((item) => URL.revokeObjectURL(item.preview));
+    };
+  }, []);
+
   const handlePasteFromClipboard = async () => {
     try {
       const file = await readImageFileFromClipboard();
@@ -158,7 +311,10 @@ export const AlbumPhotosAdminView = ({
     }
   };
 
-  const busy = isUploading || addPhotoMutation.isPending;
+  const busy =
+    isUploading ||
+    addPhotoMutation.isPending ||
+    createPhotoUploadMutation.isPending;
   const activePhoto =
     activeIndex !== null ? album.photos[activeIndex] : null;
 
@@ -207,9 +363,65 @@ export const AlbumPhotosAdminView = ({
             )}
             Adicionar à fila
           </Button>
+          {isRootAlbum ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setChildFormOpen(true)}
+            >
+              <FolderPlusIcon />
+              {t("newChild")}
+            </Button>
+          ) : null}
         </div>
         ) : null}
       </div>
+
+      {isRootAlbum ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            {t("childrenTitle")}
+          </h2>
+          {album.children.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("childrenEmpty")}</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {album.children.map((child) => (
+                <Link
+                  key={child.id}
+                  href={`/admin/albums/${child.id}`}
+                  className="group flex overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
+                >
+                  <div className="relative size-20 shrink-0 bg-muted">
+                    {child.coverImageUrl ? (
+                      <Image
+                        src={child.coverImageUrl}
+                        alt={child.title}
+                        fill
+                        className="object-cover"
+                        sizes="80px"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                        <ImageIcon className="size-6" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-3">
+                    <p className="truncate font-medium">{child.title}</p>
+                    <Badge
+                      variant={child.published ? "default" : "secondary"}
+                      className="w-fit"
+                    >
+                      {child.published ? "Publicado" : "Rascunho"}
+                    </Badge>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {canWrite && queue.length > 0 ? (
         <div className="flex flex-col gap-3 rounded-lg border p-4">
@@ -254,11 +466,7 @@ export const AlbumPhotosAdminView = ({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() =>
-                      setQueue((current) =>
-                        current.filter((entry) => entry.id !== item.id),
-                      )
-                    }
+                    onClick={() => removeQueueItem(item.id)}
                   >
                     Remover
                   </Button>
@@ -299,15 +507,70 @@ export const AlbumPhotosAdminView = ({
                 />
               </button>
               {canWrite ? (
-              <Button
-                variant="destructive"
-                size="icon-sm"
-                className="absolute right-2 top-2 z-10"
-                onClick={() => setDeleteTarget(photo)}
-                aria-label="Excluir foto"
-              >
-                <Trash2Icon className="size-4" />
-              </Button>
+                <div
+                  className="absolute right-2 top-2 z-10"
+                  onClick={(event) => event.stopPropagation()}
+                  onPointerDown={(event) => event.stopPropagation()}
+                >
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      aria-label={t("photoActions")}
+                      className="flex size-8 items-center justify-center rounded-full bg-black/70 text-white outline-none hover:bg-black/85 focus-visible:ring-2 focus-visible:ring-orange-400"
+                    >
+                      <MoreHorizontalIcon className="size-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-44">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditTarget(photo);
+                          setEditTitle(photo.title ?? "");
+                          setEditCaption(photo.caption ?? "");
+                        }}
+                      >
+                        <PencilIcon />
+                        {tCommon("actions.edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setMoveTarget(photo)}>
+                        <ArrowRightLeftIcon />
+                        {t("move")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={
+                          setCoverMutation.isPending ||
+                          album.coverImageUrl === photo.imageUrl
+                        }
+                        onClick={() =>
+                          setCoverMutation.mutate({
+                            albumId,
+                            photoId: photo.id,
+                          })
+                        }
+                      >
+                        <StarIcon
+                          className={
+                            album.coverImageUrl === photo.imageUrl
+                              ? "fill-orange-400 text-orange-400"
+                              : undefined
+                          }
+                        />
+                        {t("setCover")}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => setDeleteTarget(photo)}
+                      >
+                        <Trash2Icon />
+                        {tCommon("actions.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              ) : null}
+              {album.coverImageUrl === photo.imageUrl ? (
+                <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-orange-400">
+                  {t("cover")}
+                </span>
               ) : null}
             </div>
           ))}
@@ -337,6 +600,145 @@ export const AlbumPhotosAdminView = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={!!editTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditTarget(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("editPhoto")}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="photo-title">{t("photoTitle")}</Label>
+              <Input
+                id="photo-title"
+                value={editTitle}
+                onChange={(event) => setEditTitle(event.target.value)}
+                maxLength={200}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="photo-caption">{t("photoCaption")}</Label>
+              <Textarea
+                id="photo-caption"
+                value={editCaption}
+                onChange={(event) => setEditCaption(event.target.value)}
+                maxLength={2000}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditTarget(null)}
+            >
+              {tCommon("actions.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={!editTarget || updatePhotoMutation.isPending}
+              onClick={() =>
+                editTarget &&
+                updatePhotoMutation.mutate({
+                  id: editTarget.id,
+                  title: editTitle,
+                  caption: editCaption,
+                })
+              }
+            >
+              {updatePhotoMutation.isPending ? (
+                <Loader2Icon className="animate-spin" />
+              ) : null}
+              {tCommon("actions.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!moveTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMoveTarget(null);
+            setDestinationAlbumId("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("moveTitle")}</DialogTitle>
+            <DialogDescription>{t("moveTo")}</DialogDescription>
+          </DialogHeader>
+          {destinationAlbums.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("moveEmpty")}</p>
+          ) : (
+            <select
+              className="h-9 w-full rounded-lg border bg-background px-3 text-sm"
+              value={destinationAlbumId}
+              onChange={(event) => setDestinationAlbumId(event.target.value)}
+              aria-label={t("moveTo")}
+            >
+              <option value="">{t("moveTo")}</option>
+              {destinationAlbums.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {albumOptionLabel(item)}
+                </option>
+              ))}
+            </select>
+          )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setMoveTarget(null);
+                setDestinationAlbumId("");
+              }}
+            >
+              {tCommon("actions.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                !moveTarget ||
+                !destinationAlbumId ||
+                movePhotoMutation.isPending
+              }
+              onClick={() =>
+                moveTarget &&
+                movePhotoMutation.mutate({
+                  id: moveTarget.id,
+                  albumId: destinationAlbumId,
+                })
+              }
+            >
+              {movePhotoMutation.isPending ? (
+                <Loader2Icon className="animate-spin" />
+              ) : null}
+              {t("move")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlbumFormDialog
+        open={childFormOpen}
+        onOpenChange={setChildFormOpen}
+        defaultParentId={albumId}
+        lockParent
+        title={t("newChild")}
+        description={t("newChildDescription", { title: album.title })}
+        isSubmitting={createChildMutation.isPending}
+        onSubmit={handleCreateChild}
+      />
 
       <PhotoLightbox
         photos={album.photos}

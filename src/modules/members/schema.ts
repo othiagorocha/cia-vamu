@@ -1,14 +1,17 @@
 import { z } from "zod";
 
+import { isImageDataUrl } from "@/lib/data-url";
+
 const dataUrlSchema = z
   .string()
-  .regex(/^data:image\/(png|jpe?g|webp|gif);base64,/, "Imagem inválida.")
+  .refine(isImageDataUrl, "Imagem inválida.")
   .optional();
 
 export const updateMyProfileSchema = z.object({
   name: z.string().min(2, "Informe o nome."),
   testimony: z.string().optional(),
   photo: dataUrlSchema,
+  removePhoto: z.boolean().optional(),
 });
 
 export type UpdateMyProfileInput = z.infer<typeof updateMyProfileSchema>;

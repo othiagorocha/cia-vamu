@@ -15,16 +15,23 @@ export const UpcomingEvents = () => {
   const upcoming = events.slice(0, 3);
 
   return (
-    <section className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-16">
+    <section className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-20">
       <Reveal>
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium tracking-[0.2em] text-orange-400 uppercase">
+              {t("eyebrow")}
+            </p>
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
               {t("title")}
             </h2>
             <p className="text-muted-foreground">{t("subtitle")}</p>
           </div>
-          <Button variant="ghost" asChild>
+          <Button
+            asChild
+            size="lg"
+            className="rounded-full bg-orange-400 text-black hover:bg-orange-300"
+          >
             <Link href="/agenda">
               {t("viewAll")}
               <ArrowRightIcon />
@@ -55,8 +62,8 @@ export const UpcomingEvents = () => {
 
 export const UpcomingEventsSkeleton = () => {
   return (
-    <section className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-16">
-      <div className="h-8 w-56 animate-pulse rounded bg-muted" />
+    <section className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-20">
+      <div className="h-10 w-64 animate-pulse rounded bg-muted" />
       <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
         {Array.from({ length: 3 }).map((_, index) => (
           <div

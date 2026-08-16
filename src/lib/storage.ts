@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomUUID } from "crypto";
 
+import { parseDataUrl } from "@/lib/data-url";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase";
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "albums";
@@ -14,14 +15,8 @@ type UploadImageInput = {
   fileName?: string;
 };
 
-function parseDataUrl(dataUrl: string) {
-  const match = dataUrl.match(/^data:(.+);base64,(.*)$/);
-
-  if (!match) {
-    throw new Error("Formato de imagem inválido.");
-  }
-
-  const [, contentType, base64] = match;
+function bufferFromDataUrl(dataUrl: string) {
+  const { contentType, base64 } = parseDataUrl(dataUrl);
   return { contentType, buffer: Buffer.from(base64, "base64") };
 }
 
@@ -35,7 +30,7 @@ export async function uploadImageToStorage({
   folder,
   fileName,
 }: UploadImageInput) {
-  const { contentType, buffer } = parseDataUrl(dataUrl);
+  const { contentType, buffer } = bufferFromDataUrl(dataUrl);
   const extension = extensionFromContentType(contentType);
   const finalName = fileName
     ? fileName
@@ -56,6 +51,39 @@ export async function uploadImageToStorage({
   const { data } = client.storage.from(BUCKET).getPublicUrl(path);
 
   return { imageUrl: data.publicUrl, storagePath: path };
+}
+
+export async function createSignedImageUpload({
+  folder,
+  contentType,
+}: {
+  folder: string;
+  contentType: string;
+}) {
+  const extension = extensionFromContentType(contentType);
+  const path = `${folder}/${randomUUID()}.${extension}`;
+  const client = createSupabaseServiceRoleClient();
+  const { data, error } = await client.storage
+    .from(BUCKET)
+    .createSignedUploadUrl(path, { upsert: true });
+
+  if (error || !data) {
+    throw new Error(
+      `Falha ao preparar envio: ${error?.message ?? "resposta vazia."}`,
+    );
+  }
+
+  return {
+    path: data.path,
+    token: data.token,
+    signedUrl: data.signedUrl,
+  };
+}
+
+export function publicUrlForStoragePath(storagePath: string) {
+  const client = createSupabaseServiceRoleClient();
+  const { data } = client.storage.from(BUCKET).getPublicUrl(storagePath);
+  return data.publicUrl;
 }
 
 export async function deleteImageFromStorage(storagePath: string) {

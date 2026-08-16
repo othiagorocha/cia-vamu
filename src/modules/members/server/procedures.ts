@@ -83,6 +83,13 @@ export const membersRouter = createTRPCRouter({
 
         photoUrl = uploaded.imageUrl;
         storagePath = uploaded.storagePath;
+      } else if (input.removePhoto) {
+        if (storagePath) {
+          await deleteImageFromStorage(storagePath).catch(() => undefined);
+        }
+
+        photoUrl = null;
+        storagePath = null;
       }
 
       await db

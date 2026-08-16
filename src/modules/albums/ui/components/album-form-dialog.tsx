@@ -34,6 +34,10 @@ type AlbumFormDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   album?: AlbumRecord | null;
+  defaultParentId?: string;
+  lockParent?: boolean;
+  title?: string;
+  description?: string;
   isSubmitting?: boolean;
   onSubmit: (values: AlbumFormInput) => void;
 };
@@ -42,12 +46,18 @@ export const AlbumFormDialog = ({
   open,
   onOpenChange,
   album,
+  defaultParentId,
+  lockParent = false,
+  title,
+  description,
   isSubmitting,
   onSubmit,
 }: AlbumFormDialogProps) => {
   const [preview, setPreview] = useState<string | null>(null);
   const [isPasting, setIsPasting] = useState(false);
-  const rootsQuery = trpc.albums.listRoots.useQuery(undefined, { enabled: open });
+  const rootsQuery = trpc.albums.listRoots.useQuery(undefined, {
+    enabled: open && !lockParent,
+  });
 
   const form = useForm<AlbumFormInput>({
     resolver: zodResolver(albumFormSchema),
@@ -83,12 +93,12 @@ export const AlbumFormDialog = ({
         title: album?.title ?? "",
         description: album?.description ?? "",
         published: album?.published ?? false,
-        parentId: album?.parentId ?? "",
+        parentId: album?.parentId ?? defaultParentId ?? "",
         coverImage: undefined,
       });
       setPreview(album?.coverImageUrl ?? null);
     }
-  }, [open, album, form]);
+  }, [open, album, defaultParentId, form]);
 
   useEffect(() => {
     if (!open) return;
@@ -129,9 +139,12 @@ export const AlbumFormDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{album ? "Editar álbum" : "Novo álbum"}</DialogTitle>
+          <DialogTitle>
+            {title ?? (album ? "Editar álbum" : "Novo álbum")}
+          </DialogTitle>
           <DialogDescription>
-            Preencha os dados do álbum. Você pode anexar ou colar a capa.
+            {description ??
+              "Preencha os dados do álbum. Você pode anexar ou colar a capa."}
           </DialogDescription>
         </DialogHeader>
 
@@ -158,6 +171,7 @@ export const AlbumFormDialog = ({
               )}
             />
 
+            {!lockParent ? (
             <Controller
               control={form.control}
               name="parentId"
@@ -182,6 +196,7 @@ export const AlbumFormDialog = ({
                 </Field>
               )}
             />
+            ) : null}
 
             <Controller
               control={form.control}
