@@ -4,6 +4,7 @@ import Image from "next/image";
 import { CalendarIcon, MapPinIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Logo } from "@/components/logo";
 import {
   Dialog,
   DialogContent,
@@ -33,8 +34,8 @@ export const EventDetailDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-lg">
-        {event.imageUrl ? (
-          <div className="relative aspect-video w-full overflow-hidden bg-muted">
+        <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-muted">
+          {event.imageUrl ? (
             <Image
               src={event.imageUrl}
               alt={event.title}
@@ -42,8 +43,10 @@ export const EventDetailDialog = ({
               className="object-cover"
               sizes="(min-width: 640px) 512px, 100vw"
             />
-          </div>
-        ) : null}
+          ) : (
+            <Logo variant="orange" className="size-28" />
+          )}
+        </div>
 
         <div className="flex flex-col gap-4 p-4">
           <DialogHeader className="gap-3">

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { CalendarIcon, MapPinIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Logo } from "@/components/logo";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatBrazilDateTime } from "@/lib/brazil-datetime";
 import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
@@ -26,17 +27,19 @@ export const EventCard = ({ event }: { event: EventRecord }) => {
         aria-label={t("expand", { title: event.title })}
         className='h-full w-full cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background'>
         <Card size='sm' className='h-full w-full gap-0 py-0 transition-shadow duration-300 hover:shadow-md'>
-          {event.imageUrl ? (
-            <div className='relative h-60 w-full overflow-hidden bg-muted'>
+          <div className="relative flex h-60 w-full items-center justify-center overflow-hidden bg-muted">
+            {event.imageUrl ? (
               <Image
                 src={event.imageUrl}
-                alt=''
+                alt=""
                 fill
-                className='object-cover'
-                sizes='(min-width: 1024px) 360px, (min-width: 640px) 45vw, 85vw'
+                className="object-cover"
+                sizes="(min-width: 1024px) 360px, (min-width: 640px) 45vw, 85vw"
               />
-            </div>
-          ) : null}
+            ) : (
+              <Logo variant="orange" className="size-24" />
+            )}
+          </div>
 
           <CardHeader className='gap-2 p-3'>
             <div className='flex items-start justify-between gap-2'>

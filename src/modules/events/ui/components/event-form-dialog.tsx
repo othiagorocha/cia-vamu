@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ClipboardPasteIcon, ImageIcon, Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,8 @@ export const EventFormDialog = ({
   isSubmitting,
   onSubmit,
 }: EventFormDialogProps) => {
+  const t = useTranslations("events");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isPasting, setIsPasting] = useState(false);
 
@@ -73,6 +76,7 @@ export const EventFormDialog = ({
       location: "",
       published: false,
       image: undefined,
+      removeImage: false,
     },
   });
 
@@ -81,6 +85,7 @@ export const EventFormDialog = ({
       const dataUrl = await clipboardImageToDataUrl(file);
       setPreview(dataUrl);
       form.setValue("image", dataUrl, { shouldValidate: true, shouldDirty: true });
+      form.setValue("removeImage", false, { shouldDirty: true });
       toast.success("Arte colada da área de transferência.");
     } catch (error) {
       toast.error(
@@ -102,6 +107,7 @@ export const EventFormDialog = ({
         location: event?.location ?? "",
         published: event?.published ?? false,
         image: undefined,
+        removeImage: false,
       });
       setPreview(event?.imageUrl ?? null);
     }
@@ -200,6 +206,7 @@ export const EventFormDialog = ({
                     <div className="flex min-w-0 flex-1 flex-col gap-2">
                       <Input
                         {...field}
+                        ref={fileInputRef}
                         id="event-image"
                         type="file"
                         accept="image/*"
@@ -210,6 +217,9 @@ export const EventFormDialog = ({
                           const dataUrl = await fileToDataUrl(file);
                           setPreview(dataUrl);
                           onChange(dataUrl);
+                          form.setValue("removeImage", false, {
+                            shouldDirty: true,
+                          });
                         }}
                       />
                       <div className="flex flex-wrap items-center gap-2">
@@ -227,6 +237,25 @@ export const EventFormDialog = ({
                           )}
                           Colar imagem
                         </Button>
+                        {preview ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setPreview(null);
+                              onChange(undefined);
+                              form.setValue("removeImage", true, {
+                                shouldDirty: true,
+                              });
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = "";
+                              }
+                            }}
+                          >
+                            {t("removeImage")}
+                          </Button>
+                        ) : null}
                         <span className="text-xs text-muted-foreground">
                           ou Ctrl+V / Cmd+V com o diálogo aberto
                         </span>

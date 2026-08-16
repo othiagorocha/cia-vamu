@@ -8,9 +8,23 @@ import { deleteImageFromStorage, uploadImageToStorage } from "@/lib/storage";
 import {
   createEventSchema,
   removeEventSchema,
+  reorderEventSchema,
   updateEventSchema,
 } from "@/modules/events/schema";
 import { baseProcedure, createTRPCRouter, protectedProcedure, requireCapability } from "@/trpc/init";
+
+const eventListOrder = [asc(events.sortOrder), asc(events.startsAt)] as const;
+
+const persistEventOrder = async (orderedIds: string[]) => {
+  await db.transaction(async (tx) => {
+    for (const [index, id] of orderedIds.entries()) {
+      await tx
+        .update(events)
+        .set({ sortOrder: index, updatedAt: new Date() })
+        .where(eq(events.id, id));
+    }
+  });
+};
 
 export const eventsRouter = createTRPCRouter({
   listUpcoming: baseProcedure.query(async () => {
@@ -20,11 +34,11 @@ export const eventsRouter = createTRPCRouter({
       .select()
       .from(events)
       .where(and(eq(events.published, true), gte(events.startsAt, now)))
-      .orderBy(asc(events.startsAt));
+      .orderBy(...eventListOrder);
   }),
 
   listAll: protectedProcedure.query(async () => {
-    return db.select().from(events).orderBy(desc(events.startsAt));
+    return db.select().from(events).orderBy(...eventListOrder);
   }),
 
   getOne: baseProcedure
@@ -49,6 +63,11 @@ export const eventsRouter = createTRPCRouter({
     .input(createEventSchema)
     .mutation(async ({ input }) => {
       const { image, ...data } = input;
+      const [last] = await db
+        .select({ sortOrder: events.sortOrder })
+        .from(events)
+        .orderBy(desc(events.sortOrder))
+        .limit(1);
 
       const [created] = await db
         .insert(events)
@@ -60,6 +79,7 @@ export const eventsRouter = createTRPCRouter({
           endsAt: data.endsAt ?? null,
           location: data.location,
           published: data.published,
+          sortOrder: (last?.sortOrder ?? -1) + 1,
         })
         .returning();
 
@@ -100,7 +120,7 @@ export const eventsRouter = createTRPCRouter({
         });
       }
 
-      const { image, ...data } = input.data;
+      const { image, removeImage, ...data } = input.data;
       let imageUrl = existing.imageUrl;
       let storagePath = existing.storagePath;
 
@@ -116,6 +136,13 @@ export const eventsRouter = createTRPCRouter({
 
         imageUrl = uploaded.imageUrl;
         storagePath = uploaded.storagePath;
+      } else if (removeImage) {
+        if (existing.storagePath) {
+          await deleteImageFromStorage(existing.storagePath).catch(() => undefined);
+        }
+
+        imageUrl = null;
+        storagePath = null;
       }
 
       const [event] = await db
@@ -158,6 +185,34 @@ export const eventsRouter = createTRPCRouter({
       }
 
       await db.delete(events).where(eq(events.id, input.id));
+      return { success: true };
+    }),
+
+  reorder: requireCapability("events:write")
+    .input(reorderEventSchema)
+    .mutation(async ({ input }) => {
+      const ordered = await db.select().from(events).orderBy(...eventListOrder);
+      const currentIndex = ordered.findIndex((event) => event.id === input.id);
+
+      if (currentIndex < 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Evento não encontrado.",
+        });
+      }
+
+      const targetIndex =
+        input.direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+      if (targetIndex < 0 || targetIndex >= ordered.length) {
+        return { success: true };
+      }
+
+      const reordered = [...ordered];
+      const [moved] = reordered.splice(currentIndex, 1);
+      reordered.splice(targetIndex, 0, moved);
+
+      await persistEventOrder(reordered.map((event) => event.id));
       return { success: true };
     }),
 });

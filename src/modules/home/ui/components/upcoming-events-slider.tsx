@@ -23,32 +23,35 @@ export const UpcomingEventsSlider = ({ events }: UpcomingEventsSliderProps) => {
   return (
     <Carousel
       opts={{ align: "start", containScroll: "trimSnaps" }}
-      className="w-full"
+      className="flex w-full items-center gap-2 sm:gap-3"
     >
-      <CarouselContent>
-        {events.map((event) => (
-          <CarouselItem
-            key={event.id}
-            className="basis-[85%] sm:basis-1/2 lg:basis-1/3"
-          >
-            <EventCard event={event} />
-          </CarouselItem>
-        ))}
-      </CarouselContent>
+      {showControls ? (
+        <CarouselPrevious
+          size="icon"
+          aria-label={t("previous")}
+          className="static inset-auto size-8 shrink-0"
+        />
+      ) : null}
+
+      <div className="min-w-0 flex-1">
+        <CarouselContent>
+          {events.map((event) => (
+            <CarouselItem
+              key={event.id}
+              className="basis-[85%] sm:basis-1/2 lg:basis-1/3"
+            >
+              <EventCard event={event} />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </div>
 
       {showControls ? (
-        <>
-          <CarouselPrevious
-            size="icon"
-            aria-label={t("previous")}
-            className="left-2 border-border bg-background/90 shadow-sm"
-          />
-          <CarouselNext
-            size="icon"
-            aria-label={t("next")}
-            className="right-2 border-border bg-background/90 shadow-sm"
-          />
-        </>
+        <CarouselNext
+          size="icon"
+          aria-label={t("next")}
+          className="static inset-auto size-8 shrink-0"
+        />
       ) : null}
     </Carousel>
   );

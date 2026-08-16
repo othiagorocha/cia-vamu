@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import {
@@ -33,6 +40,7 @@ import type { EventRecord } from "@/modules/events/types";
 import { trpc } from "@/trpc/client";
 
 export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
+  const t = useTranslations("events");
   const utils = trpc.useUtils();
   const [events] = trpc.events.listAll.useSuspenseQuery();
   const [formOpen, setFormOpen] = useState(false);
@@ -71,6 +79,11 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
     onError: (error) => toast.error(error.message),
   });
 
+  const reorderMutation = trpc.events.reorder.useMutation({
+    onSuccess: invalidate,
+    onError: (error) => toast.error(error.message),
+  });
+
   const handleSubmit = (values: EventFormInput) => {
     if (selectedEvent) {
       updateMutation.mutate({ id: selectedEvent.id, data: values });
@@ -85,7 +98,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Agenda</h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie os eventos exibidos na agenda pública.
+            Gerencie os eventos exibidos na agenda pública. {t("orderHint")}
           </p>
         </div>
         {canWrite ? (
@@ -119,7 +132,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {events.map((event) => (
+              {events.map((event, index) => (
                 <TableRow
                   key={event.id}
                   tabIndex={canWrite ? 0 : undefined}
@@ -169,6 +182,39 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
                   <TableCell>
                     {canWrite ? (
                     <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={index === 0 || reorderMutation.isPending}
+                        onClick={(clickEvent) => {
+                          clickEvent.stopPropagation();
+                          reorderMutation.mutate({
+                            id: event.id,
+                            direction: "up",
+                          });
+                        }}
+                        aria-label={t("moveUp")}
+                      >
+                        <ArrowUpIcon className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={
+                          index === events.length - 1 ||
+                          reorderMutation.isPending
+                        }
+                        onClick={(clickEvent) => {
+                          clickEvent.stopPropagation();
+                          reorderMutation.mutate({
+                            id: event.id,
+                            direction: "down",
+                          });
+                        }}
+                        aria-label={t("moveDown")}
+                      >
+                        <ArrowDownIcon className="size-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"

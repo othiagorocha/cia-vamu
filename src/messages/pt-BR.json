@@ -149,9 +149,13 @@
     "title": "Agenda",
     "subtitle": "Confira os próximos eventos da CIA VAMU.",
     "empty": "Nenhum evento programado no momento.",
+    "orderHint": "A ordem desta lista é a mesma da agenda pública.",
+    "moveUp": "Subir na agenda",
+    "moveDown": "Descer na agenda",
     "details": "Detalhes do evento",
     "expand": "Ver detalhes de {title}",
     "endsAt": "Término",
+    "removeImage": "Remover arte",
     "types": {
       "teatro": "Teatro",
       "viagem": "Viagem",
