@@ -11,6 +11,18 @@ const supabaseHostname = supabaseUrl
 const nextConfig: NextConfig = {
   async redirects() {
     return [
+      {
+        source: "/",
+        has: [{ type: "host", value: "ciavamu.com.br" }],
+        destination: "https://www.ciavamu.com.br/",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "ciavamu.com.br" }],
+        destination: "https://www.ciavamu.com.br/:path*",
+        permanent: true,
+      },
       { source: "/sign-in", destination: "/admin/login", permanent: true },
       { source: "/dashboard", destination: "/admin", permanent: true },
       { source: "/dashboard/:path*", destination: "/admin/:path*", permanent: true },

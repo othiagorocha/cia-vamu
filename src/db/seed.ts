@@ -1,4 +1,5 @@
 import { config } from "dotenv";
+import { eq } from "drizzle-orm";
 
 config({ path: ".env.local", override: true });
 
@@ -14,13 +15,33 @@ async function main() {
   }
 
   // Import dinâmico: garante que o dotenv rode antes do client do DB.
-  const { auth } = await import("@/lib/auth");
+  const { user } = await import("@/db/auth-schema");
+  const { db } = await import("@/db");
+  const { ALL_CAPABILITIES } = await import("@/lib/permissions");
+  const { createStaffUser, ensureGestorCapabilities } = await import(
+    "@/lib/staff-user"
+  );
 
-  const result = await auth.api.signUpEmail({
-    body: { email, password, name },
+  const normalizedEmail = email.toLowerCase().trim();
+  const [existing] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.email, normalizedEmail));
+
+  if (existing) {
+    await ensureGestorCapabilities(normalizedEmail);
+    console.log(`Usuário admin atualizado: ${normalizedEmail}`);
+    return;
+  }
+
+  await createStaffUser({
+    name,
+    email: normalizedEmail,
+    password,
+    capabilities: ALL_CAPABILITIES,
   });
 
-  console.log(`Usuário admin criado: ${result.user.email}`);
+  console.log(`Usuário admin criado: ${normalizedEmail}`);
 }
 
 main()

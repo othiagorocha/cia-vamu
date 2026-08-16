@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { ErrorBoundary } from "@/components/error-boundary";
+import { hasCapability } from "@/lib/permissions";
+import { getSession } from "@/lib/session";
 import {
   AlbumPhotosAdminView,
   AlbumPhotosAdminViewSkeleton,
@@ -12,6 +15,12 @@ type AlbumPhotosPageProps = {
 };
 
 const AdminAlbumPhotosPage = async ({ params }: AlbumPhotosPageProps) => {
+  const session = await getSession();
+
+  if (!hasCapability(session, "albums:write")) {
+    redirect("/admin");
+  }
+
   const { albumId } = await params;
 
   void trpc.albums.getById.prefetch({ id: albumId });

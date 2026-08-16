@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { contactMessages } from "@/db/schema";
 import { contactFormSchema } from "@/modules/contact/schema";
-import { baseProcedure, createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import { baseProcedure, createTRPCRouter, requireCapability } from "@/trpc/init";
 
 export const contactRouter = createTRPCRouter({
   create: baseProcedure
@@ -18,14 +18,14 @@ export const contactRouter = createTRPCRouter({
       return message;
     }),
 
-  listAll: protectedProcedure.query(async () => {
+  listAll: requireCapability("users:manage").query(async () => {
     return db
       .select()
       .from(contactMessages)
       .orderBy(desc(contactMessages.createdAt));
   }),
 
-  markAsRead: protectedProcedure
+  markAsRead: requireCapability("users:manage")
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ input }) => {
       const [message] = await db

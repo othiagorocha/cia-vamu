@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { ErrorBoundary } from "@/components/error-boundary";
+import { hasCapability } from "@/lib/permissions";
+import { getSession } from "@/lib/session";
 import {
   AlbumsAdminView,
   AlbumsAdminViewSkeleton,
@@ -15,6 +18,12 @@ export const metadata: Metadata = {
 };
 
 const AdminAlbumsPage = async () => {
+  const session = await getSession();
+
+  if (!hasCapability(session, "albums:write")) {
+    redirect("/admin");
+  }
+
   await trpc.albums.listAll.prefetch();
 
   return (

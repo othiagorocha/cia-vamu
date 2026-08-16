@@ -2,6 +2,7 @@ import { cache } from "react";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
+import { hasCapability, type SiteCapability } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
 
 export const createTRPCContext = cache(async () => {
@@ -35,3 +36,15 @@ export const protectedProcedure = baseProcedure.use(({ ctx, next }) => {
     },
   });
 });
+
+export const requireCapability = (capability: SiteCapability) =>
+  protectedProcedure.use(({ ctx, next }) => {
+    if (!hasCapability(ctx.session, capability)) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Você não tem permissão para fazer isso.",
+      });
+    }
+
+    return next({ ctx });
+  });

@@ -109,7 +109,8 @@
       "groupLabel": "Gestão",
       "overview": "Visão geral",
       "events": "Agenda",
-      "albums": "Álbuns"
+      "albums": "Álbuns",
+      "staff": "Equipe"
     },
     "overview": {
       "title": "Visão geral",
@@ -117,7 +118,45 @@
       "publishedEvents": "Eventos publicados",
       "publishedAlbums": "Álbuns publicados",
       "unreadMessages": "Mensagens não lidas",
-      "ofTotal": "no total"
+      "ofTotal": "no total",
+      "empty": "Você ainda não tem permissão para ver resumos de conteúdo."
     }
+  },
+  "staff": {
+    "title": "Equipe",
+    "subtitle": "Gerencie quem pode publicar conteúdo no site.",
+    "empty": "Nenhum acesso cadastrado ainda.",
+    "new": "Novo acesso",
+    "you": "Você",
+    "created": "Acesso criado.",
+    "updated": "Acesso atualizado.",
+    "passwordUpdated": "Senha redefinida.",
+    "removed": "Acesso removido.",
+    "columns": {
+      "name": "Nome",
+      "email": "E-mail",
+      "permissions": "Permissões",
+      "actions": "Ações"
+    },
+    "capabilities": {
+      "events": "Agenda",
+      "albums": "Álbuns",
+      "users": "Gerenciar equipe"
+    },
+    "form": {
+      "createTitle": "Novo acesso",
+      "createDescription": "A pessoa poderá entrar no painel com este e-mail e senha.",
+      "editTitle": "Editar acesso",
+      "editDescription": "Atualize o nome e as permissões.",
+      "passwordTitle": "Redefinir senha",
+      "passwordDescription": "Defina uma senha temporária para {name}.",
+      "name": "Nome",
+      "email": "E-mail",
+      "password": "Senha",
+      "permissions": "Permissões",
+      "permissionsHint": "Selecione o que esta pessoa pode editar."
+    },
+    "deleteTitle": "Excluir acesso?",
+    "deleteDescription": "A pessoa \"{name}\" não poderá mais entrar no painel."
   }
 }

@@ -7,10 +7,12 @@ import {
   ImagesIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  UsersIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Logo } from "@/components/logo";
+import { hasCapability, type SiteCapability } from "@/lib/permissions";
 import {
   Sidebar,
   SidebarContent,
@@ -30,18 +32,30 @@ type DashboardSidebarProps = {
     name: string;
     email: string;
   };
+  capabilities: SiteCapability[];
 };
 
-export const DashboardSidebar = ({ user }: DashboardSidebarProps) => {
+export const DashboardSidebar = ({
+  user,
+  capabilities,
+}: DashboardSidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations("dashboard.nav");
   const tCommon = useTranslations("common");
+  const session = { user: { capabilities } };
 
   const NAV_ITEMS = [
     { href: "/admin", label: t("overview"), icon: LayoutDashboardIcon },
-    { href: "/admin/events", label: t("events"), icon: CalendarDaysIcon },
-    { href: "/admin/albums", label: t("albums"), icon: ImagesIcon },
+    ...(hasCapability(session, "events:write")
+      ? [{ href: "/admin/events", label: t("events"), icon: CalendarDaysIcon }]
+      : []),
+    ...(hasCapability(session, "albums:write")
+      ? [{ href: "/admin/albums", label: t("albums"), icon: ImagesIcon }]
+      : []),
+    ...(hasCapability(session, "users:manage")
+      ? [{ href: "/admin/equipe", label: t("staff"), icon: UsersIcon }]
+      : []),
   ];
 
   const handleSignOut = async () => {

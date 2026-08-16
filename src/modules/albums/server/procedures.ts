@@ -12,7 +12,7 @@ import {
   removePhotoSchema,
   updateAlbumSchema,
 } from "@/modules/albums/schema";
-import { baseProcedure, createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import { baseProcedure, createTRPCRouter, requireCapability } from "@/trpc/init";
 
 export const albumsRouter = createTRPCRouter({
   listPublished: baseProcedure.query(async () => {
@@ -43,11 +43,11 @@ export const albumsRouter = createTRPCRouter({
       return album;
     }),
 
-  listAll: protectedProcedure.query(async () => {
+  listAll: requireCapability("albums:write").query(async () => {
     return db.select().from(albums).orderBy(desc(albums.createdAt));
   }),
 
-  getById: protectedProcedure
+  getById: requireCapability("albums:write")
     .input(z.object({ id: z.uuid() }))
     .query(async ({ input }) => {
       const album = await db.query.albums.findFirst({
@@ -66,7 +66,7 @@ export const albumsRouter = createTRPCRouter({
       return album;
     }),
 
-  create: protectedProcedure
+  create: requireCapability("albums:write")
     .input(createAlbumSchema)
     .mutation(async ({ input }) => {
       let coverImageUrl: string | undefined;
@@ -98,7 +98,7 @@ export const albumsRouter = createTRPCRouter({
       return { ...album, coverImageUrl: coverImageUrl ?? album.coverImageUrl };
     }),
 
-  update: protectedProcedure
+  update: requireCapability("albums:write")
     .input(updateAlbumSchema)
     .mutation(async ({ input }) => {
       const [existing] = await db
@@ -143,14 +143,14 @@ export const albumsRouter = createTRPCRouter({
       return album;
     }),
 
-  remove: protectedProcedure
+  remove: requireCapability("albums:write")
     .input(removeAlbumSchema)
     .mutation(async ({ input }) => {
       await db.delete(albums).where(eq(albums.id, input.id));
       return { success: true };
     }),
 
-  addPhoto: protectedProcedure
+  addPhoto: requireCapability("albums:write")
     .input(addPhotoSchema)
     .mutation(async ({ input }) => {
       const [album] = await db
@@ -186,7 +186,7 @@ export const albumsRouter = createTRPCRouter({
       return photo;
     }),
 
-  removePhoto: protectedProcedure
+  removePhoto: requireCapability("albums:write")
     .input(removePhotoSchema)
     .mutation(async ({ input }) => {
       const [photo] = await db
