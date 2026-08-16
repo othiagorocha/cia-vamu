@@ -28,7 +28,7 @@
   "home": {
     "hero": {
       "title": "CIA VAMU",
-      "subtitle": "Ministério evangelístico missionário — Visão, Arte, Missão, Unção.",
+      "subtitle": "Ministério evangelístico missionário",
       "affiliation": "Pertencemos à Igreja Evangélica Batista de Ibitinga.",
       "primaryCta": "Ver agenda",
       "secondaryCta": "Conheça nossa história"
@@ -36,6 +36,8 @@
     "albums": {
       "title": "Álbuns",
       "subtitle": "Momentos dos nossos trabalhos.",
+      "previous": "Álbum anterior",
+      "next": "Próximo álbum",
       "empty": "Em breve novos álbuns."
     },
     "events": {
