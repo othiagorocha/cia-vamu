@@ -76,7 +76,10 @@
     },
     "members": {
       "title": "Integrantes",
-      "empty": "Em breve apresentamos nossa equipe."
+      "empty": "Em breve apresentamos nossa equipe.",
+      "previous": "Integrante anterior",
+      "next": "Próximo integrante",
+      "expandPhoto": "Ampliar foto de {name}"
     }
   },
   "contact": {
