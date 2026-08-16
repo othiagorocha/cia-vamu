@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { isImageDataUrl } from "@/lib/data-url";
 import {
   EDITOR_CAPABILITIES,
   SITE_CAPABILITIES,
@@ -135,6 +136,7 @@ export const acceptInviteSchema = z.object({
   name: z.string().min(2, "Informe o nome."),
   email: z.email("Informe um e-mail válido."),
   password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres."),
+  photo: z.string().refine(isImageDataUrl, "Imagem inválida.").optional(),
 });
 
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;

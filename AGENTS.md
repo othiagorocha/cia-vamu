@@ -4,7 +4,7 @@ Ponto de entrada rápido para agentes de IA trabalhando neste repositório.
 
 ## Produto
 
-**CIA VAMU** (Visão, Arte, Missão, Unção) é um site institucional de ministério: teatro, viagens, evangelismos e eventos. MVP com área pública (Home, Quem somos, Contato, Álbuns, Agenda) e área administrativa autenticada para CRUD de eventos e álbuns/fotos.
+**CIA VAMU** (Visão, Arte, Missão, Unção) é um site institucional de ministério: teatro, viagens, evangelismos e eventos. MVP  área pública (Home, Quem somos, Contato, Álbuns, Agenda) e área administrativa autenticada para CRUD de eventos e álbuns/fotos.
 
 ## Idioma
 

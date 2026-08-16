@@ -60,7 +60,7 @@ export const LoginView = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
-        <CardHeader className="items-center text-center">
+        <CardHeader className="justify-items-center text-center">
           <Logo variant="white" className="mb-2 size-16" priority />
           <CardTitle className="text-2xl font-semibold">{t("title")}</CardTitle>
           <CardDescription>{t("subtitle")}</CardDescription>
