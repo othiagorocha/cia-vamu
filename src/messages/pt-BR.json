@@ -43,6 +43,8 @@
       "eyebrow": "Agenda",
       "subtitle": "Fique por dentro da nossa agenda.",
       "viewAll": "Ver agenda completa",
+      "previous": "Evento anterior",
+      "next": "Próximo evento",
       "empty": "Nenhum evento programado no momento."
     }
   },
@@ -147,6 +149,9 @@
     "title": "Agenda",
     "subtitle": "Confira os próximos eventos da CIA VAMU.",
     "empty": "Nenhum evento programado no momento.",
+    "details": "Detalhes do evento",
+    "expand": "Ver detalhes de {title}",
+    "endsAt": "Término",
     "types": {
       "teatro": "Teatro",
       "viagem": "Viagem",

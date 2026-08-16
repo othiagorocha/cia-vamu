@@ -4,18 +4,20 @@ import Link from "next/link";
 import { ArrowRightIcon, CalendarOffIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { Reveal, revealDelay } from "@/components/reveal";
+import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
-import { EventCard } from "@/modules/events/ui/components/event-card";
+import { UpcomingEventsSlider } from "@/modules/home/ui/components/upcoming-events-slider";
 import { trpc } from "@/trpc/client";
+
+const HOME_EVENTS_LIMIT = 12;
 
 export const UpcomingEvents = () => {
   const t = useTranslations("home.events");
   const [events] = trpc.events.listUpcoming.useSuspenseQuery();
-  const upcoming = events.slice(0, 3);
+  const upcoming = events.slice(0, HOME_EVENTS_LIMIT);
 
   return (
-    <section className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-20">
+    <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-20">
       <Reveal>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-2">
@@ -48,13 +50,9 @@ export const UpcomingEvents = () => {
           </div>
         </Reveal>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-          {upcoming.map((event, index) => (
-            <Reveal key={event.id} delayMs={revealDelay(index)} className="h-full">
-              <EventCard event={event} />
-            </Reveal>
-          ))}
-        </div>
+        <Reveal>
+          <UpcomingEventsSlider events={upcoming} />
+        </Reveal>
       )}
     </section>
   );
@@ -62,13 +60,13 @@ export const UpcomingEvents = () => {
 
 export const UpcomingEventsSkeleton = () => {
   return (
-    <section className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-20">
+    <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-20">
       <div className="h-10 w-64 animate-pulse rounded bg-muted" />
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+      <div className="flex gap-4 overflow-hidden">
         {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={index}
-            className="h-64 animate-pulse rounded-lg border bg-muted/40"
+            className="h-40 min-w-0 flex-1 animate-pulse rounded-lg border bg-muted/40"
           />
         ))}
       </div>

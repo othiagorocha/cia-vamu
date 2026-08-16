@@ -1,91 +1,65 @@
-import Image from "next/image";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { CalendarIcon, MapPinIcon } from "lucide-react";
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import Image from "next/image";
+import { CalendarIcon, MapPinIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
+
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatBrazilDateTime } from "@/lib/brazil-datetime";
+import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import type { EventRecord } from "@/modules/events/types";
 
 export const EventCard = ({ event }: { event: EventRecord }) => {
-  const dateLabel = format(
-    new Date(event.startsAt),
-    "dd 'de' MMMM 'de' yyyy, HH:mm",
-    { locale: ptBR },
-  );
-
-  if (event.imageUrl) {
-    return (
-      <Card className="group h-full w-full gap-0 overflow-hidden p-0 transition-shadow duration-300 hover:shadow-md">
-        <div className="relative aspect-3/4 w-full overflow-hidden bg-muted">
-          <Image
-            src={event.imageUrl}
-            alt={event.title}
-            fill
-            className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-105"
-            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          />
-        </div>
-        <CardHeader className="gap-3 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <CardTitle className="min-w-0 flex-1 text-lg leading-snug">
-              {event.title}
-            </CardTitle>
-            <EventTypeBadge type={event.type} />
-          </div>
-          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2">
-              <CalendarIcon className="size-4 shrink-0" />
-              {dateLabel}
-            </span>
-            {event.location && (
-              <span className="flex items-center gap-2">
-                <MapPinIcon className="size-4 shrink-0" />
-                {event.location}
-              </span>
-            )}
-          </div>
-        </CardHeader>
-        {event.description && (
-          <CardContent className="px-4 pb-4">
-            <p className="line-clamp-3 text-sm text-muted-foreground">
-              {event.description}
-            </p>
-          </CardContent>
-        )}
-      </Card>
-    );
-  }
+  const t = useTranslations("events");
+  const [open, setOpen] = useState(false);
+  const dateLabel = formatBrazilDateTime(event.startsAt);
 
   return (
-    <Card className="h-full w-full transition-shadow duration-300 hover:shadow-md">
-      <CardHeader className="gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle className="min-w-0 flex-1 text-lg leading-snug">
-            {event.title}
-          </CardTitle>
-          <EventTypeBadge type={event.type} />
-        </div>
-        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-          <span className="flex items-center gap-2">
-            <CalendarIcon className="size-4 shrink-0" />
-            {dateLabel}
-          </span>
-          {event.location && (
-            <span className="flex items-center gap-2">
-              <MapPinIcon className="size-4 shrink-0" />
-              {event.location}
-            </span>
-          )}
-        </div>
-      </CardHeader>
-      {event.description && (
-        <CardContent>
-          <p className="line-clamp-4 text-sm text-muted-foreground">
-            {event.description}
-          </p>
-        </CardContent>
-      )}
-    </Card>
+    <>
+      <button
+        type='button'
+        onClick={() => setOpen(true)}
+        aria-haspopup='dialog'
+        aria-expanded={open}
+        aria-label={t("expand", { title: event.title })}
+        className='h-full w-full cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background'>
+        <Card size='sm' className='h-full w-full gap-0 py-0 transition-shadow duration-300 hover:shadow-md'>
+          {event.imageUrl ? (
+            <div className='relative h-60 w-full overflow-hidden bg-muted'>
+              <Image
+                src={event.imageUrl}
+                alt=''
+                fill
+                className='object-cover'
+                sizes='(min-width: 1024px) 360px, (min-width: 640px) 45vw, 85vw'
+              />
+            </div>
+          ) : null}
+
+          <CardHeader className='gap-2 p-3'>
+            <div className='flex items-start justify-between gap-2'>
+              <CardTitle className='min-w-0 flex-1 line-clamp-2'>{event.title}</CardTitle>
+              <EventTypeBadge type={event.type} />
+            </div>
+            <div className='flex flex-col gap-1 text-xs text-muted-foreground'>
+              <span className='flex items-center gap-1.5'>
+                <CalendarIcon className='size-3.5 shrink-0' />
+                <span className='line-clamp-1'>{dateLabel}</span>
+              </span>
+              {event.location ? (
+                <span className='flex items-center gap-1.5'>
+                  <MapPinIcon className='size-3.5 shrink-0' />
+                  <span className='line-clamp-1'>{event.location}</span>
+                </span>
+              ) : null}
+            </div>
+          </CardHeader>
+        </Card>
+      </button>
+
+      <EventDetailDialog event={event} open={open} onOpenChange={setOpen} />
+    </>
   );
 };
