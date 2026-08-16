@@ -82,6 +82,20 @@ export const events = pgTable("events", {
     .defaultNow(),
 });
 
+export const prayerRequests = pgTable("prayer_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  body: text("body").notNull(),
+  isAnonymous: boolean("is_anonymous").notNull().default(false),
+  name: text("name"),
+  email: text("email"),
+  authorUserId: text("author_user_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const contactMessages = pgTable("contact_messages", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -193,6 +207,13 @@ export const photoCommentsRelations = relations(photoComments, ({ one }) => ({
 export const memberProfilesRelations = relations(memberProfiles, ({ one }) => ({
   user: one(user, {
     fields: [memberProfiles.userId],
+    references: [user.id],
+  }),
+}));
+
+export const prayerRequestsRelations = relations(prayerRequests, ({ one }) => ({
+  author: one(user, {
+    fields: [prayerRequests.authorUserId],
     references: [user.id],
   }),
 }));

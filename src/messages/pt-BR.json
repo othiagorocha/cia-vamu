@@ -6,6 +6,7 @@
       "about": "Quem somos",
       "albums": "Álbuns",
       "agenda": "Agenda",
+      "prayer": "Oração",
       "contact": "Contato"
     },
     "actions": {
@@ -197,6 +198,7 @@
       "overview": "Visão geral",
       "events": "Agenda",
       "albums": "Álbuns",
+      "prayers": "Oração",
       "staff": "Equipe",
       "viewSite": "Ver site",
       "social": "Redes",
@@ -357,6 +359,32 @@
       "iconSearch": "Buscar ícone",
       "published": "Publicar no site"
     }
+  },
+  "prayers": {
+    "title": "Pedido de oração",
+    "subtitle": "Deixe seu pedido. A equipe ora por cada um.",
+    "fields": {
+      "body": "Seu pedido",
+      "name": "Nome",
+      "email": "E-mail (opcional)",
+      "anonymous": "Enviar de forma anônima"
+    },
+    "submit": "Enviar pedido",
+    "success": "Pedido enviado. Estaremos orando.",
+    "error": "Não foi possível enviar. Tente novamente.",
+    "adminTitle": "Pedidos de oração",
+    "adminSubtitle": "Pedidos enviados pelo site e pelo painel.",
+    "empty": "Nenhum pedido ainda.",
+    "anonymous": "Anônimo",
+    "viewTable": "Ver em tabela",
+    "viewGrid": "Ver em grade",
+    "columns": {
+      "author": "Autor",
+      "date": "Data",
+      "body": "Pedido",
+      "actions": "Ações"
+    },
+    "deleted": "Pedido excluído."
   },
   "contactAdmin": {
     "title": "Mensagens",

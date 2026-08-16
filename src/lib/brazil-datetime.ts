@@ -57,3 +57,19 @@ export function formatBrazilDateTime(value: Date | string) {
     minute: "2-digit",
   }).format(date);
 }
+
+export function formatBrazilDateTimeShort(value: Date | string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: BRAZIL_TIME_ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
