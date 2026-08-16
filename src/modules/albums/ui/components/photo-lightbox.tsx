@@ -55,14 +55,15 @@ export const PhotoLightbox = ({
           >
             <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
               <Image
+                key={photo.id}
                 src={photo.imageUrl}
                 alt={caption}
                 width={2400}
                 height={1600}
                 className={
                   footer
-                    ? "max-h-[min(55dvh,100dvh)] w-auto max-w-full object-contain md:max-h-[min(92dvh,100dvh)]"
-                    : "max-h-[min(88dvh,100dvh)] w-auto max-w-[min(96vw,100vw)] object-contain"
+                    ? "photo-fade max-h-[min(55dvh,100dvh)] w-auto max-w-full object-contain md:max-h-[min(92dvh,100dvh)]"
+                    : "photo-fade max-h-[min(88dvh,100dvh)] w-auto max-w-[min(96vw,100vw)] object-contain"
                 }
                 sizes="100vw"
                 priority
@@ -97,7 +98,10 @@ export const PhotoLightbox = ({
                 {footer}
               </div>
             ) : photo.caption ? (
-              <p className="mt-2 max-w-2xl px-4 text-center text-sm text-white">
+              <p
+                key={`${photo.id}-caption`}
+                className="photo-fade mt-2 max-w-2xl px-4 text-center text-sm text-white"
+              >
                 {photo.caption}
               </p>
             ) : null}

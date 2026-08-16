@@ -3,6 +3,7 @@
 import { CalendarOffIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Reveal, revealDelay } from "@/components/reveal";
 import { EventCard } from "@/modules/events/ui/components/event-card";
 import { trpc } from "@/trpc/client";
 
@@ -21,8 +22,10 @@ export const EventsView = () => {
 
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-      {events.map((event) => (
-        <EventCard key={event.id} event={event} />
+      {events.map((event, index) => (
+        <Reveal key={event.id} delayMs={revealDelay(index)} className="h-full">
+          <EventCard event={event} />
+        </Reveal>
       ))}
     </div>
   );

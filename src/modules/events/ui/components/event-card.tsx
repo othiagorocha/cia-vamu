@@ -16,13 +16,13 @@ export const EventCard = ({ event }: { event: EventRecord }) => {
 
   if (event.imageUrl) {
     return (
-      <Card className="h-full w-full gap-0 overflow-hidden p-0">
-        <div className="relative aspect-3/4 w-full bg-muted">
+      <Card className="group h-full w-full gap-0 overflow-hidden p-0 transition-shadow duration-300 hover:shadow-md">
+        <div className="relative aspect-3/4 w-full overflow-hidden bg-muted">
           <Image
             src={event.imageUrl}
             alt={event.title}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-105"
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           />
         </div>
@@ -58,7 +58,7 @@ export const EventCard = ({ event }: { event: EventRecord }) => {
   }
 
   return (
-    <Card className="h-full w-full">
+    <Card className="h-full w-full transition-shadow duration-300 hover:shadow-md">
       <CardHeader className="gap-3">
         <div className="flex items-start justify-between gap-3">
           <CardTitle className="min-w-0 flex-1 text-lg leading-snug">

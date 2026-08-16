@@ -20,7 +20,7 @@ export const AlbumCard = ({
   return (
     <Link
       href={href ?? `/albuns/${album.id}`}
-      className="group flex flex-col overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
+      className="group flex h-full flex-col overflow-hidden rounded-lg border transition-shadow duration-300 hover:shadow-md"
     >
       <div className="relative aspect-4/3 w-full overflow-hidden bg-muted">
         {album.coverImageUrl ? (
@@ -28,7 +28,7 @@ export const AlbumCard = ({
             src={album.coverImageUrl}
             alt={album.title}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-105"
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           />
         ) : (
@@ -36,6 +36,7 @@ export const AlbumCard = ({
             <ImageIcon className="size-10" />
           </div>
         )}
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       </div>
       <div className="flex flex-col gap-1 p-4">
         <h3 className="font-semibold">{album.title}</h3>

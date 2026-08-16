@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Logo } from "@/components/logo";
+import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -35,74 +36,78 @@ export const ContactView = () => {
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-8 px-4 py-16">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Logo variant="white" className="size-14" />
-        <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
-      </div>
+      <Reveal>
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Logo variant="white" className="size-14" />
+          <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("subtitle")}</p>
+        </div>
+      </Reveal>
 
-      <Card>
-        <CardContent className="pt-6">
-          <form
-            onSubmit={form.handleSubmit((values) => createMutation.mutate(values))}
-            className="space-y-6"
-            noValidate
-          >
-            <FieldGroup>
-              <Controller
-                control={form.control}
-                name="name"
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="name">{t("fields.name")}</FieldLabel>
-                    <Input {...field} id="name" aria-invalid={fieldState.invalid} />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                  </Field>
-                )}
-              />
+      <Reveal delayMs={80}>
+        <Card>
+          <CardContent className="pt-6">
+            <form
+              onSubmit={form.handleSubmit((values) => createMutation.mutate(values))}
+              className="space-y-6"
+              noValidate
+            >
+              <FieldGroup>
+                <Controller
+                  control={form.control}
+                  name="name"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="name">{t("fields.name")}</FieldLabel>
+                      <Input {...field} id="name" aria-invalid={fieldState.invalid} />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )}
+                />
 
-              <Controller
-                control={form.control}
-                name="email"
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="email">{t("fields.email")}</FieldLabel>
-                    <Input
-                      {...field}
-                      id="email"
-                      type="email"
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                  </Field>
-                )}
-              />
+                <Controller
+                  control={form.control}
+                  name="email"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="email">{t("fields.email")}</FieldLabel>
+                      <Input
+                        {...field}
+                        id="email"
+                        type="email"
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )}
+                />
 
-              <Controller
-                control={form.control}
-                name="message"
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="message">{t("fields.message")}</FieldLabel>
-                    <Textarea
-                      {...field}
-                      id="message"
-                      rows={5}
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                  </Field>
-                )}
-              />
-            </FieldGroup>
+                <Controller
+                  control={form.control}
+                  name="message"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="message">{t("fields.message")}</FieldLabel>
+                      <Textarea
+                        {...field}
+                        id="message"
+                        rows={5}
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
 
-            <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-              {createMutation.isPending && <Loader2Icon className="animate-spin" />}
-              {t("submit")}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+                {createMutation.isPending && <Loader2Icon className="animate-spin" />}
+                {t("submit")}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </Reveal>
     </div>
   );
 };

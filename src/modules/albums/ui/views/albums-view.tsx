@@ -3,6 +3,7 @@
 import { ImagesIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Reveal, revealDelay } from "@/components/reveal";
 import { AlbumCard } from "@/modules/albums/ui/components/album-card";
 import { trpc } from "@/trpc/client";
 
@@ -21,8 +22,10 @@ export const AlbumsView = () => {
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {albums.map((album) => (
-        <AlbumCard key={album.id} album={album} />
+      {albums.map((album, index) => (
+        <Reveal key={album.id} delayMs={revealDelay(index)} className="h-full">
+          <AlbumCard album={album} />
+        </Reveal>
       ))}
     </div>
   );

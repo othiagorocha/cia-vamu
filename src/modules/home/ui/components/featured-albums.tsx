@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRightIcon, ImagesIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Reveal, revealDelay } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { AlbumCard } from "@/modules/albums/ui/components/album-card";
 import { trpc } from "@/trpc/client";
@@ -16,28 +17,34 @@ export const FeaturedAlbums = () => {
 
   return (
     <section className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-16">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">{t("title")}</h2>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
+      <Reveal>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">{t("title")}</h2>
+            <p className="text-muted-foreground">{t("subtitle")}</p>
+          </div>
+          <Button variant="ghost" asChild>
+            <Link href="/albuns">
+              {tCommon("actions.viewAll")}
+              <ArrowRightIcon />
+            </Link>
+          </Button>
         </div>
-        <Button variant="ghost" asChild>
-          <Link href="/albuns">
-            {tCommon("actions.viewAll")}
-            <ArrowRightIcon />
-          </Link>
-        </Button>
-      </div>
+      </Reveal>
 
       {featured.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-16 text-center text-muted-foreground">
-          <ImagesIcon className="size-10" />
-          <p>{t("empty")}</p>
-        </div>
+        <Reveal>
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-16 text-center text-muted-foreground">
+            <ImagesIcon className="size-10" />
+            <p>{t("empty")}</p>
+          </div>
+        </Reveal>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {featured.map((album) => (
-            <AlbumCard key={album.id} album={album} />
+          {featured.map((album, index) => (
+            <Reveal key={album.id} delayMs={revealDelay(index)} className="h-full">
+              <AlbumCard album={album} />
+            </Reveal>
           ))}
         </div>
       )}

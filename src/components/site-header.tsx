@@ -37,8 +37,9 @@ export const SiteHeader = () => {
               key={link.href}
               href={link.href}
               className={cn(
-                "text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
-                pathname === link.href && "text-foreground",
+                "relative py-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+                "after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-orange-400 after:transition-transform after:duration-300",
+                pathname === link.href && "text-foreground after:scale-x-100",
               )}
             >
               {link.label}
@@ -65,8 +66,9 @@ export const SiteHeader = () => {
               href={link.href}
               onClick={() => setIsOpen(false)}
               className={cn(
-                "rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
-                pathname === link.href && "bg-muted text-foreground",
+                "rounded-md border-l-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
+                pathname === link.href &&
+                  "border-orange-400 bg-muted text-foreground",
               )}
             >
               {link.label}
