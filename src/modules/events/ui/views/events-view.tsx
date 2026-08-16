@@ -21,7 +21,7 @@ export const EventsView = () => {
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
       {events.map((event, index) => (
         <Reveal key={event.id} delayMs={revealDelay(index)} className="h-full">
           <EventCard event={event} />
@@ -33,11 +33,11 @@ export const EventsView = () => {
 
 export const EventsViewSkeleton = () => {
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="h-64 animate-pulse rounded-lg border bg-muted/40"
+          className="h-48 animate-pulse rounded-lg border bg-muted/40"
         />
       ))}
     </div>

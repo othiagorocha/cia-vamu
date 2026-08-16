@@ -6,6 +6,7 @@ const LOGO_SRC = {
   black: "/brand/logo-cia-vamu-black.svg",
   white: "/brand/logo-cia-vamu-white.svg",
   filled: "/brand/logo-cia-vamu-filled.svg",
+  orange: "/brand/logo-cia-vamu-orange.svg",
 } as const;
 
 type LogoVariant = keyof typeof LOGO_SRC;

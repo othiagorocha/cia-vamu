@@ -39,7 +39,10 @@ export const AboutView = () => {
                     ·
                   </span>
                 ) : null}
-                <span className="whitespace-nowrap">{t(`pillars.${pillar.key}.title`)}</span>
+                <span className="whitespace-nowrap">
+                  <span className="text-orange-400">{pillar.letter}</span>
+                  {t(`pillars.${pillar.key}.title`).slice(1)}
+                </span>
               </span>
             ))}
           </p>
@@ -52,7 +55,7 @@ export const AboutView = () => {
           <Reveal key={pillar.key} delayMs={revealDelay(index)} className="h-full">
             <div className="flex h-full flex-col gap-3 rounded-lg border p-6 transition-colors duration-300 hover:border-orange-400/40">
               <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-full bg-black text-sm font-semibold text-white dark:bg-white dark:text-black">
+                <span className="flex size-10 items-center justify-center rounded-full bg-black text-sm font-semibold text-orange-400 dark:bg-white">
                   {pillar.letter}
                 </span>
                 <h2 className="text-xl font-semibold">

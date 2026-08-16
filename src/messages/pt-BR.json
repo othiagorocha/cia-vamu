@@ -6,6 +6,8 @@
       "about": "Quem somos",
       "albums": "Álbuns",
       "agenda": "Agenda",
+      "prayer": "Oração",
+      "prayerCta": "Peça uma oração",
       "contact": "Contato"
     },
     "actions": {
@@ -28,7 +30,7 @@
   "home": {
     "hero": {
       "title": "CIA VAMU",
-      "subtitle": "Ministério evangelístico missionário — Visão, Arte, Missão, Unção.",
+      "subtitle": "Ministério evangelístico missionário",
       "affiliation": "Pertencemos à Igreja Evangélica Batista de Ibitinga.",
       "primaryCta": "Ver agenda",
       "secondaryCta": "Conheça nossa história"
@@ -36,6 +38,8 @@
     "albums": {
       "title": "Álbuns",
       "subtitle": "Momentos dos nossos trabalhos.",
+      "previous": "Álbum anterior",
+      "next": "Próximo álbum",
       "empty": "Em breve novos álbuns."
     },
     "events": {
@@ -43,6 +47,8 @@
       "eyebrow": "Agenda",
       "subtitle": "Fique por dentro da nossa agenda.",
       "viewAll": "Ver agenda completa",
+      "previous": "Evento anterior",
+      "next": "Próximo evento",
       "empty": "Nenhum evento programado no momento."
     }
   },
@@ -74,7 +80,10 @@
     },
     "members": {
       "title": "Integrantes",
-      "empty": "Em breve apresentamos nossa equipe."
+      "empty": "Em breve apresentamos nossa equipe.",
+      "previous": "Integrante anterior",
+      "next": "Próximo integrante",
+      "expandPhoto": "Ampliar foto de {name}"
     }
   },
   "contact": {
@@ -147,6 +156,13 @@
     "title": "Agenda",
     "subtitle": "Confira os próximos eventos da CIA VAMU.",
     "empty": "Nenhum evento programado no momento.",
+    "orderHint": "A ordem desta lista é a mesma da agenda pública.",
+    "moveUp": "Subir na agenda",
+    "moveDown": "Descer na agenda",
+    "details": "Detalhes do evento",
+    "expand": "Ver detalhes de {title}",
+    "endsAt": "Término",
+    "removeImage": "Remover arte",
     "types": {
       "teatro": "Teatro",
       "viagem": "Viagem",
@@ -183,6 +199,7 @@
       "overview": "Visão geral",
       "events": "Agenda",
       "albums": "Álbuns",
+      "prayers": "Peça uma oração",
       "staff": "Equipe",
       "viewSite": "Ver site",
       "social": "Redes",
@@ -242,6 +259,7 @@
       "name": "Nome",
       "email": "E-mail",
       "permissions": "Permissões",
+      "member": "Integrante",
       "actions": "Ações"
     },
     "capabilities": {
@@ -287,6 +305,8 @@
     "deactivated": "Desativado",
     "isMember": "É integrante",
     "showOnAbout": "Mostrar em Quem somos",
+    "yes": "Sim",
+    "no": "Não",
     "role": "Função no ministério",
     "profile": {
       "title": "Meu perfil",
@@ -340,6 +360,33 @@
       "iconSearch": "Buscar ícone",
       "published": "Publicar no site"
     }
+  },
+  "prayers": {
+    "title": "Pedido de oração",
+    "subtitle": "Deixe seu pedido. A equipe ora por cada um.",
+    "fields": {
+      "body": "Seu pedido",
+      "name": "Nome",
+      "email": "E-mail (opcional)",
+      "anonymous": "Enviar de forma anônima"
+    },
+    "submit": "Enviar pedido",
+    "success": "Pedido enviado. Estaremos orando.",
+    "error": "Não foi possível enviar. Tente novamente.",
+    "adminTitle": "Pedidos de oração",
+    "adminSubtitle": "Pedidos enviados pelo site e pelo painel.",
+    "new": "Novo pedido",
+    "empty": "Nenhum pedido ainda.",
+    "anonymous": "Anônimo",
+    "viewTable": "Ver em tabela",
+    "viewGrid": "Ver em grade",
+    "columns": {
+      "author": "Autor",
+      "date": "Data",
+      "body": "Pedido",
+      "actions": "Ações"
+    },
+    "deleted": "Pedido excluído."
   },
   "contactAdmin": {
     "title": "Mensagens",

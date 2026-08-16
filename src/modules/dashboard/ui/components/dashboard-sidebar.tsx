@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarDaysIcon,
   ExternalLinkIcon,
+  HeartHandshakeIcon,
   ImagesIcon,
   LayoutDashboardIcon,
   LogOutIcon,
@@ -58,6 +59,7 @@ export const DashboardSidebar = ({
     { href: "/admin", label: t("overview"), icon: LayoutDashboardIcon },
     { href: "/admin/events", label: t("events"), icon: CalendarDaysIcon },
     { href: "/admin/albums", label: t("albums"), icon: ImagesIcon },
+    { href: "/admin/oracao", label: t("prayers"), icon: HeartHandshakeIcon },
     ...(hasCapability(session, "site:write")
       ? [{ href: "/admin/redes", label: t("social"), icon: Share2Icon }]
       : []),

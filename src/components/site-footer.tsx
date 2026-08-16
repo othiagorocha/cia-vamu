@@ -33,6 +33,9 @@ export const SiteFooter = () => {
           <Link href="/agenda" className="hover:text-foreground">
             {t("nav.agenda")}
           </Link>
+          <Link href="/oracao" className="hover:text-foreground">
+            {t("nav.prayerCta")}
+          </Link>
           <Link href="/contato" className="hover:text-foreground">
             {t("nav.contact")}
           </Link>

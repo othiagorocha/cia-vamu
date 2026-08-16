@@ -24,6 +24,7 @@ export const eventFormSchema = z
     location: z.string().optional(),
     published: z.boolean(),
     image: dataUrlSchema.optional(),
+    removeImage: z.boolean().optional(),
   })
   .refine(
     (data) =>
@@ -52,4 +53,9 @@ export const updateEventSchema = z.object({
 
 export const removeEventSchema = z.object({
   id: z.uuid(),
+});
+
+export const reorderEventSchema = z.object({
+  id: z.uuid(),
+  direction: z.enum(["up", "down"]),
 });
