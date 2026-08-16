@@ -20,7 +20,7 @@ export const SiteHeader = () => {
     { href: "/quem-somos", label: t("nav.about") },
     { href: "/albuns", label: t("nav.albums") },
     { href: "/agenda", label: t("nav.agenda") },
-    { href: "/oracao", label: t("nav.prayer") },
+    { href: "/oracao", label: t("nav.prayerCta") },
     { href: "/contato", label: t("nav.contact") },
   ];
 

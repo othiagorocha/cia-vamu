@@ -34,7 +34,7 @@ export const SiteFooter = () => {
             {t("nav.agenda")}
           </Link>
           <Link href="/oracao" className="hover:text-foreground">
-            {t("nav.prayer")}
+            {t("nav.prayerCta")}
           </Link>
           <Link href="/contato" className="hover:text-foreground">
             {t("nav.contact")}
