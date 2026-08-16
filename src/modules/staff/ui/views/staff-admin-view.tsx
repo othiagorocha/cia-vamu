@@ -205,6 +205,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                 <TableHead>{t("columns.name")}</TableHead>
                 <TableHead>{t("columns.email")}</TableHead>
                 <TableHead>{t("columns.permissions")}</TableHead>
+                <TableHead>{t("columns.member")}</TableHead>
                 <TableHead className="w-0">{t("columns.actions")}</TableHead>
               </TableRow>
             </TableHeader>
@@ -215,19 +216,38 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                 const canMutateAccess = !isCurrentUser && !isSuperAdmin;
 
                 return (
-                  <TableRow key={member.id}>
+                  <TableRow
+                    key={member.id}
+                    tabIndex={0}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      setSelectedStaff(member);
+                      setFormOpen(true);
+                    }}
+                    onKeyDown={(keyboardEvent) => {
+                      if (
+                        keyboardEvent.key === "Enter" ||
+                        keyboardEvent.key === " "
+                      ) {
+                        keyboardEvent.preventDefault();
+                        setSelectedStaff(member);
+                        setFormOpen(true);
+                      }
+                    }}
+                  >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
                         {member.photoUrl ? (
                           <button
                             type="button"
                             className="size-10 shrink-0 overflow-hidden rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            onClick={() =>
+                            onClick={(clickEvent) => {
+                              clickEvent.stopPropagation();
                               setExpandedPhoto({
                                 src: member.photoUrl!,
                                 alt: member.name,
-                              })
-                            }
+                              });
+                            }}
                             aria-label={t("expandPhoto", { name: member.name })}
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -279,11 +299,17 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                       </div>
                     </TableCell>
                     <TableCell>
+                      <Badge variant={member.isMember ? "default" : "secondary"}>
+                        {member.isMember ? t("yes") : t("no")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          onClick={() => {
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
                             setSelectedStaff(member);
                             setFormOpen(true);
                           }}
@@ -294,7 +320,10 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          onClick={() => setPasswordTarget(member)}
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            setPasswordTarget(member);
+                          }}
                           aria-label={t("form.passwordTitle")}
                         >
                           <KeyRoundIcon className="size-4" />
@@ -303,12 +332,13 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                           variant="ghost"
                           size="sm"
                           disabled={!canMutateAccess}
-                          onClick={() =>
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
                             disableMutation.mutate({
                               id: member.id,
                               disabled: !member.disabled,
-                            })
-                          }
+                            });
+                          }}
                         >
                           {member.disabled ? t("reactivate") : t("deactivate")}
                         </Button>
@@ -316,7 +346,10 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                           variant="ghost"
                           size="icon-sm"
                           disabled={!canMutateAccess}
-                          onClick={() => setDeleteTarget(member)}
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            setDeleteTarget(member);
+                          }}
                           aria-label={tCommon("actions.delete")}
                         >
                           <Trash2Icon className="size-4 text-destructive" />

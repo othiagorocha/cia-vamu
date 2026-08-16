@@ -254,6 +254,7 @@
       "name": "Nome",
       "email": "E-mail",
       "permissions": "Permissões",
+      "member": "Integrante",
       "actions": "Ações"
     },
     "capabilities": {
@@ -299,6 +300,8 @@
     "deactivated": "Desativado",
     "isMember": "É integrante",
     "showOnAbout": "Mostrar em Quem somos",
+    "yes": "Sim",
+    "no": "Não",
     "role": "Função no ministério",
     "profile": {
       "title": "Meu perfil",
