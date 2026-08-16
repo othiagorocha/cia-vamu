@@ -33,6 +33,7 @@ import {
   readImageFileFromClipboard,
 } from "@/lib/clipboard-image";
 import { fileToDataUrl } from "@/lib/file-to-data-url";
+import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
 
@@ -42,14 +43,6 @@ const EVENT_TYPE_OPTIONS: { value: EventFormInput["type"]; label: string }[] = [
   { value: "evangelismo", label: "Evangelismo" },
   { value: "outro", label: "Outro" },
 ];
-
-function toDateTimeLocal(value: Date | string | null | undefined) {
-  if (!value) return "";
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60 * 1000);
-  return local.toISOString().slice(0, 16);
-}
 
 type EventFormDialogProps = {
   open: boolean;
@@ -104,8 +97,8 @@ export const EventFormDialog = ({
         title: event?.title ?? "",
         description: event?.description ?? "",
         type: event?.type ?? "outro",
-        startsAt: toDateTimeLocal(event?.startsAt),
-        endsAt: toDateTimeLocal(event?.endsAt),
+        startsAt: toBrazilDateTimeLocal(event?.startsAt),
+        endsAt: toBrazilDateTimeLocal(event?.endsAt),
         location: event?.location ?? "",
         published: event?.published ?? false,
         image: undefined,

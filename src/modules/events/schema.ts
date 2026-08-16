@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { parseBrazilDateTime } from "@/lib/brazil-datetime";
 import { isImageDataUrl } from "@/lib/data-url";
 
 export const eventTypeSchema = z.enum([
@@ -25,7 +26,9 @@ export const eventFormSchema = z
     image: dataUrlSchema.optional(),
   })
   .refine(
-    (data) => !data.endsAt || new Date(data.endsAt) >= new Date(data.startsAt),
+    (data) =>
+      !data.endsAt ||
+      parseBrazilDateTime(data.endsAt) >= parseBrazilDateTime(data.startsAt),
     {
       message: "A data de término não pode ser anterior ao início.",
       path: ["endsAt"],
@@ -36,8 +39,8 @@ export type EventFormInput = z.infer<typeof eventFormSchema>;
 
 export const createEventSchema = eventFormSchema.transform((data) => ({
   ...data,
-  startsAt: new Date(data.startsAt),
-  endsAt: data.endsAt ? new Date(data.endsAt) : undefined,
+  startsAt: parseBrazilDateTime(data.startsAt),
+  endsAt: data.endsAt ? parseBrazilDateTime(data.endsAt) : undefined,
 }));
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
