@@ -71,6 +71,7 @@ export const PhotoSocial = ({
   const t = useTranslations("albums");
   const utils = trpc.useUtils();
   const [body, setBody] = useState("");
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { data } = trpc.albums.photoSocial.useQuery({ photoId });
 
@@ -86,6 +87,7 @@ export const PhotoSocial = ({
   const commentMutation = trpc.albums.addComment.useMutation({
     onSuccess: () => {
       setBody("");
+      setCommentsOpen(true);
       invalidate();
     },
     onError: (error) => toast.error(error.message),
@@ -102,7 +104,7 @@ export const PhotoSocial = ({
   });
 
   if (!data) {
-    return <div className="min-h-48 flex-1 bg-black" />;
+    return <div className="h-28 bg-neutral-950 md:min-h-48 md:flex-1" />;
   }
 
   const comments = data.comments.filter(
@@ -136,13 +138,26 @@ export const PhotoSocial = ({
   };
 
   const focusComment = () => {
-    inputRef.current?.focus();
-    inputRef.current?.scrollIntoView({ block: "nearest" });
+    setCommentsOpen(true);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ block: "nearest" });
+    });
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col bg-neutral-950 text-white">
-      <div className="shrink-0 space-y-3 border-b border-white/10 p-4">
+    <div className="flex min-h-0 flex-col bg-neutral-950 text-white md:h-full md:flex-1">
+      <button
+        type="button"
+        className="flex w-full shrink-0 flex-col items-center pt-2 pb-1 md:hidden"
+        aria-expanded={commentsOpen}
+        aria-label={commentsOpen ? t("collapseComments") : t("viewComments")}
+        onClick={() => setCommentsOpen((open) => !open)}
+      >
+        <span className="h-1 w-10 rounded-full bg-white/30" />
+      </button>
+
+      <div className="shrink-0 space-y-2 px-4 pb-3 md:space-y-3 md:border-b md:border-white/10 md:pt-4">
         <div className="grid grid-cols-2 gap-2">
           <Button
             type="button"
@@ -150,8 +165,8 @@ export const PhotoSocial = ({
             aria-pressed={data.liked}
             className={
               data.liked
-                ? "h-11 gap-2 bg-orange-400 text-black hover:bg-orange-400/90"
-                : "h-11 gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                ? "h-10 min-w-0 gap-1.5 bg-orange-400 px-3 text-black hover:bg-orange-400/90 md:h-11"
+                : "h-10 min-w-0 gap-1.5 border-white/20 bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white md:h-11"
             }
             variant={data.liked ? "default" : "outline"}
             onClick={() => likeMutation.mutate({ photoId })}
@@ -159,7 +174,9 @@ export const PhotoSocial = ({
             <HeartIcon
               className={data.liked ? "size-5 fill-current" : "size-5"}
             />
-            {data.liked ? t("liked") : t("like")}
+            <span className="truncate">
+              {data.liked ? t("liked") : t("like")}
+            </span>
             {data.likeCount > 0 ? (
               <span className="tabular-nums opacity-80">({data.likeCount})</span>
             ) : null}
@@ -168,19 +185,19 @@ export const PhotoSocial = ({
             type="button"
             size="lg"
             variant="outline"
-            className="h-11 gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 min-w-0 gap-1.5 border-white/20 bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white md:h-11"
             onClick={focusComment}
           >
             <MessageCircleIcon className="size-5" />
-            {t("comment")}
+            <span className="truncate">{t("comment")}</span>
             {comments.length > 0 ? (
               <span className="tabular-nums opacity-80">({comments.length})</span>
             ) : null}
           </Button>
         </div>
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex min-w-0 items-start gap-2 text-xs md:text-sm">
           {data.likers.length > 0 ? (
-            <div className="flex -space-x-2">
+            <div className="flex shrink-0 -space-x-2 pt-0.5">
               {data.likers.map((liker) => (
                 <Face
                   key={liker.userId}
@@ -191,7 +208,9 @@ export const PhotoSocial = ({
               ))}
             </div>
           ) : null}
-          <p className="text-white/80">{likeSummary()}</p>
+          <p className="min-w-0 flex-1 text-pretty text-white/80">
+            {likeSummary()}
+          </p>
         </div>
         {createdAt ? (
           <p className="text-xs text-white/45">
@@ -200,7 +219,12 @@ export const PhotoSocial = ({
         ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-3 text-sm">
+      <div
+        className={cn(
+          "min-h-0 space-y-3 overflow-y-auto overscroll-contain px-4 py-3 text-sm md:flex-1 md:space-y-4 md:max-h-none",
+          commentsOpen ? "max-h-[min(38dvh,18rem)] border-t border-white/10" : "hidden md:block",
+        )}
+      >
         <p className="text-xs font-semibold uppercase tracking-wide text-white/45">
           {t("comments")}
         </p>
@@ -208,7 +232,7 @@ export const PhotoSocial = ({
           <p className="whitespace-pre-wrap text-white/90">{caption}</p>
         ) : null}
         {comments.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-white/15 px-3 py-6 text-center text-white/50">
+          <p className="rounded-lg border border-dashed border-white/15 px-3 py-3 text-center text-white/50 md:py-6">
             {t("emptyComments")}
           </p>
         ) : (
@@ -264,26 +288,26 @@ export const PhotoSocial = ({
       </div>
 
       <form
-        className="shrink-0 border-t border-white/10 p-3"
+        className="shrink-0 border-t border-white/10 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         onSubmit={(event) => {
           event.preventDefault();
           if (!body.trim()) return;
           commentMutation.mutate({ photoId, body });
         }}
       >
-        <div className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 ring-1 ring-white/10 focus-within:ring-orange-400/60">
+        <div className="flex min-w-0 items-center gap-1.5 rounded-full bg-white/10 py-1 pl-3 pr-1 ring-1 ring-white/10 focus-within:ring-orange-400/60">
           <Input
             ref={inputRef}
             value={body}
             onChange={(event) => setBody(event.target.value)}
             placeholder={t("addComment")}
-            className="h-9 border-0 bg-transparent text-white shadow-none placeholder:text-white/45 focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
+            className="h-9 min-w-0 flex-1 border-0 bg-transparent px-0 text-white shadow-none placeholder:text-white/45 focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
           />
           <Button
             type="submit"
             size="sm"
             disabled={!body.trim() || commentMutation.isPending}
-            className="rounded-full bg-orange-400 text-black hover:bg-orange-400/90 disabled:bg-orange-400/30 disabled:text-black/50"
+            className="shrink-0 rounded-full bg-orange-400 px-3 text-black hover:bg-orange-400/90 disabled:bg-orange-400/30 disabled:text-black/50"
           >
             {t("post")}
           </Button>

@@ -137,6 +137,8 @@
     "unlike": "Descurtir",
     "comment": "Comentar",
     "comments": "Comentários",
+    "viewComments": "Ver comentários",
+    "collapseComments": "Recolher comentários",
     "addComment": "Adicione um comentário...",
     "post": "Postar",
     "likeCount": "{count, plural, one {# curtida} other {# curtidas}}",

@@ -6,6 +6,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import type { PhotoRecord } from "@/modules/albums/types";
 
 type PhotoLightboxProps = {
@@ -37,7 +38,12 @@ export const PhotoLightbox = ({
         showCloseButton
         closeButtonPlacement="viewport"
         overlayClassName="bg-black/90 backdrop-blur-none"
-        className="flex w-auto max-h-[min(94dvh,100dvh)] max-w-[min(96vw,72rem)] flex-col items-center justify-center gap-0 border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-[min(96vw,72rem)]"
+        className={cn(
+          "flex max-h-dvh flex-col items-stretch justify-center gap-0 overflow-hidden border-none bg-transparent p-0 shadow-none ring-0",
+          footer
+            ? "top-0 left-0 h-dvh w-full max-w-[100vw] translate-x-0 translate-y-0 rounded-none sm:max-w-[100vw] md:top-1/2 md:left-1/2 md:h-auto md:max-h-[min(94dvh,100dvh)] md:w-auto md:max-w-[min(96vw,72rem)] md:-translate-x-1/2 md:-translate-y-1/2"
+            : "w-auto max-h-[min(94dvh,100dvh)] max-w-[min(96vw,72rem)] items-center sm:max-w-[min(96vw,72rem)]",
+        )}
         onPointerDown={(event) => {
           if (event.target === event.currentTarget) {
             onIndexChange(null);
@@ -49,7 +55,7 @@ export const PhotoLightbox = ({
           <div
             className={
               footer
-                ? "relative flex max-h-[min(92dvh,100dvh)] w-auto max-w-6xl flex-col overflow-hidden bg-black md:flex-row md:rounded-lg"
+                ? "relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-black md:h-auto md:max-h-[min(92dvh,100dvh)] md:w-auto md:max-w-6xl md:flex-row md:rounded-lg"
                 : "relative flex max-h-[min(92dvh,100dvh)] w-auto flex-col items-center justify-center"
             }
           >
@@ -62,7 +68,7 @@ export const PhotoLightbox = ({
                 height={1600}
                 className={
                   footer
-                    ? "photo-fade max-h-[min(55dvh,100dvh)] w-auto max-w-full object-contain md:max-h-[min(92dvh,100dvh)]"
+                    ? "photo-fade h-auto max-h-full w-auto max-w-full object-contain md:max-h-[min(92dvh,100dvh)]"
                     : "photo-fade max-h-[min(88dvh,100dvh)] w-auto max-w-[min(96vw,100vw)] object-contain"
                 }
                 sizes="100vw"
@@ -94,7 +100,7 @@ export const PhotoLightbox = ({
               )}
             </div>
             {footer ? (
-              <div className="flex max-h-[48dvh] w-full shrink-0 flex-col border-t border-white/10 md:max-h-[min(92dvh,100dvh)] md:w-105 md:border-l md:border-t-0">
+              <div className="z-10 flex w-full shrink-0 flex-col rounded-t-2xl border-t border-white/10 shadow-[0_-12px_32px_rgba(0,0,0,0.45)] md:max-h-[min(92dvh,100dvh)] md:w-105 md:rounded-none md:border-l md:border-t-0 md:shadow-none">
                 {footer}
               </div>
             ) : photo.caption ? (

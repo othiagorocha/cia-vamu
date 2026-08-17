@@ -747,6 +747,7 @@ export const AlbumPhotosAdminView = ({
         footer={
           activePhoto ? (
             <PhotoSocial
+              key={activePhoto.id}
               photoId={activePhoto.id}
               caption={activePhoto.caption ?? activePhoto.title}
               createdAt={activePhoto.createdAt}
