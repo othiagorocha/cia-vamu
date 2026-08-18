@@ -20,7 +20,7 @@ O detalhe de stack, arquitetura, design e convenções de TypeScript/i18n está 
 - `design.mdc` — tema (preto/branco + acento `orange-400`).
 - `typescript.mdc` — convenções de tipagem.
 - `i18n.mdc` — uso do next-intl e mensagens por namespace.
-- `agent-workflow.mdc` — scripts em `./scripts/`; **merge em `main` = produção**; typecheck após mudanças pesadas.
+- `agent-workflow.mdc` — scripts em `./scripts/`; **merge em `main` = produção**; typecheck; no máx. 3 commits sem push.
 
 Siga essas rules como fonte de verdade. Não invente features fora do escopo documentado (ex.: sem e-commerce, sem Supabase Auth, sem IA).
 
@@ -29,7 +29,7 @@ Siga essas rules como fonte de verdade. Não invente features fora do escopo doc
 - Branch **`main`** = site em produção (Hostinger). Só merge/push em `main` com pedido explícito.
 - Scripts de teste/diagnóstico ficam em **`./scripts/`** e devem ser removidos ao fim da investigação.
 - Após mudanças pesadas, o Agent deve rodar `pnpm typecheck`.
-
+- No máximo **3 commits** locais sem sincronizar com o remoto (`git push` em `dev` ao atingir o limite).
 ## Comandos úteis
 
 - `/commit` — cria commits seguindo conventional commits em pt-BR (ver `.cursor/commands/commit.md`).
