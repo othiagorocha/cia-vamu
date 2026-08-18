@@ -7,6 +7,16 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -41,20 +51,24 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [formOpen, setFormOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PrayerRequestRecord | null>(
+    null,
+  );
 
   const openRequest = requests.find((request) => request.id === openId) ?? null;
 
   const removeMutation = trpc.prayers.remove.useMutation({
     onSuccess: () => {
       toast.success(t("deleted"));
+      setDeleteTarget(null);
       setOpenId(null);
       utils.prayers.list.invalidate();
     },
     onError: toastError,
   });
 
-  const handleDelete = (id: string) => {
-    removeMutation.mutate({ id });
+  const requestDelete = (request: PrayerRequestRecord) => {
+    setDeleteTarget(request);
   };
 
   return (
@@ -131,7 +145,7 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
                     aria-label={tCommon("actions.delete")}
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleDelete(request.id);
+                      requestDelete(request);
                     }}
                   >
                     <Trash2Icon />
@@ -183,7 +197,7 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
                         aria-label={tCommon("actions.delete")}
                         onClick={(event) => {
                           event.stopPropagation();
-                          handleDelete(request.id);
+                          requestDelete(request);
                         }}
                       >
                         <Trash2Icon />
@@ -214,9 +228,35 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
           }
         }}
         canManage={canManage}
-        onDelete={handleDelete}
+        onDelete={
+          openRequest ? () => requestDelete(openRequest) : undefined
+        }
         isDeleting={removeMutation.isPending}
       />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("deleteDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon("actions.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                deleteTarget && removeMutation.mutate({ id: deleteTarget.id })
+              }
+            >
+              {tCommon("actions.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

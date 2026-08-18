@@ -395,7 +395,9 @@
       "body": "Pedido",
       "actions": "Ações"
     },
-    "deleted": "Pedido excluído."
+    "deleted": "Pedido excluído.",
+    "deleteTitle": "Excluir pedido?",
+    "deleteDescription": "Esta ação não pode ser desfeita. O pedido sai da lista da equipe."
   },
   "contactAdmin": {
     "title": "Mensagens",

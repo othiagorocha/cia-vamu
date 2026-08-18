@@ -19,7 +19,7 @@ type PrayerRequestDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   canManage: boolean;
-  onDelete?: (id: string) => void;
+  onDelete?: () => void;
   isDeleting?: boolean;
 };
 
@@ -62,7 +62,7 @@ export const PrayerRequestDialog = ({
             <Button
               variant="destructive"
               disabled={isDeleting}
-              onClick={() => onDelete(request.id)}
+              onClick={onDelete}
             >
               {tCommon("actions.delete")}
             </Button>
