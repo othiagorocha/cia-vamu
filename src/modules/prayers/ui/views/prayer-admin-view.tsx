@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatBrazilDateTimeShort } from "@/lib/brazil-datetime";
+import { useToastError } from "@/lib/use-toast-error";
 import { PrayerRequestDialog } from "@/modules/prayers/ui/components/prayer-request-dialog";
 import { PrayerRequestFormDialog } from "@/modules/prayers/ui/components/prayer-request-form-dialog";
 import type { PrayerRequestRecord } from "@/modules/prayers/types";
@@ -34,6 +35,7 @@ const authorLabel = (
 export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
   const t = useTranslations("prayers");
   const tCommon = useTranslations("common");
+  const toastError = useToastError();
   const utils = trpc.useUtils();
   const [requests] = trpc.prayers.list.useSuspenseQuery();
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -48,7 +50,7 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
       setOpenId(null);
       utils.prayers.list.invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const handleDelete = (id: string) => {

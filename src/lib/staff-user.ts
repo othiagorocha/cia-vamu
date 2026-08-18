@@ -1,11 +1,16 @@
 import { generateId } from "better-auth";
-import { hashPassword } from "better-auth/crypto";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { account, user } from "@/db/auth-schema";
 import { memberProfiles } from "@/db/schema";
+import { auth } from "@/lib/auth";
 import { ALL_CAPABILITIES, type SiteCapability } from "@/lib/permissions";
+
+const hashStaffPassword = async (password: string) => {
+  const ctx = await auth.$context;
+  return ctx.password.hash(password);
+};
 
 export class StaffUserError extends Error {
   constructor(
@@ -42,7 +47,7 @@ const insertStaffUser = async (
 
   const userId = generateId();
   const now = new Date();
-  const passwordHash = await hashPassword(input.password);
+  const passwordHash = await hashStaffPassword(input.password);
 
   await executor.insert(user).values({
     id: userId,
@@ -95,7 +100,7 @@ export const createStaffUser = async (
 };
 
 export const setStaffPassword = async (userId: string, password: string) => {
-  const passwordHash = await hashPassword(password);
+  const passwordHash = await hashStaffPassword(password);
   const now = new Date();
 
   const [existing] = await db

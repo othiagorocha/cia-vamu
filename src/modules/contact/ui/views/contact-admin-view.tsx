@@ -17,10 +17,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/trpc/client";
+import { useToastError } from "@/lib/use-toast-error";
 
 export const ContactAdminView = () => {
   const t = useTranslations("contactAdmin");
   const tCommon = useTranslations("common");
+  const toastError = useToastError();
   const utils = trpc.useUtils();
   const [messages] = trpc.contact.listAll.useSuspenseQuery();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -32,7 +34,7 @@ export const ContactAdminView = () => {
 
   const markMutation = trpc.contact.markAsRead.useMutation({
     onSuccess: invalidate,
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const removeMutation = trpc.contact.remove.useMutation({
@@ -40,7 +42,7 @@ export const ContactAdminView = () => {
       toast.success(t("deleted"));
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   if (messages.length === 0) {

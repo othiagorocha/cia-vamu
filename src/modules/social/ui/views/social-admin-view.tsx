@@ -50,10 +50,12 @@ import {
 } from "@/modules/social/schema";
 import type { SocialLinkRecord } from "@/modules/social/types";
 import { trpc } from "@/trpc/client";
+import { useToastError } from "@/lib/use-toast-error";
 
 export const SocialAdminView = () => {
   const t = useTranslations("social");
   const tCommon = useTranslations("common");
+  const toastError = useToastError();
   const utils = trpc.useUtils();
   const [links] = trpc.social.listAll.useSuspenseQuery();
   const [formOpen, setFormOpen] = useState(false);
@@ -113,7 +115,7 @@ export const SocialAdminView = () => {
       setFormOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const updateMutation = trpc.social.update.useMutation({
@@ -122,7 +124,7 @@ export const SocialAdminView = () => {
       setFormOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const removeMutation = trpc.social.remove.useMutation({
@@ -131,12 +133,12 @@ export const SocialAdminView = () => {
       setDeleteTarget(null);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const reorderMutation = trpc.social.reorder.useMutation({
     onSuccess: invalidate,
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   return (

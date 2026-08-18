@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { EditorCapability } from "@/lib/permissions";
+import { useToastError } from "@/lib/use-toast-error";
 import {
   editorModulesFromCapabilities,
   roleFromCapabilities,
@@ -65,6 +66,7 @@ type StaffAdminViewProps = {
 export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
   const t = useTranslations("staff");
   const tCommon = useTranslations("common");
+  const toastError = useToastError();
   const utils = trpc.useUtils();
   const [staffList] = trpc.staff.list.useSuspenseQuery();
   const [inviteList] = trpc.staff.listInvites.useSuspenseQuery();
@@ -92,7 +94,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
       setFormOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const updateMutation = trpc.staff.update.useMutation({
@@ -101,7 +103,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
       setFormOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const passwordMutation = trpc.staff.setPassword.useMutation({
@@ -109,12 +111,12 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
       toast.success(t("passwordUpdated"));
       setPasswordTarget(null);
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const disableMutation = trpc.staff.setDisabled.useMutation({
     onSuccess: invalidate,
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const removeMutation = trpc.staff.remove.useMutation({
@@ -123,7 +125,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
       setDeleteTarget(null);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const createInviteMutation = trpc.staff.createInvite.useMutation({
@@ -132,7 +134,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
       setCreatedInvite({ url: invite.url });
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const revokeInviteMutation = trpc.staff.revokeInvite.useMutation({
@@ -140,7 +142,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
       toast.success(t("invite.revoked"));
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const revealInviteMutation = trpc.staff.revealInvite.useMutation({
@@ -148,7 +150,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
       await navigator.clipboard.writeText(invite.url);
       toast.success(t("invite.copied"));
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const handleCreate = (values: StaffFormInput) => {
