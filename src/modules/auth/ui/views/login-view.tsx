@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -20,10 +19,12 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { useToastError } from "@/lib/use-toast-error";
 import { loginSchema, type LoginInput } from "@/modules/auth/schema";
 
 export const LoginView = () => {
   const t = useTranslations("auth.login");
+  const toastError = useToastError();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, setIsPending] = useState(false);
@@ -37,7 +38,10 @@ export const LoginView = () => {
     setIsPending(true);
 
     await authClient.signIn.email(
-      { email: values.email, password: values.password },
+      {
+        email: values.email.toLowerCase().trim(),
+        password: values.password,
+      },
       {
         onSuccess: () => {
           const redirectTo = searchParams.get("redirect") ?? "/admin";
@@ -45,11 +49,11 @@ export const LoginView = () => {
           router.refresh();
         },
         onError: (ctx) => {
-          const message =
-            ctx.error.status === 500
-              ? "Erro no servidor ao autenticar. Tente novamente em instantes."
-              : (ctx.error.message ?? "Não foi possível entrar.");
-          toast.error(message);
+          toastError({
+            message: ctx.error.message,
+            code: ctx.error.code,
+            status: ctx.error.status,
+          });
         },
       },
     );

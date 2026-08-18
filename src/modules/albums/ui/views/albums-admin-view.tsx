@@ -29,9 +29,11 @@ import { AlbumFormDialog } from "@/modules/albums/ui/components/album-form-dialo
 import type { AlbumFormInput } from "@/modules/albums/schema";
 import type { AlbumRecord } from "@/modules/albums/types";
 import { trpc } from "@/trpc/client";
+import { useToastError } from "@/lib/use-toast-error";
 
 export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   const router = useRouter();
+  const toastError = useToastError();
   const utils = trpc.useUtils();
   const [albums] = trpc.albums.listAll.useSuspenseQuery();
   const [formOpen, setFormOpen] = useState(false);
@@ -49,7 +51,7 @@ export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
       setFormOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const updateMutation = trpc.albums.update.useMutation({
@@ -58,7 +60,7 @@ export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
       setFormOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const removeMutation = trpc.albums.remove.useMutation({
@@ -67,7 +69,7 @@ export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
       setDeleteTarget(null);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const handleSubmit = (values: AlbumFormInput) => {

@@ -9,7 +9,6 @@ import {
   MoreHorizontalIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useToastError } from "@/lib/use-toast-error";
 import { trpc } from "@/trpc/client";
 
 const Face = ({
@@ -69,6 +69,7 @@ export const PhotoSocial = ({
   canModerate: boolean;
 }) => {
   const t = useTranslations("albums");
+  const toastError = useToastError();
   const utils = trpc.useUtils();
   const [body, setBody] = useState("");
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -81,7 +82,7 @@ export const PhotoSocial = ({
 
   const likeMutation = trpc.albums.toggleLike.useMutation({
     onSuccess: invalidate,
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const commentMutation = trpc.albums.addComment.useMutation({
@@ -90,7 +91,7 @@ export const PhotoSocial = ({
       setCommentsOpen(true);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const hideMutation = trpc.albums.hideComment.useMutation({

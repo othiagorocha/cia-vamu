@@ -19,6 +19,13 @@
       "viewAll": "Ver todos",
       "signOut": "Sair"
     },
+    "errors": {
+      "invalidCredentials": "E-mail ou senha inválidos.",
+      "tooManyRequests": "Muitas tentativas. Aguarde um pouco.",
+      "sessionFailed": "Não foi possível iniciar a sessão. Tente novamente.",
+      "server": "Erro no servidor. Tente novamente em instantes.",
+      "generic": "Não foi possível concluir. Tente novamente."
+    },
     "footer": {
       "tagline": "Ministério evangelístico missionário da Igreja Evangélica Batista de Ibitinga — Visão, Arte, Missão, Unção.",
       "rights": "Todos os direitos reservados."
@@ -388,7 +395,9 @@
       "body": "Pedido",
       "actions": "Ações"
     },
-    "deleted": "Pedido excluído."
+    "deleted": "Pedido excluído.",
+    "deleteTitle": "Excluir pedido?",
+    "deleteDescription": "Esta ação não pode ser desfeita. O pedido sai da lista da equipe."
   },
   "contactAdmin": {
     "title": "Mensagens",

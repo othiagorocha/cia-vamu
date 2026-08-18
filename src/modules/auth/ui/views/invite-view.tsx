@@ -21,6 +21,7 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cropPhotoToSquare, type PhotoFrame } from "@/lib/crop-photo";
+import { useToastError } from "@/lib/use-toast-error";
 import {
   PROFILE_PHOTO_VIEWPORT,
   ProfilePhotoEditor,
@@ -36,6 +37,7 @@ const DEFAULT_FRAME: PhotoFrame = { offsetX: 0, offsetY: 0, zoom: 1 };
 export const InviteView = ({ token }: { token: string }) => {
   const t = useTranslations("auth.invite");
   const tLogin = useTranslations("auth.login");
+  const toastError = useToastError();
   const router = useRouter();
   const inviteQuery = trpc.staff.getInvite.useQuery({ token });
   const [isPending, setIsPending] = useState(false);
@@ -53,7 +55,7 @@ export const InviteView = ({ token }: { token: string }) => {
       router.push("/admin/login");
       router.refresh();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
     onSettled: () => setIsPending(false),
   });
 

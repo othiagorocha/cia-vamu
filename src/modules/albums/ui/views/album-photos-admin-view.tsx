@@ -45,6 +45,7 @@ import {
 } from "@/lib/clipboard-image";
 import { normalizeImageContentType } from "@/lib/image-file";
 import { uploadFileToSignedUrl } from "@/lib/upload-to-signed-url";
+import { useToastError } from "@/lib/use-toast-error";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,6 +75,7 @@ export const AlbumPhotosAdminView = ({
 }) => {
   const t = useTranslations("albums");
   const tCommon = useTranslations("common");
+  const toastError = useToastError();
   const utils = trpc.useUtils();
   const [album] = trpc.albums.getById.useSuspenseQuery({ id: albumId });
   const [deleteTarget, setDeleteTarget] = useState<PhotoRecord | null>(null);
@@ -93,11 +95,11 @@ export const AlbumPhotosAdminView = ({
   queueRef.current = queue;
 
   const addPhotoMutation = trpc.albums.addPhoto.useMutation({
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const createPhotoUploadMutation = trpc.albums.createPhotoUpload.useMutation({
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const removePhotoMutation = trpc.albums.removePhoto.useMutation({
@@ -106,7 +108,7 @@ export const AlbumPhotosAdminView = ({
       setDeleteTarget(null);
       utils.albums.getById.invalidate({ id: albumId });
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const albumsQuery = trpc.albums.listAll.useQuery(undefined, {
@@ -134,7 +136,7 @@ export const AlbumPhotosAdminView = ({
       setActiveIndex(null);
       utils.albums.getById.invalidate({ id: albumId });
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const setCoverMutation = trpc.albums.setCover.useMutation({
@@ -144,7 +146,7 @@ export const AlbumPhotosAdminView = ({
       utils.albums.listAll.invalidate();
       utils.albums.listPublished.invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const updatePhotoMutation = trpc.albums.updatePhoto.useMutation({
@@ -153,7 +155,7 @@ export const AlbumPhotosAdminView = ({
       setEditTarget(null);
       utils.albums.getById.invalidate({ id: albumId });
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const createChildMutation = trpc.albums.create.useMutation({
@@ -164,7 +166,7 @@ export const AlbumPhotosAdminView = ({
       utils.albums.listAll.invalidate();
       utils.albums.listRoots.invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const handleCreateChild = (values: AlbumFormInput) => {

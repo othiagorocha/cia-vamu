@@ -11,6 +11,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cropPhotoToSquare, type PhotoFrame } from "@/lib/crop-photo";
+import { useToastError } from "@/lib/use-toast-error";
 import {
   updateMyProfileSchema,
   type UpdateMyProfileInput,
@@ -26,6 +27,7 @@ const DEFAULT_FRAME: PhotoFrame = { offsetX: 0, offsetY: 0, zoom: 1 };
 export const ProfileView = () => {
   const t = useTranslations("staff.profile");
   const tCommon = useTranslations("common");
+  const toastError = useToastError();
   const utils = trpc.useUtils();
   const [me] = trpc.members.getMe.useSuspenseQuery();
   const [source, setSource] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export const ProfileView = () => {
       utils.members.getMe.invalidate();
       utils.staff.list.invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   return (

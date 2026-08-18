@@ -38,9 +38,11 @@ import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge"
 import type { EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
 import { trpc } from "@/trpc/client";
+import { useToastError } from "@/lib/use-toast-error";
 
 export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   const t = useTranslations("events");
+  const toastError = useToastError();
   const utils = trpc.useUtils();
   const [events] = trpc.events.listAll.useSuspenseQuery();
   const [formOpen, setFormOpen] = useState(false);
@@ -58,7 +60,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
       setFormOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const updateMutation = trpc.events.update.useMutation({
@@ -67,7 +69,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
       setFormOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const removeMutation = trpc.events.remove.useMutation({
@@ -76,12 +78,12 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
       setDeleteTarget(null);
       invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const reorderMutation = trpc.events.reorder.useMutation({
     onSuccess: invalidate,
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   const handleSubmit = (values: EventFormInput) => {
