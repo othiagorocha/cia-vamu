@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarDaysIcon,
   ExternalLinkIcon,
+  FilesIcon,
   HistoryIcon,
   ImagesIcon,
   LayoutDashboardIcon,
@@ -61,6 +62,7 @@ export const DashboardSidebar = ({
     { href: "/admin/events", label: t("events"), icon: CalendarDaysIcon },
     { href: "/admin/albums", label: t("albums"), icon: ImagesIcon },
     { href: "/admin/oracao", label: t("prayers"), icon: PiHandsPrayingBold },
+    { href: "/admin/documentos", label: t("documents"), icon: FilesIcon },
     ...(hasCapability(session, "site:write")
       ? [{ href: "/admin/redes", label: t("social"), icon: Share2Icon }]
       : []),
@@ -68,10 +70,10 @@ export const DashboardSidebar = ({
       ? [{ href: "/admin/mensagens", label: t("messages"), icon: MailIcon }]
       : []),
     ...(hasCapability(session, "users:manage")
-      ? [
-          { href: "/admin/equipe", label: t("staff"), icon: UsersIcon },
-          { href: "/admin/auditoria", label: t("audit"), icon: HistoryIcon },
-        ]
+      ? [{ href: "/admin/equipe", label: t("staff"), icon: UsersIcon }]
+      : []),
+    ...(hasCapability(session, "users:manage")
+      ? [{ href: "/admin/auditoria", label: t("audit"), icon: HistoryIcon }]
       : []),
   ];
 

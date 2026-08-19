@@ -1,6 +1,8 @@
 import { albumsRouter } from "@/modules/albums/server/procedures";
 import { auditRouter } from "@/modules/audit/server/procedures";
+import { authRouter } from "@/modules/auth/server/procedures";
 import { contactRouter } from "@/modules/contact/server/procedures";
+import { documentsRouter } from "@/modules/documents/server/procedures";
 import { eventsRouter } from "@/modules/events/server/procedures";
 import { staffRouter } from "@/modules/staff/server/procedures";
 import { socialRouter } from "@/modules/social/server/procedures";
@@ -11,7 +13,9 @@ import { createTRPCRouter } from "@/trpc/init";
 export const appRouter = createTRPCRouter({
   albums: albumsRouter,
   audit: auditRouter,
+  auth: authRouter,
   contact: contactRouter,
+  documents: documentsRouter,
   events: eventsRouter,
   staff: staffRouter,
   social: socialRouter,

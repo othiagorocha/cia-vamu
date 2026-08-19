@@ -1,18 +1,20 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowRightIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 
-const DESKTOP_QUERY = "(min-width: 640px)";
+const DESKTOP_QUERY = "(min-width: 768px)";
 
 const subscribeDesktop = (onStoreChange: () => void) => {
   const media = window.matchMedia(DESKTOP_QUERY);
@@ -31,69 +33,80 @@ export type AuditChangeRow = {
 type AuditChangesDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  action: string;
-  target: string;
-  actorName: string;
-  when: string;
+  description: string;
   changes: AuditChangeRow[];
 };
 
 export const AuditChangesDrawer = ({
   open,
   onOpenChange,
-  action,
-  target,
-  actorName,
-  when,
+  description,
   changes,
 }: AuditChangesDrawerProps) => {
   const t = useTranslations("audit");
+  const tCommon = useTranslations("common.actions");
   const isDesktop = useSyncExternalStore(
     subscribeDesktop,
     getDesktopSnapshot,
-    () => true,
+    () => false,
   );
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side={isDesktop ? "right" : "bottom"}
-        className="gap-0 p-0 sm:max-w-md data-[side=bottom]:max-h-[85vh] data-[side=bottom]:rounded-t-2xl"
-      >
-        <SheetHeader className="border-b p-4 pr-12">
-          <SheetTitle>{t("viewChangesTitle")}</SheetTitle>
-          <SheetDescription>
-            {t("viewChangesDescription", {
-              action,
-              target,
-              actor: actorName,
-              when,
-            })}
-          </SheetDescription>
-        </SheetHeader>
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      direction={isDesktop ? "right" : "bottom"}
+      shouldScaleBackground={false}
+      repositionInputs={false}
+    >
+      <DrawerContent className="min-w-0 gap-0 p-0 data-[vaul-drawer-direction=bottom]:max-h-[85vh] data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:max-w-md">
+        <DrawerClose asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-3 right-3 z-10"
+          >
+            <XIcon />
+            <span className="sr-only">{tCommon("close")}</span>
+          </Button>
+        </DrawerClose>
 
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+        <DrawerHeader className="border-b px-4 py-4 pr-12 text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left sm:px-5">
+          <DrawerTitle>{t("viewChangesTitle")}</DrawerTitle>
+          <DrawerDescription className="text-pretty">
+            {description}
+          </DrawerDescription>
+        </DrawerHeader>
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-clip px-4 py-4 sm:px-5">
           {changes.map((change) => (
             <div
               key={`${change.field}-${change.from}-${change.to}`}
-              className="rounded-lg border bg-muted/30 p-3"
+              className="min-w-0 overflow-hidden rounded-lg border bg-muted/30 p-4"
             >
               <p className="text-sm font-medium">{change.field}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-[11px] text-muted-foreground">
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <span className="text-xs text-muted-foreground">
                     {t("changesFrom")}
                   </span>
-                  <span className="max-w-full rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
+                  <span className="break-words rounded-lg bg-background px-3 py-2 text-sm text-muted-foreground">
                     {change.from}
                   </span>
                 </div>
-                <ArrowRightIcon className="mt-4 size-3.5 shrink-0 text-orange-400" />
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-[11px] text-muted-foreground">
+                <ArrowDownIcon
+                  aria-hidden
+                  className="mx-auto size-4 shrink-0 text-orange-400 sm:hidden"
+                />
+                <ArrowRightIcon
+                  aria-hidden
+                  className="mt-6 hidden size-4 shrink-0 text-orange-400 sm:block"
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <span className="text-xs text-muted-foreground">
                     {t("changesTo")}
                   </span>
-                  <span className="max-w-full rounded-full bg-background px-2.5 py-1 text-xs font-medium">
+                  <span className="break-words rounded-lg bg-background px-3 py-2 text-sm font-medium">
                     {change.to}
                   </span>
                 </div>
@@ -101,7 +114,7 @@ export const AuditChangesDrawer = ({
             </div>
           ))}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   );
 };

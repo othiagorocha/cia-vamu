@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
@@ -40,6 +40,35 @@ import {
 } from "@/trpc/init";
 
 const parentAlbum = alias(albums, "parent_album");
+
+const REMOVED_ALBUM_TITLE = "Álbum removido";
+
+const optionalTitle = (value: string | null | undefined) => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+};
+
+const loadPhotoAuditContext = async (photoId: string) => {
+  const [row] = await db
+    .select({
+      photoTitle: photos.title,
+      albumTitle: albums.title,
+    })
+    .from(photos)
+    .innerJoin(albums, eq(albums.id, photos.albumId))
+    .where(eq(photos.id, photoId));
+
+  return row ?? null;
+};
+
+const photoCommentAuditMetadata = async (photoId: string) => {
+  const context = await loadPhotoAuditContext(photoId);
+
+  return {
+    title: optionalTitle(context?.photoTitle),
+    albumTitle: context?.albumTitle,
+  };
+};
 
 const isAlbumPhotoPath = (albumId: string, storagePath: string) => {
   const prefix = `albums/${albumId}/`;
@@ -420,8 +449,8 @@ export const albumsRouter = createTRPCRouter({
         entityType: "photo",
         entityId: photo.id,
         metadata: {
-          albumId: input.albumId,
-          title: photo.title,
+          title: optionalTitle(photo.title),
+          albumTitle: album.title,
         },
       });
 
@@ -454,8 +483,10 @@ export const albumsRouter = createTRPCRouter({
           id: photos.id,
           albumId: photos.albumId,
           title: photos.title,
+          albumTitle: albums.title,
         })
         .from(photos)
+        .innerJoin(albums, eq(albums.id, photos.albumId))
         .where(eq(photos.id, input.id));
 
       if (!photo) {
@@ -487,8 +518,8 @@ export const albumsRouter = createTRPCRouter({
             entityType: "photo",
             entityId: updated.id,
             metadata: {
-              albumId: updated.albumId,
-              title: updated.title,
+              title: optionalTitle(updated.title),
+              albumTitle: photo.albumTitle,
               changes,
             },
           });
@@ -502,8 +533,15 @@ export const albumsRouter = createTRPCRouter({
     .input(removePhotoSchema)
     .mutation(async ({ ctx, input }) => {
       const [photo] = await db
-        .select()
+        .select({
+          id: photos.id,
+          albumId: photos.albumId,
+          title: photos.title,
+          storagePath: photos.storagePath,
+          albumTitle: albums.title,
+        })
         .from(photos)
+        .innerJoin(albums, eq(albums.id, photos.albumId))
         .where(eq(photos.id, input.id));
 
       if (!photo) {
@@ -522,8 +560,8 @@ export const albumsRouter = createTRPCRouter({
         entityType: "photo",
         entityId: photo.id,
         metadata: {
-          albumId: photo.albumId,
-          title: photo.title,
+          title: optionalTitle(photo.title),
+          albumTitle: photo.albumTitle,
         },
       });
 
@@ -552,10 +590,13 @@ export const albumsRouter = createTRPCRouter({
         });
       }
 
-      const [destination] = await db
-        .select({ id: albums.id })
+      const albumRows = await db
+        .select({ id: albums.id, title: albums.title })
         .from(albums)
-        .where(eq(albums.id, input.albumId));
+        .where(inArray(albums.id, [photo.albumId, input.albumId]));
+
+      const origin = albumRows.find((row) => row.id === photo.albumId);
+      const destination = albumRows.find((row) => row.id === input.albumId);
 
       if (!destination) {
         throw new TRPCError({
@@ -563,6 +604,9 @@ export const albumsRouter = createTRPCRouter({
           message: "Álbum de destino não encontrado.",
         });
       }
+
+      const fromAlbumTitle = origin?.title ?? REMOVED_ALBUM_TITLE;
+      const toAlbumTitle = destination.title;
 
       const destinationPhotos = await db
         .select({ id: photos.id })
@@ -578,18 +622,28 @@ export const albumsRouter = createTRPCRouter({
         .where(eq(photos.id, input.id))
         .returning();
 
+      if (!moved) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Foto não encontrada.",
+        });
+      }
+
       await writeAuditLog({
         actor: ctx.session.user,
         action: AUDIT_ACTIONS.ALBUMS_PHOTO_MOVE,
         entityType: "photo",
         entityId: moved.id,
         metadata: {
-          title: moved.title,
+          title: optionalTitle(moved.title),
+          albumTitle: toAlbumTitle,
+          fromAlbumTitle,
+          toAlbumTitle,
           changes: [
             {
               field: "albumId",
-              from: photo.albumId,
-              to: input.albumId,
+              from: fromAlbumTitle,
+              to: toAlbumTitle,
             },
           ],
         },
@@ -636,7 +690,8 @@ export const albumsRouter = createTRPCRouter({
         entityId: album.id,
         metadata: {
           title: album.title,
-          photoId: input.photoId,
+          photoTitle: optionalTitle(photo.title),
+          albumTitle: album.title,
         },
       });
 
@@ -757,7 +812,7 @@ export const albumsRouter = createTRPCRouter({
           action: AUDIT_ACTIONS.ALBUMS_COMMENT_HIDE,
           entityType: "photo_comment",
           entityId: comment.id,
-          metadata: { photoId: comment.photoId },
+          metadata: await photoCommentAuditMetadata(comment.photoId),
         });
       }
 
@@ -779,7 +834,7 @@ export const albumsRouter = createTRPCRouter({
           action: AUDIT_ACTIONS.ALBUMS_COMMENT_RESTORE,
           entityType: "photo_comment",
           entityId: comment.id,
-          metadata: { photoId: comment.photoId },
+          metadata: await photoCommentAuditMetadata(comment.photoId),
         });
       }
 
@@ -805,7 +860,7 @@ export const albumsRouter = createTRPCRouter({
           action: AUDIT_ACTIONS.ALBUMS_COMMENT_DELETE,
           entityType: "photo_comment",
           entityId: comment.id,
-          metadata: { photoId: comment.photoId },
+          metadata: await photoCommentAuditMetadata(comment.photoId),
         });
       }
 

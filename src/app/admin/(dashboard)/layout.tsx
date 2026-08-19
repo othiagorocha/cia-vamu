@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { getCapabilities } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
+import { ForcePasswordChangeDialog } from "@/modules/auth/ui/components/force-password-change-dialog";
 import { DashboardSidebar } from "@/modules/dashboard/ui/components/dashboard-sidebar";
 
 const AdminLayout = async ({ children }: { children: React.ReactNode }) => {
@@ -21,15 +22,18 @@ const AdminLayout = async ({ children }: { children: React.ReactNode }) => {
         }}
         capabilities={getCapabilities(session)}
       />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger />
           <span className="text-sm font-medium text-muted-foreground">
             Painel administrativo
           </span>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden p-6">{children}</main>
       </SidebarInset>
+      <ForcePasswordChangeDialog
+        required={Boolean(session.user.mustChangePassword)}
+      />
     </SidebarProvider>
   );
 };

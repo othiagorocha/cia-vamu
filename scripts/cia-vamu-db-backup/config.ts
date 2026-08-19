@@ -20,6 +20,8 @@ export const TABLE_ORDER = [
   "social_links",
   "invites",
   "invite_uses",
+  "document_folders",
+  "documents",
 ] as const;
 
 export type BackupTableName = (typeof TABLE_ORDER)[number];

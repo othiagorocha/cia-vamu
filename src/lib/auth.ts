@@ -25,6 +25,12 @@ export const auth = betterAuth({
         defaultValue: false,
         input: false,
       },
+      mustChangePassword: {
+        type: "boolean",
+        required: true,
+        defaultValue: false,
+        input: false,
+      },
     },
   },
   databaseHooks: {

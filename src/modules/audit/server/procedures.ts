@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import { parseBrazilDateTime } from "@/lib/brazil-datetime";
 import { listAuditLogsSchema } from "@/modules/audit/schema";
+import { humanizeAuditLogs } from "@/modules/audit/server/humanize-audit-logs";
 import type { AuditLogListResult, AuditLogRecord } from "@/modules/audit/types";
 import { createTRPCRouter, requireCapability } from "@/trpc/init";
 
@@ -64,7 +65,7 @@ export const auditRouter = createTRPCRouter({
         .offset(input.offset);
 
       return {
-        items: rows.map(toRecord),
+        items: await humanizeAuditLogs(rows.map(toRecord)),
         total: totalRow?.total ?? 0,
       };
     }),

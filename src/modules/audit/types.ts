@@ -58,3 +58,16 @@ export const getAuditChanges = (metadata: AuditMetadata): AuditChange[] => {
 
   return value.filter(isAuditChange);
 };
+
+export const metadataText = (
+  metadata: AuditMetadata,
+  key: string,
+): string | null => {
+  const value = metadata[key];
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+};

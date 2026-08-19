@@ -333,7 +333,9 @@ export const staffRouter = createTRPCRouter({
         });
       }
 
-      await setStaffPassword(input.id, input.password);
+      await setStaffPassword(input.id, input.password, {
+        requirePasswordChange: true,
+      });
 
       await writeAuditLog({
         actor: ctx.session.user,
@@ -584,6 +586,9 @@ export const staffRouter = createTRPCRouter({
         action: AUDIT_ACTIONS.STAFF_INVITE_REVEAL,
         entityType: "invite",
         entityId: invite.id,
+        metadata: {
+          accessRole: roleFromCapabilities(parseCapabilities(invite.capabilities)),
+        },
       });
 
       return { url: buildInviteUrl(decryptInviteToken(invite.tokenCipher)) };
@@ -596,7 +601,7 @@ export const staffRouter = createTRPCRouter({
         .update(invites)
         .set({ revokedAt: new Date() })
         .where(and(eq(invites.id, input.id), isNull(invites.revokedAt)))
-        .returning({ id: invites.id });
+        .returning({ id: invites.id, capabilities: invites.capabilities });
 
       if (!updated) {
         throw new TRPCError({
@@ -610,6 +615,9 @@ export const staffRouter = createTRPCRouter({
         action: AUDIT_ACTIONS.STAFF_INVITE_REVOKE,
         entityType: "invite",
         entityId: updated.id,
+        metadata: {
+          accessRole: roleFromCapabilities(parseCapabilities(updated.capabilities)),
+        },
       });
 
       return { success: true };
@@ -747,6 +755,7 @@ export const staffRouter = createTRPCRouter({
               email: input.email,
               password: input.password,
               capabilities: parseCapabilities(invite.capabilities),
+              mustChangePassword: false,
             },
             tx,
           );

@@ -337,3 +337,65 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const documentFolders = pgTable(
+  "document_folders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    parentId: uuid("parent_id").references((): AnyPgColumn => documentFolders.id, {
+      onDelete: "cascade",
+    }),
+    createdById: text("created_by_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("document_folders_parent_id_idx").on(table.parentId)],
+);
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    folderId: uuid("folder_id").references(() => documentFolders.id, {
+      onDelete: "cascade",
+    }),
+    name: text("name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storagePath: text("storage_path").notNull(),
+    createdById: text("created_by_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("documents_folder_id_idx").on(table.folderId)],
+);
+
+export const documentFoldersRelations = relations(documentFolders, ({ one, many }) => ({
+  parent: one(documentFolders, {
+    fields: [documentFolders.parentId],
+    references: [documentFolders.id],
+    relationName: "document_folder_parent",
+  }),
+  children: many(documentFolders, { relationName: "document_folder_parent" }),
+  files: many(documents),
+}));
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  folder: one(documentFolders, {
+    fields: [documents.folderId],
+    references: [documentFolders.id],
+  }),
+}));

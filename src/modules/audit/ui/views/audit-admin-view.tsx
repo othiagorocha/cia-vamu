@@ -31,6 +31,7 @@ import {
 import { AUDIT_PAGE_SIZE } from "@/modules/audit/schema";
 import {
   getAuditChanges,
+  metadataText,
   type AuditChangeValue,
   type AuditLogRecord,
 } from "@/modules/audit/types";
@@ -84,29 +85,30 @@ const PLATFORMS = [
 ] as const;
 const PHOTO_VALUES = ["set", "empty", "updated", "removed"] as const;
 
+const ENTITY_FALLBACK = {
+  event: "event",
+  album: "album",
+  photo: "photo",
+  photo_comment: "comment",
+  prayer_request: "prayer",
+  user: "user",
+  invite: "invite",
+  social_link: "social",
+  contact_message: "message",
+  member_profile: "member",
+  document_folder: "folder",
+  document: "document",
+} as const;
+
+type EntityFallbackKey = (typeof ENTITY_FALLBACK)[keyof typeof ENTITY_FALLBACK];
+
 const isFieldKey = (field: string): field is FieldKey =>
   FIELD_KEYS.includes(field as FieldKey);
 
-const targetLabel = (log: AuditLogRecord, anonymousLabel: string) => {
-  const metadata = log.metadata;
-  if (metadata.anonymous === true) {
-    return anonymousLabel;
-  }
-
-  if (typeof metadata.title === "string" && metadata.title.trim()) {
-    return metadata.title;
-  }
-
-  if (typeof metadata.name === "string" && metadata.name.trim()) {
-    return metadata.name;
-  }
-
-  if (typeof metadata.label === "string" && metadata.label.trim()) {
-    return metadata.label;
-  }
-
-  return log.entityId.slice(0, 8);
-};
+const isAccessRole = (
+  value: string,
+): value is (typeof ACCESS_ROLES)[number] =>
+  ACCESS_ROLES.includes(value as (typeof ACCESS_ROLES)[number]);
 
 export const AuditAdminView = () => {
   const t = useTranslations("audit");
@@ -117,6 +119,99 @@ export const AuditAdminView = () => {
   const [to, setTo] = useState("");
   const [offset, setOffset] = useState(0);
   const [selectedLog, setSelectedLog] = useState<AuditLogRecord | null>(null);
+
+  const untitledPhoto = t("untitled.photo");
+
+  const fallbackByEntity = (entityType: string) => {
+    const key = ENTITY_FALLBACK[entityType as keyof typeof ENTITY_FALLBACK] as
+      | EntityFallbackKey
+      | undefined;
+    return key ? t(`untitled.${key}`) : t("untitled.record");
+  };
+
+  const photoLabel = (log: AuditLogRecord) =>
+    metadataText(log.metadata, "title") ?? untitledPhoto;
+
+  const targetLabel = (log: AuditLogRecord) => {
+    if (log.metadata.anonymous === true) {
+      return t("anonymous");
+    }
+
+    const title = metadataText(log.metadata, "title");
+    const name = metadataText(log.metadata, "name");
+    const label = metadataText(log.metadata, "label");
+    const albumTitle = metadataText(log.metadata, "albumTitle");
+    const fromAlbumTitle = metadataText(log.metadata, "fromAlbumTitle");
+    const toAlbumTitle = metadataText(log.metadata, "toAlbumTitle");
+    const photoTitle = metadataText(log.metadata, "photoTitle");
+    const accessRole = metadataText(log.metadata, "accessRole");
+
+    if (fromAlbumTitle && toAlbumTitle) {
+      return t("targetPhotoMove", {
+        photo: photoLabel(log),
+        from: fromAlbumTitle,
+        to: toAlbumTitle,
+      });
+    }
+
+    if (photoTitle && (title || albumTitle)) {
+      return t("targetCover", {
+        album: title ?? albumTitle ?? t("untitled.album"),
+        photo: photoTitle,
+      });
+    }
+
+    if (
+      albumTitle &&
+      (log.entityType === "photo" || log.entityType === "photo_comment")
+    ) {
+      return t("targetPhotoInAlbum", {
+        photo: photoLabel(log),
+        album: albumTitle,
+      });
+    }
+
+    if (title) {
+      return title;
+    }
+
+    if (name) {
+      return name;
+    }
+
+    if (label) {
+      return label;
+    }
+
+    if (accessRole && isAccessRole(accessRole)) {
+      return t("inviteLabel", { role: t(`values.accessRole.${accessRole}`) });
+    }
+
+    return fallbackByEntity(log.entityType);
+  };
+
+  const drawerDescription = (log: AuditLogRecord) => {
+    const fromAlbumTitle = metadataText(log.metadata, "fromAlbumTitle");
+    const toAlbumTitle = metadataText(log.metadata, "toAlbumTitle");
+    const when = formatBrazilDateTimeShort(log.createdAt);
+
+    if (fromAlbumTitle && toAlbumTitle) {
+      return t("viewChangesPhotoMove", {
+        photo: photoLabel(log),
+        from: fromAlbumTitle,
+        to: toAlbumTitle,
+        actor: log.actorName,
+        when,
+      });
+    }
+
+    return t("viewChangesDescription", {
+      action: actionLabel(log),
+      target: targetLabel(log),
+      actor: log.actorName,
+      when,
+    });
+  };
 
   const listInput = {
     actorUserId: actorUserId === ALL_VALUE ? undefined : actorUserId,
@@ -185,10 +280,6 @@ export const AuditAdminView = () => {
       return t(`values.photo.${value as (typeof PHOTO_VALUES)[number]}`);
     }
 
-    if (field === "albumId") {
-      return value.slice(0, 8);
-    }
-
     return value;
   };
 
@@ -230,7 +321,7 @@ export const AuditAdminView = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 max-w-full flex-col gap-4">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
@@ -303,7 +394,7 @@ export const AuditAdminView = () => {
           {hasFilters ? t("emptyFiltered") : t("empty")}
         </p>
       ) : (
-        <div className="rounded-lg border">
+        <div className="min-w-0 max-w-full overflow-hidden rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -342,7 +433,9 @@ export const AuditAdminView = () => {
                         </div>
                       </TableCell>
                       <TableCell>{actionLabel(log)}</TableCell>
-                      <TableCell>{targetLabel(log, t("anonymous"))}</TableCell>
+                      <TableCell className="max-w-[18rem] whitespace-normal">
+                        {targetLabel(log)}
+                      </TableCell>
                       <TableCell>
                         {hasChanges ? (
                           <Button
@@ -375,12 +468,7 @@ export const AuditAdminView = () => {
             setSelectedLog(null);
           }
         }}
-        action={selectedLog ? actionLabel(selectedLog) : ""}
-        target={selectedLog ? targetLabel(selectedLog, t("anonymous")) : ""}
-        actorName={selectedLog?.actorName ?? ""}
-        when={
-          selectedLog ? formatBrazilDateTimeShort(selectedLog.createdAt) : ""
-        }
+        description={selectedLog ? drawerDescription(selectedLog) : ""}
         changes={selectedChanges}
       />
 
@@ -419,7 +507,7 @@ export const AuditAdminView = () => {
 
 export const AuditAdminViewSkeleton = () => {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 max-w-full flex-col gap-4">
       <div className="h-8 w-48 animate-pulse rounded bg-muted" />
       <div className="h-24 animate-pulse rounded-lg border bg-muted/40" />
       <div className="h-64 animate-pulse rounded-lg border bg-muted/40" />

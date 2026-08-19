@@ -1,23 +1,27 @@
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import type { AuditAction, AuditEntityType } from "@/modules/audit/actions";
-import type { AuditActor, AuditMetadata } from "@/modules/audit/types";
+import type { AuditActor, AuditMetadata, AuditMetadataValue } from "@/modules/audit/types";
 
 type WriteAuditLogInput = {
   actor: AuditActor;
   action: AuditAction;
   entityType: AuditEntityType;
   entityId: string;
-  metadata?: AuditMetadata;
+  metadata?: Record<string, AuditMetadataValue | undefined>;
 };
 
-const compactMetadata = (metadata: AuditMetadata | undefined): AuditMetadata => {
+const compactMetadata = (
+  metadata: Record<string, AuditMetadataValue | undefined> | undefined,
+): AuditMetadata => {
   if (!metadata) {
     return {};
   }
 
   return Object.fromEntries(
-    Object.entries(metadata).filter(([, value]) => value !== undefined),
+    Object.entries(metadata).filter(
+      (entry): entry is [string, AuditMetadataValue] => entry[1] !== undefined,
+    ),
   );
 };
 

@@ -201,6 +201,14 @@
       "success": "Conta criada. Bem-vindo à equipe.",
       "invalidTitle": "Convite inválido",
       "invalidDescription": "Este link já foi usado ou expirou. Peça um novo convite a um gestor."
+    },
+    "changePassword": {
+      "title": "Defina sua senha",
+      "description": "A senha temporária precisa ser trocada antes de continuar no painel.",
+      "password": "Nova senha",
+      "confirmPassword": "Confirmar senha",
+      "submit": "Salvar senha",
+      "success": "Senha atualizada."
     }
   },
   "dashboard": {
@@ -210,6 +218,7 @@
       "events": "Agenda",
       "albums": "Álbuns",
       "prayers": "Pedidos de oração",
+      "documents": "Documentos",
       "staff": "Equipe",
       "audit": "Auditoria",
       "viewSite": "Ver site",
@@ -295,11 +304,11 @@
     },
     "form": {
       "createTitle": "Novo acesso",
-      "createDescription": "A pessoa poderá entrar no painel com este e-mail e senha.",
+      "createDescription": "A pessoa poderá entrar no painel com este e-mail e senha temporária. No primeiro acesso, precisará definir a senha dela.",
       "editTitle": "Editar acesso",
       "editDescription": "Atualize o nome e as permissões.",
       "passwordTitle": "Redefinir senha",
-      "passwordDescription": "Defina uma senha temporária para {name}.",
+      "passwordDescription": "Defina uma senha temporária para {name}. No próximo login, a pessoa precisará criar a senha dela.",
       "name": "Nome",
       "email": "E-mail",
       "password": "Senha",
@@ -437,6 +446,27 @@
     "viewChanges": "Ver mudanças",
     "viewChangesTitle": "O que mudou",
     "viewChangesDescription": "{action} em {target}, por {actor} em {when}.",
+    "viewChangesPhotoMove": "Moveu a foto {photo} do álbum {from} para o álbum {to}, por {actor} em {when}.",
+    "targetPhotoMove": "{photo} · {from} → {to}",
+    "targetPhotoInAlbum": "{photo} · {album}",
+    "targetCover": "{album} · {photo}",
+    "inviteLabel": "Convite de {role}",
+    "untitled": {
+      "photo": "Foto sem título",
+      "album": "Álbum",
+      "albumRemoved": "Álbum removido",
+      "comment": "Comentário",
+      "invite": "Convite",
+      "event": "Evento",
+      "user": "Pessoa",
+      "prayer": "Pedido de oração",
+      "social": "Rede",
+      "message": "Mensagem",
+      "member": "Integrante",
+      "folder": "Pasta",
+      "document": "Arquivo",
+      "record": "Registro"
+    },
     "changesFrom": "Antes",
     "changesTo": "Depois",
     "columns": {
@@ -461,7 +491,8 @@
       "staff": "Equipe",
       "social": "Redes",
       "contact": "Mensagens",
-      "members": "Perfil"
+      "members": "Perfil",
+      "documents": "Documentos"
     },
     "pagination": {
       "previous": "Anterior",
@@ -527,6 +558,16 @@
       "members": {
         "updateMe": "Atualizou o próprio perfil",
         "updateFlags": "Atualizou perfil de integrante"
+      },
+      "documents": {
+        "createFolder": "Criou pasta",
+        "renameFolder": "Renomeou pasta",
+        "removeFolder": "Excluiu pasta",
+        "upload": "Enviou arquivo",
+        "renameFile": "Renomeou arquivo",
+        "removeFile": "Excluiu arquivo",
+        "moveFile": "Moveu arquivo",
+        "moveFolder": "Moveu pasta"
       }
     },
     "actionByField": {
@@ -601,5 +642,84 @@
         "site": "Redes"
       }
     }
+  },
+  "documents": {
+    "title": "Documentos",
+    "subtitle": "Peças, roteiros e arquivos internos da equipe.",
+    "root": "Documentos",
+    "empty": "Nenhuma pasta ou arquivo nesta pasta.",
+    "emptyRoot": "Nenhuma pasta ou arquivo ainda.",
+    "emptyDrop": "Ou arraste arquivos para cá.",
+    "dropTitle": "Solte para enviar",
+    "dropHint": "Os arquivos entram nesta pasta.",
+    "newFolder": "Nova pasta",
+    "upload": "Enviar arquivos",
+    "folderName": "Nome da pasta",
+    "fileName": "Nome do arquivo",
+    "createFolderTitle": "Nova pasta",
+    "renameFolderTitle": "Renomear pasta",
+    "renameFileTitle": "Renomear arquivo",
+    "created": "Pasta criada.",
+    "folderRenamed": "Pasta renomeada.",
+    "folderRemoved": "Pasta excluída.",
+    "uploaded": "Arquivo enviado.",
+    "uploadedMany": "{count, plural, one {# arquivo enviado.} other {# arquivos enviados.}}",
+    "fileRenamed": "Arquivo renomeado.",
+    "fileRemoved": "Arquivo excluído.",
+    "deleteFolderTitle": "Excluir pasta?",
+    "deleteFolderDescription": "A pasta \"{name}\" e todo o conteúdo dentro dela serão excluídos.",
+    "deleteFileTitle": "Excluir arquivo?",
+    "deleteFileDescription": "O arquivo \"{name}\" será removido.",
+    "open": "Abrir",
+    "download": "Baixar",
+    "rename": "Renomear",
+    "move": "Mover",
+    "moveTitle": "Mover para",
+    "moveDescription": "Escolha a pasta de destino para \"{name}\".",
+    "moveCurrent": "Atual",
+    "fileMoved": "Arquivo movido.",
+    "folderMoved": "Pasta movida.",
+    "breadcrumb": "Caminho da pasta",
+    "uploadProgress": {
+      "title": "Enviando arquivos",
+      "doneTitle": "Envio concluído",
+      "sending": "Enviando {current} de {total}",
+      "done": "{count} de {total} enviados.",
+      "status": {
+        "queued": "Na fila",
+        "uploading": "Enviando…",
+        "saving": "Salvando…",
+        "done": "Enviado",
+        "error": "Falha no envio",
+        "skipped": "Não enviado"
+      }
+    },
+    "preview": {
+      "title": "Visualizar documento",
+      "error": "Não foi possível abrir o documento.",
+      "unavailable": "Este formato não pode ser visualizado no site. Baixe o arquivo para abrir.",
+      "truncated": "O arquivo é grande; mostrando apenas o início.",
+      "empty": "O documento está vazio."
+    },
+    "columns": {
+      "name": "Nome",
+      "type": "Tipo",
+      "size": "Tamanho",
+      "updated": "Atualizado",
+      "author": "Enviado por",
+      "actions": "Ações"
+    },
+    "types": {
+      "folder": "Pasta",
+      "pdf": "PDF",
+      "markdown": "Markdown",
+      "text": "Texto",
+      "word": "Word",
+      "audio": "Áudio",
+      "file": "Arquivo"
+    },
+    "invalidType": "Use PDF, Markdown, texto, Word ou áudio.",
+    "tooLarge": "O arquivo deve ter no máximo 25 MB.",
+    "uploadError": "Não foi possível enviar o arquivo."
   }
 }

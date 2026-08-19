@@ -207,7 +207,7 @@ export const membersRouter = createTRPCRouter({
             entityType: "member_profile",
             entityId: input.userId,
             metadata: {
-              name: target?.name ?? input.userId,
+              name: target?.name,
               changes,
             },
           });

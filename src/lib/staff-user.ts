@@ -2,7 +2,7 @@ import { generateId } from "better-auth";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { account, user } from "@/db/auth-schema";
+import { account, session, user } from "@/db/auth-schema";
 import { memberProfiles } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { ALL_CAPABILITIES, type SiteCapability } from "@/lib/permissions";
@@ -27,6 +27,7 @@ type CreateStaffUserInput = {
   email: string;
   password: string;
   capabilities: SiteCapability[];
+  mustChangePassword?: boolean;
 };
 
 type StaffExecutor = Pick<typeof db, "select" | "insert">;
@@ -56,6 +57,7 @@ const insertStaffUser = async (
     emailVerified: true,
     capabilities: input.capabilities,
     disabled: false,
+    mustChangePassword: input.mustChangePassword ?? true,
     createdAt: now,
     updatedAt: now,
   });
@@ -99,7 +101,15 @@ export const createStaffUser = async (
   return insertStaffUser(executor, input);
 };
 
-export const setStaffPassword = async (userId: string, password: string) => {
+type SetStaffPasswordOptions = {
+  requirePasswordChange?: boolean;
+};
+
+export const setStaffPassword = async (
+  userId: string,
+  password: string,
+  options: SetStaffPasswordOptions = {},
+) => {
   const passwordHash = await hashStaffPassword(password);
   const now = new Date();
 
@@ -118,13 +128,41 @@ export const setStaffPassword = async (userId: string, password: string) => {
       createdAt: now,
       updatedAt: now,
     });
-    return;
+  } else {
+    await db
+      .update(account)
+      .set({ password: passwordHash, updatedAt: now })
+      .where(eq(account.id, existing.id));
   }
 
+  if (options.requirePasswordChange) {
+    await db
+      .update(user)
+      .set({ mustChangePassword: true, updatedAt: now })
+      .where(eq(user.id, userId));
+    await db.delete(session).where(eq(session.userId, userId));
+  }
+};
+
+export const isSameStaffPassword = async (userId: string, password: string) => {
+  const [existing] = await db
+    .select({ password: account.password })
+    .from(account)
+    .where(and(eq(account.userId, userId), eq(account.providerId, "credential")));
+
+  if (!existing?.password) {
+    return false;
+  }
+
+  const ctx = await auth.$context;
+  return ctx.password.verify({ hash: existing.password, password });
+};
+
+export const clearMustChangePassword = async (userId: string) => {
   await db
-    .update(account)
-    .set({ password: passwordHash, updatedAt: now })
-    .where(eq(account.id, existing.id));
+    .update(user)
+    .set({ mustChangePassword: false, updatedAt: new Date() })
+    .where(eq(user.id, userId));
 };
 
 export const ensureGestorCapabilities = async (email: string) => {

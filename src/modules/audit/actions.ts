@@ -6,6 +6,7 @@ export const AUDIT_MODULES = [
   "social",
   "contact",
   "members",
+  "documents",
 ] as const;
 
 export type AuditModule = (typeof AUDIT_MODULES)[number];
@@ -46,6 +47,14 @@ export const AUDIT_ACTIONS = {
   CONTACT_REMOVE: "contact.remove",
   MEMBERS_UPDATE_ME: "members.updateMe",
   MEMBERS_UPDATE_FLAGS: "members.updateFlags",
+  DOCUMENTS_CREATE_FOLDER: "documents.createFolder",
+  DOCUMENTS_RENAME_FOLDER: "documents.renameFolder",
+  DOCUMENTS_REMOVE_FOLDER: "documents.removeFolder",
+  DOCUMENTS_UPLOAD: "documents.upload",
+  DOCUMENTS_RENAME_FILE: "documents.renameFile",
+  DOCUMENTS_REMOVE_FILE: "documents.removeFile",
+  DOCUMENTS_MOVE_FILE: "documents.moveFile",
+  DOCUMENTS_MOVE_FOLDER: "documents.moveFolder",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -61,6 +70,8 @@ export const AUDIT_ENTITY_TYPES = [
   "social_link",
   "contact_message",
   "member_profile",
+  "document_folder",
+  "document",
 ] as const;
 
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];

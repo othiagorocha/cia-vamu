@@ -44,6 +44,7 @@ async function main() {
     email: normalizedEmail,
     password,
     capabilities: ALL_CAPABILITIES,
+    mustChangePassword: false,
   });
 
   console.log(`Usuário admin criado: ${normalizedEmail}`);
