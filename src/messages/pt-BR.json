@@ -178,7 +178,9 @@
     "commentActions": "Ações do comentário",
     "hiddenComment": "Ocultar",
     "restore": "Restaurar",
-    "deleteForever": "Excluir de vez"
+    "deleteForever": "Excluir de vez",
+    "commentUpdated": "Comentário atualizado.",
+    "commentDeleted": "Comentário excluído."
   },
   "events": {
     "title": "Agenda",
@@ -594,6 +596,7 @@
         "comment": {
           "hide": "Ocultou comentário",
           "restore": "Restaurou comentário",
+          "update": "Editou comentário",
           "delete": "Excluiu comentário"
         }
       },
@@ -657,7 +660,8 @@
       "label": "Alterou rótulo",
       "photo": "Alterou foto",
       "read": "Alterou leitura da mensagem",
-      "albumId": "Moveu de álbum"
+      "albumId": "Moveu de álbum",
+      "body": "Alterou comentário"
     },
     "fields": {
       "name": "Nome",
@@ -674,7 +678,8 @@
       "label": "Rótulo",
       "photo": "Foto",
       "read": "Leitura",
-      "albumId": "Álbum"
+      "albumId": "Álbum",
+      "body": "Comentário"
     },
     "values": {
       "yes": "Sim",

@@ -12,6 +12,7 @@ import {
   photoLikes,
   photos,
 } from "@/db/schema";
+import { hasCapability } from "@/lib/permissions";
 import {
   createSignedImageUpload,
   deleteImageFromStorage,
@@ -30,6 +31,7 @@ import {
   removePhotoSchema,
   setCoverSchema,
   updateAlbumSchema,
+  updateCommentSchema,
   updatePhotoSchema,
 } from "@/modules/albums/schema";
 import {
@@ -748,6 +750,7 @@ export const albumsRouter = createTRPCRouter({
       return {
         likeCount: activeLikes.length,
         liked: activeLikes.some((like) => like.userId === ctx.session.user.id),
+        viewerId: ctx.session.user.id,
         likers: activeLikers.slice(0, 3).map((like) => ({
           userId: like.userId,
           name: like.name,
@@ -797,6 +800,62 @@ export const albumsRouter = createTRPCRouter({
       return comment;
     }),
 
+  updateComment: protectedProcedure
+    .input(updateCommentSchema)
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await db
+        .select()
+        .from(photoComments)
+        .where(eq(photoComments.id, input.id));
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Comentário não encontrado.",
+        });
+      }
+
+      if (existing.authorId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Você não tem permissão para fazer isso.",
+        });
+      }
+
+      if (existing.deletedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Não é possível editar um comentário oculto.",
+        });
+      }
+
+      const body = input.body.trim();
+      const changes = diffFields({ body: existing.body }, { body });
+
+      if (changes.length === 0) {
+        return existing;
+      }
+
+      const [comment] = await db
+        .update(photoComments)
+        .set({ body })
+        .where(eq(photoComments.id, input.id))
+        .returning();
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_COMMENT_UPDATE,
+        entityType: "photo_comment",
+        entityId: existing.id,
+        metadata: {
+          ...(await photoCommentAuditMetadata(existing.photoId)),
+          changes,
+        },
+      });
+
+      return comment;
+    }),
+
   hideComment: requireCapability("users:manage")
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -841,28 +900,48 @@ export const albumsRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  deleteComment: requireCapability("users:manage")
+  deleteComment: protectedProcedure
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ ctx, input }) => {
       const [comment] = await db
         .select({
           id: photoComments.id,
           photoId: photoComments.photoId,
+          authorId: photoComments.authorId,
+          body: photoComments.body,
         })
         .from(photoComments)
         .where(eq(photoComments.id, input.id));
 
-      await db.delete(photoComments).where(eq(photoComments.id, input.id));
-
-      if (comment) {
-        await writeAuditLog({
-          actor: ctx.session.user,
-          action: AUDIT_ACTIONS.ALBUMS_COMMENT_DELETE,
-          entityType: "photo_comment",
-          entityId: comment.id,
-          metadata: await photoCommentAuditMetadata(comment.photoId),
+      if (!comment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Comentário não encontrado.",
         });
       }
+
+      const isAuthor = comment.authorId === ctx.session.user.id;
+      const isManager = hasCapability(ctx.session, "users:manage");
+
+      if (!isAuthor && !isManager) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Você não tem permissão para fazer isso.",
+        });
+      }
+
+      await db.delete(photoComments).where(eq(photoComments.id, input.id));
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_COMMENT_DELETE,
+        entityType: "photo_comment",
+        entityId: comment.id,
+        metadata: {
+          ...(await photoCommentAuditMetadata(comment.photoId)),
+          changes: diffFields({ body: comment.body }, { body: null }),
+        },
+      });
 
       return { success: true };
     }),

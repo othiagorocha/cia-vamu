@@ -59,3 +59,8 @@ export const updatePhotoSchema = z.object({
   title: z.string().max(200),
   caption: z.string().max(2000),
 });
+
+export const updateCommentSchema = z.object({
+  id: z.uuid(),
+  body: z.string().min(1).max(1000),
+});

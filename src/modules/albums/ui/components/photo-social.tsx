@@ -9,6 +9,7 @@ import {
   MoreHorizontalIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -69,10 +70,13 @@ export const PhotoSocial = ({
   canModerate: boolean;
 }) => {
   const t = useTranslations("albums");
+  const tCommon = useTranslations("common");
   const toastError = useToastError();
   const utils = trpc.useUtils();
   const [body, setBody] = useState("");
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const { data } = trpc.albums.photoSocial.useQuery({ photoId });
 
@@ -94,14 +98,32 @@ export const PhotoSocial = ({
     onError: toastError,
   });
 
+  const updateMutation = trpc.albums.updateComment.useMutation({
+    onSuccess: () => {
+      setEditingId(null);
+      setEditBody("");
+      toast.success(t("commentUpdated"));
+      invalidate();
+    },
+    onError: toastError,
+  });
+
   const hideMutation = trpc.albums.hideComment.useMutation({
     onSuccess: invalidate,
+    onError: toastError,
   });
   const restoreMutation = trpc.albums.restoreComment.useMutation({
     onSuccess: invalidate,
+    onError: toastError,
   });
   const deleteMutation = trpc.albums.deleteComment.useMutation({
-    onSuccess: invalidate,
+    onSuccess: () => {
+      setEditingId(null);
+      setEditBody("");
+      toast.success(t("commentDeleted"));
+      invalidate();
+    },
+    onError: toastError,
   });
 
   if (!data) {
@@ -144,6 +166,12 @@ export const PhotoSocial = ({
       inputRef.current?.focus();
       inputRef.current?.scrollIntoView({ block: "nearest" });
     });
+  };
+
+  const startEdit = (comment: { id: string; body: string }) => {
+    setEditingId(comment.id);
+    setEditBody(comment.body);
+    setCommentsOpen(true);
   };
 
   return (
@@ -237,22 +265,72 @@ export const PhotoSocial = ({
             {t("emptyComments")}
           </p>
         ) : (
-          comments.map((comment) => (
+          comments.map((comment) => {
+            const isAuthor = comment.authorId === data.viewerId;
+            const canEdit = isAuthor && !comment.deletedAt;
+            const showMenu = canEdit || canModerate;
+
+            return (
             <div key={comment.id} className="flex gap-3">
               <Face name={comment.authorName} photoUrl={comment.authorPhotoUrl} />
               <div className="min-w-0 flex-1">
-                <p className={comment.deletedAt ? "text-white/50" : ""}>
-                  <span className="font-semibold">{comment.authorName} </span>
-                  {comment.body}
-                </p>
-                <p className="mt-1 text-xs text-white/45">
-                  {formatDistanceToNow(comment.createdAt, {
-                    locale: ptBR,
-                    addSuffix: true,
-                  })}
-                </p>
+                {editingId === comment.id ? (
+                  <form
+                    className="flex flex-col gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (!editBody.trim()) return;
+                      updateMutation.mutate({
+                        id: comment.id,
+                        body: editBody,
+                      });
+                    }}
+                  >
+                    <Input
+                      value={editBody}
+                      onChange={(event) => setEditBody(event.target.value)}
+                      maxLength={1000}
+                      className="h-9 border-white/20 bg-white/10 text-white placeholder:text-white/45"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={!editBody.trim() || updateMutation.isPending}
+                        className="rounded-full bg-orange-400 text-black hover:bg-orange-400/90"
+                      >
+                        {tCommon("actions.save")}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-white/70 hover:bg-white/10 hover:text-white"
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditBody("");
+                        }}
+                      >
+                        {tCommon("actions.cancel")}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <p className={comment.deletedAt ? "text-white/50" : ""}>
+                      <span className="font-semibold">{comment.authorName} </span>
+                      {comment.body}
+                    </p>
+                    <p className="mt-1 text-xs text-white/45">
+                      {formatDistanceToNow(comment.createdAt, {
+                        locale: ptBR,
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </>
+                )}
               </div>
-              {canModerate ? (
+              {showMenu && editingId !== comment.id ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     aria-label={t("commentActions")}
@@ -261,30 +339,40 @@ export const PhotoSocial = ({
                     <MoreHorizontalIcon className="size-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {comment.deletedAt ? (
-                      <DropdownMenuItem
-                        onClick={() => restoreMutation.mutate({ id: comment.id })}
-                      >
-                        {t("restore")}
+                    {canEdit ? (
+                      <DropdownMenuItem onClick={() => startEdit(comment)}>
+                        {tCommon("actions.edit")}
                       </DropdownMenuItem>
-                    ) : (
+                    ) : null}
+                    {canModerate ? (
+                      comment.deletedAt ? (
+                        <DropdownMenuItem
+                          onClick={() => restoreMutation.mutate({ id: comment.id })}
+                        >
+                          {t("restore")}
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={() => hideMutation.mutate({ id: comment.id })}
+                        >
+                          {t("hiddenComment")}
+                        </DropdownMenuItem>
+                      )
+                    ) : null}
+                    {canEdit || canModerate ? (
                       <DropdownMenuItem
-                        onClick={() => hideMutation.mutate({ id: comment.id })}
+                        variant="destructive"
+                        onClick={() => deleteMutation.mutate({ id: comment.id })}
                       >
-                        {t("hiddenComment")}
+                        {canModerate ? t("deleteForever") : tCommon("actions.delete")}
                       </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => deleteMutation.mutate({ id: comment.id })}
-                    >
-                      {t("deleteForever")}
-                    </DropdownMenuItem>
+                    ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
