@@ -18,9 +18,8 @@ async function main() {
   const { user } = await import("@/db/auth-schema");
   const { db } = await import("@/db");
   const { ALL_CAPABILITIES } = await import("@/lib/permissions");
-  const { createStaffUser, ensureGestorCapabilities } = await import(
-    "@/lib/staff-user"
-  );
+  const { createStaffUser, ensureGestorCapabilities, setStaffPassword } =
+    await import("@/lib/staff-user");
 
   const normalizedEmail = email.toLowerCase().trim();
   const [existing] = await db
@@ -30,6 +29,7 @@ async function main() {
 
   if (existing) {
     await ensureGestorCapabilities(normalizedEmail);
+    await setStaffPassword(existing.id, password);
     const { memberProfiles } = await import("@/db/schema");
     await db
       .insert(memberProfiles)

@@ -1,0 +1,43 @@
+---
+description: Scripts temporários em ./scripts e merge em main = produção
+alwaysApply: true
+---
+
+# Fluxo do Agent (scripts e deploy)
+
+## Scripts de teste / diagnóstico
+
+- Coloque scripts temporários, probes e utilitários ad-hoc em **`./scripts/`** (nunca em `src/db/`, `src/app/`, `src/lib/` ou modules).
+- Exemplos: `scripts/diagnose-auth.ts`, `scripts/probe-user-table.ts`.
+- **Não deixe lixo no repo:** ao terminar a investigação, remova os scripts de teste ou confirme com o usuário se devem permanecer em `./scripts/`.
+- Rotas HTTP temporárias de diagnóstico (ex.: `/api/db-test`) também são provisórias — remover depois do uso em produção/staging.
+- Preferir `pnpm exec tsx scripts/...` com `--env-file=.env.local` quando precisar de env.
+
+```text
+❌ src/db/diagnose-auth.ts
+❌ src/app/api/tmp-probe/route.ts (permanente)
+✅ scripts/diagnose-auth.ts  (e apagar ao fim, se for só diagnóstico)
+```
+
+## Git: `main` = produção
+
+- **Merge (ou push) em `main` coloca o site em produção** (Hostinger / `ciavamu.com.br`).
+- Não faça merge em `main` sem o usuário pedir explicitamente.
+- Prefira trabalhar e abrir PR / merge em `dev` para staging/validação, salvo pedido claro de ir para produção.
+- Ao propor “subir o diagnóstico”, deixe claro se isso implica merge em `main` (produção) ou só `dev`.
+
+## Git: sincronizar com o remoto
+
+- **Nunca deixe mais de 3 commits locais sem push** na branch atual (`git status` com `ahead > 3` é inválido).
+- Ao criar o 3º commit à frente do remoto (ou ao perceber `ahead >= 3`), faça **`git push`** (ou `git push -u origin HEAD` se a branch ainda não tiver upstream) na mesma sessão, salvo o usuário pedir para não enviar.
+- Push em `main` continua exigindo pedido explícito; se a branch atual for `main` e estiver `ahead >= 3`, avise o usuário e peça confirmação antes de enviar (produção).
+- Em `dev` (e outras não-produção), o push automático ao atingir 3 commits é o comportamento esperado.
+## Qualidade após mudanças pesadas
+
+- Depois de mudanças **pesadas** (vários arquivos, auth, schema/DB, tRPC, refactors, scripts novos em TypeScript), rode **`pnpm typecheck`** (`tsc --noEmit`) antes de dar a tarefa por concluída.
+- Se o typecheck falhar, corrija antes do commit/push (salvo o usuário pedir só o rascunho).
+- Mudanças mínimas (typo, copy, uma linha de estilo) não exigem typecheck obrigatório.
+
+## Deploy na Hostinger (contexto)
+
+- Build no servidor: **`npm`** (não `pnpm`) + **Node 22**.
