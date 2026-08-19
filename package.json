@@ -22,7 +22,7 @@
     "@trpc/client": "^11.18.0",
     "@trpc/react-query": "^11.18.0",
     "@trpc/server": "^11.18.0",
-    "better-auth": "^1.6.25",
+    "better-auth": "1.6.25",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -59,5 +59,11 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.5",
     "typescript": "^5"
+  },
+  "overrides": {
+    "better-auth": "1.6.25",
+    "@better-auth/core": "1.6.25",
+    "@better-auth/drizzle-adapter": "1.6.25",
+    "@better-auth/utils": "0.4.2"
   }
 }
