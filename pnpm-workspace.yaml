@@ -1,13 +1,15 @@
 onlyBuiltDependencies:
   - "@parcel/watcher"
   - "@swc/core"
-  - esbuild
   - sharp
   - unrs-resolver
+
+ignoredBuiltDependencies:
+  - esbuild
 
 allowBuilds:
   "@parcel/watcher": true
   "@swc/core": true
-  esbuild: true
+  esbuild: false
   sharp: true
   unrs-resolver: true
