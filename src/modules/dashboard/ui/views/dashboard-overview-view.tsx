@@ -166,7 +166,7 @@ export const DashboardOverviewView = ({
         <div
           role="list"
           aria-label={t("kpis")}
-          className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-6 pb-1 [scrollbar-width:none] touch-pan-x sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 sm:snap-none xl:grid-cols-6 [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] touch-pan-x sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 sm:snap-none xl:grid-cols-6 [&::-webkit-scrollbar]:hidden"
         >
           {kpis.map((kpi) => (
             <div
@@ -214,7 +214,7 @@ export const DashboardOverviewViewSkeleton = () => {
   return (
     <div className="flex flex-col gap-6">
       <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-      <div className="-mx-6 flex gap-3 overflow-hidden px-6 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0 xl:grid-cols-6">
+      <div className="flex gap-3 overflow-hidden sm:grid sm:grid-cols-3 xl:grid-cols-6">
         {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}
