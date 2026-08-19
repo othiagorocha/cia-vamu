@@ -313,6 +313,9 @@ export async function GET(request: Request) {
       keyLength?: number;
       nodeCryptoMatches?: boolean;
       contextPasswordVerifyMatches?: boolean;
+      adapterHashLength?: number | null;
+      adapterHashSameAsRawSql?: boolean;
+      adapterPasswordVerifyMatches?: boolean;
       error?: string;
     } = { attempted: false };
 
@@ -348,6 +351,21 @@ export async function GET(request: Request) {
             hash: storedHash,
             password: probePassword,
           });
+
+          const adapterCredential = adapterLookup?.accounts.find(
+            (item) => item.providerId === "credential",
+          );
+          const adapterHash = adapterCredential?.password ?? null;
+
+          hashProbe.adapterHashLength = adapterHash?.length ?? null;
+          hashProbe.adapterHashSameAsRawSql = adapterHash === storedHash;
+
+          if (adapterHash) {
+            hashProbe.adapterPasswordVerifyMatches = await ctx.password.verify({
+              hash: adapterHash,
+              password: probePassword,
+            });
+          }
         }
       } catch (error) {
         hashProbe.error = error instanceof Error ? error.message : "hash probe failed";
@@ -361,10 +379,19 @@ export async function GET(request: Request) {
       message?: string | null;
       ok?: boolean;
       error?: string;
+      capturedWarnLogs?: unknown[][];
     } = { attempted: false };
 
     if (email && probePassword) {
       signInProbe.attempted = true;
+
+      const capturedWarnLogs: unknown[][] = [];
+      const ctx = await auth.$context;
+      const originalWarn = ctx.logger.warn.bind(ctx.logger);
+      ctx.logger.warn = (...args: unknown[]) => {
+        capturedWarnLogs.push(args);
+        return originalWarn(...(args as [message: string, ...rest: unknown[]]));
+      };
 
       try {
         const response = await auth.api.signInEmail({
@@ -403,6 +430,9 @@ export async function GET(request: Request) {
           message: err.message ?? "signInEmail threw",
           error: err.message,
         };
+      } finally {
+        ctx.logger.warn = originalWarn;
+        signInProbe.capturedWarnLogs = capturedWarnLogs;
       }
     }
 
