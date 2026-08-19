@@ -29,6 +29,7 @@ Siga essas rules como fonte de verdade. Não invente features fora do escopo doc
 - Branch **`main`** = site em produção (Hostinger). Só merge/push em `main` com pedido explícito.
 - Scripts de teste/diagnóstico ficam em **`./scripts/`** e devem ser removidos ao fim da investigação.
 - Após mudanças pesadas, o Agent deve rodar `pnpm typecheck`.
+- Deploy na Hostinger: Node 22; preferir **pnpm** (builds nativos aprovados em `pnpm-workspace.yaml`).
 - No máximo **3 commits** locais sem sincronizar com o remoto (`git push` em `dev` ao atingir o limite).
 ## Comandos úteis
 
