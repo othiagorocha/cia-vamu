@@ -1,13 +1,10 @@
 import { betterAuth } from "better-auth";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { account, session, user, verification } from "@/db/auth-schema";
-
-const normalizeAuthEmail = (email: string) =>
-  email.normalize("NFKC").replace(/[\u200B-\u200D\uFEFF]/g, "").trim().toLowerCase();
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -23,6 +20,12 @@ export const auth = betterAuth({
         input: false,
       },
       disabled: {
+        type: "boolean",
+        required: true,
+        defaultValue: false,
+        input: false,
+      },
+      mustChangePassword: {
         type: "boolean",
         required: true,
         defaultValue: false,
@@ -49,28 +52,6 @@ export const auth = betterAuth({
         },
       },
     },
-  },
-  hooks: {
-    before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path !== "/sign-in/email" || typeof ctx.body?.email !== "string") {
-        return;
-      }
-
-      const email = normalizeAuthEmail(ctx.body.email);
-
-      if (email === ctx.body.email) {
-        return;
-      }
-
-      return {
-        context: {
-          body: {
-            ...ctx.body,
-            email,
-          },
-        },
-      };
-    }),
   },
   emailAndPassword: {
     enabled: true,

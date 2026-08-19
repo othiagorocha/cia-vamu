@@ -35,15 +35,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatBrazilDateTimeShort } from "@/lib/brazil-datetime";
 import type { EditorCapability } from "@/lib/permissions";
 import { useToastError } from "@/lib/use-toast-error";
 import {
   editorModulesFromCapabilities,
   roleFromCapabilities,
 } from "@/lib/permissions";
-import { isSuperAdminEmail } from "@/lib/super-admin";
 import { StaffFormDialog } from "@/modules/staff/ui/components/staff-form-dialog";
 import { StaffInviteDialog } from "@/modules/staff/ui/components/staff-invite-dialog";
+import { StaffInviteUsesDialog } from "@/modules/staff/ui/components/staff-invite-uses-dialog";
 import { StaffPasswordDialog } from "@/modules/staff/ui/components/staff-password-dialog";
 import type {
   CreateInviteInput,
@@ -72,6 +73,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
   const [inviteList] = trpc.staff.listInvites.useSuspenseQuery();
   const [formOpen, setFormOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [usesInviteId, setUsesInviteId] = useState<string | null>(null);
   const [createdInvite, setCreatedInvite] = useState<{ url: string } | null>(
     null,
   );
@@ -208,35 +210,18 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                 <TableHead>{t("columns.email")}</TableHead>
                 <TableHead>{t("columns.permissions")}</TableHead>
                 <TableHead>{t("columns.member")}</TableHead>
+                <TableHead>{t("columns.lastAccess")}</TableHead>
                 <TableHead className="w-0">{t("columns.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {staffList.map((member) => {
                 const isCurrentUser = member.id === currentUserId;
-                const isSuperAdmin = isSuperAdminEmail(member.email);
+                const isSuperAdmin = member.isSuperAdmin;
                 const canMutateAccess = !isCurrentUser && !isSuperAdmin;
 
                 return (
-                  <TableRow
-                    key={member.id}
-                    tabIndex={0}
-                    className="cursor-pointer"
-                    onClick={() => {
-                      setSelectedStaff(member);
-                      setFormOpen(true);
-                    }}
-                    onKeyDown={(keyboardEvent) => {
-                      if (
-                        keyboardEvent.key === "Enter" ||
-                        keyboardEvent.key === " "
-                      ) {
-                        keyboardEvent.preventDefault();
-                        setSelectedStaff(member);
-                        setFormOpen(true);
-                      }
-                    }}
-                  >
+                  <TableRow key={member.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
                         {member.photoUrl ? (
@@ -305,58 +290,68 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                         {member.isMember ? t("yes") : t("no")}
                       </Badge>
                     </TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      {member.lastAccessAt ? (
+                        <span title={formatBrazilDateTimeShort(member.lastAccessAt)}>
+                          {formatDistanceToNow(member.lastAccessAt, {
+                            locale: ptBR,
+                            addSuffix: true,
+                          })}
+                        </span>
+                      ) : (
+                        t("lastAccessNever")
+                      )}
+                    </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={(clickEvent) => {
-                            clickEvent.stopPropagation();
-                            setSelectedStaff(member);
-                            setFormOpen(true);
-                          }}
-                          aria-label={tCommon("actions.edit")}
-                        >
-                          <PencilIcon className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={(clickEvent) => {
-                            clickEvent.stopPropagation();
-                            setPasswordTarget(member);
-                          }}
-                          aria-label={t("form.passwordTitle")}
-                        >
-                          <KeyRoundIcon className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={!canMutateAccess}
-                          onClick={(clickEvent) => {
-                            clickEvent.stopPropagation();
-                            disableMutation.mutate({
-                              id: member.id,
-                              disabled: !member.disabled,
-                            });
-                          }}
-                        >
-                          {member.disabled ? t("reactivate") : t("deactivate")}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          disabled={!canMutateAccess}
-                          onClick={(clickEvent) => {
-                            clickEvent.stopPropagation();
-                            setDeleteTarget(member);
-                          }}
-                          aria-label={tCommon("actions.delete")}
-                        >
-                          <Trash2Icon className="size-4 text-destructive" />
-                        </Button>
-                      </div>
+                      {isSuperAdmin ? null : (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => {
+                              setSelectedStaff(member);
+                              setFormOpen(true);
+                            }}
+                            aria-label={tCommon("actions.edit")}
+                          >
+                            <PencilIcon className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setPasswordTarget(member)}
+                            aria-label={t("form.passwordTitle")}
+                          >
+                            <KeyRoundIcon className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={!canMutateAccess}
+                            onClick={() => {
+                              disableMutation.mutate({
+                                id: member.id,
+                                disabled: !member.disabled,
+                              });
+                            }}
+                          >
+                            {member.disabled ? t("reactivate") : t("deactivate")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled={!canMutateAccess}
+                            onClick={() => setDeleteTarget(member)}
+                            aria-label={tCommon("actions.delete")}
+                          >
+                            <Trash2Icon className="size-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -410,9 +405,20 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
                           {reusable ? t("invite.reusable") : t("invite.single")}
                         </span>
                         {reusable ? (
-                          <span className="text-xs text-muted-foreground">
-                            {t("invite.uses", { count: invite.usedCount })}
-                          </span>
+                          invite.usedCount > 0 ? (
+                            <button
+                              type="button"
+                              className="w-fit text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
+                              onClick={() => setUsesInviteId(invite.id)}
+                              aria-label={t("invite.viewUses")}
+                            >
+                              {t("invite.uses", { count: invite.usedCount })}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              {t("invite.uses", { count: invite.usedCount })}
+                            </span>
+                          )
                         ) : null}
                       </div>
                     </TableCell>
@@ -489,13 +495,23 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
         }
       />
 
+      <StaffInviteUsesDialog
+        inviteId={usesInviteId}
+        open={Boolean(usesInviteId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUsesInviteId(null);
+          }
+        }}
+      />
+
       <StaffPasswordDialog
         open={!!passwordTarget}
         onOpenChange={(open) => !open && setPasswordTarget(null)}
         staff={passwordTarget}
         isSubmitting={passwordMutation.isPending}
         onSubmit={(values) => {
-          if (!passwordTarget) {
+          if (!passwordTarget || passwordTarget.isSuperAdmin) {
             return;
           }
 

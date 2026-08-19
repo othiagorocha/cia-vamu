@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { formatBrazilDateTime } from "@/lib/brazil-datetime";
+import { PrayerReactButton } from "@/modules/prayers/ui/components/prayer-react-button";
 import type { PrayerRequestRecord } from "@/modules/prayers/types";
 
 type PrayerRequestDialogProps = {
@@ -56,6 +57,14 @@ export const PrayerRequestDialog = ({
         <p className="whitespace-pre-wrap text-sm leading-relaxed">
           {request.body}
         </p>
+
+        <div className="flex justify-end">
+          <PrayerReactButton
+            requestId={request.id}
+            reacted={request.reacted}
+            reactors={request.reactors}
+          />
+        </div>
 
         {canManage && onDelete ? (
           <DialogFooter>

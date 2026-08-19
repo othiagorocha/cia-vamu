@@ -5,6 +5,9 @@ import { db } from "@/db";
 import { user } from "@/db/auth-schema";
 import { memberProfiles } from "@/db/schema";
 import { deleteImageFromStorage, uploadImageToStorage } from "@/lib/storage";
+import { AUDIT_ACTIONS } from "@/modules/audit/actions";
+import { diffFields } from "@/modules/audit/diff";
+import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import {
   updateMemberFlagsSchema,
   updateMyProfileSchema,
@@ -116,12 +119,45 @@ export const membersRouter = createTRPCRouter({
         });
       }
 
+      const name = input.name.trim();
+      const changes = diffFields(
+        { name: ctx.session.user.name },
+        { name },
+      );
+
+      if (input.photo) {
+        changes.push({
+          field: "photo",
+          from: existing?.photoUrl ? "set" : "empty",
+          to: "updated",
+        });
+      } else if (input.removePhoto && existing?.photoUrl) {
+        changes.push({
+          field: "photo",
+          from: "set",
+          to: "removed",
+        });
+      }
+
+      if (changes.length > 0) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.MEMBERS_UPDATE_ME,
+          entityType: "member_profile",
+          entityId: userId,
+          metadata: {
+            name,
+            changes,
+          },
+        });
+      }
+
       return { success: true };
     }),
 
   updateFlags: requireCapability("users:manage")
     .input(updateMemberFlagsSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [existing] = await db
         .select()
         .from(memberProfiles)
@@ -144,6 +180,39 @@ export const membersRouter = createTRPCRouter({
         })
         .where(eq(memberProfiles.userId, input.userId))
         .returning();
+
+      if (updated) {
+        const [target] = await db
+          .select({ name: user.name })
+          .from(user)
+          .where(eq(user.id, input.userId));
+
+        const changes = diffFields(
+          {
+            ministryRole: existing.role,
+            isMember: existing.isMember,
+            showOnAbout: existing.showOnAbout,
+          },
+          {
+            ministryRole: updated.role,
+            isMember: updated.isMember,
+            showOnAbout: updated.showOnAbout,
+          },
+        );
+
+        if (changes.length > 0) {
+          await writeAuditLog({
+            actor: ctx.session.user,
+            action: AUDIT_ACTIONS.MEMBERS_UPDATE_FLAGS,
+            entityType: "member_profile",
+            entityId: input.userId,
+            metadata: {
+              name: target?.name,
+              changes,
+            },
+          });
+        }
+      }
 
       return updated;
     }),

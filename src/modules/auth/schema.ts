@@ -6,3 +6,15 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+export const changeOwnPasswordSchema = z
+  .object({
+    password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres."),
+    confirmPassword: z.string().min(1, "Confirme a senha."),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem.",
+    path: ["confirmPassword"],
+  });
+
+export type ChangeOwnPasswordInput = z.infer<typeof changeOwnPasswordSchema>;

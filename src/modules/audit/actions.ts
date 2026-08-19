@@ -1,0 +1,77 @@
+export const AUDIT_MODULES = [
+  "events",
+  "albums",
+  "prayers",
+  "staff",
+  "social",
+  "contact",
+  "members",
+  "documents",
+] as const;
+
+export type AuditModule = (typeof AUDIT_MODULES)[number];
+
+export const AUDIT_ACTIONS = {
+  EVENTS_CREATE: "events.create",
+  EVENTS_UPDATE: "events.update",
+  EVENTS_REMOVE: "events.remove",
+  EVENTS_REORDER: "events.reorder",
+  ALBUMS_CREATE: "albums.create",
+  ALBUMS_UPDATE: "albums.update",
+  ALBUMS_REMOVE: "albums.remove",
+  ALBUMS_PHOTO_ADD: "albums.photo.add",
+  ALBUMS_PHOTO_UPDATE: "albums.photo.update",
+  ALBUMS_PHOTO_MOVE: "albums.photo.move",
+  ALBUMS_PHOTO_DELETE: "albums.photo.delete",
+  ALBUMS_COVER_SET: "albums.cover.set",
+  ALBUMS_COMMENT_HIDE: "albums.comment.hide",
+  ALBUMS_COMMENT_RESTORE: "albums.comment.restore",
+  ALBUMS_COMMENT_DELETE: "albums.comment.delete",
+  PRAYERS_CREATE: "prayers.create",
+  PRAYERS_REMOVE: "prayers.remove",
+  STAFF_CREATE: "staff.create",
+  STAFF_UPDATE: "staff.update",
+  STAFF_PASSWORD_RESET: "staff.password.reset",
+  STAFF_DISABLE: "staff.disable",
+  STAFF_ENABLE: "staff.enable",
+  STAFF_REMOVE: "staff.remove",
+  STAFF_INVITE_CREATE: "staff.invite.create",
+  STAFF_INVITE_REVEAL: "staff.invite.reveal",
+  STAFF_INVITE_REVOKE: "staff.invite.revoke",
+  STAFF_INVITE_ACCEPT: "staff.invite.accept",
+  SOCIAL_CREATE: "social.create",
+  SOCIAL_UPDATE: "social.update",
+  SOCIAL_REMOVE: "social.remove",
+  SOCIAL_REORDER: "social.reorder",
+  CONTACT_MARK_READ: "contact.markRead",
+  CONTACT_REMOVE: "contact.remove",
+  MEMBERS_UPDATE_ME: "members.updateMe",
+  MEMBERS_UPDATE_FLAGS: "members.updateFlags",
+  DOCUMENTS_CREATE_FOLDER: "documents.createFolder",
+  DOCUMENTS_RENAME_FOLDER: "documents.renameFolder",
+  DOCUMENTS_REMOVE_FOLDER: "documents.removeFolder",
+  DOCUMENTS_UPLOAD: "documents.upload",
+  DOCUMENTS_RENAME_FILE: "documents.renameFile",
+  DOCUMENTS_REMOVE_FILE: "documents.removeFile",
+  DOCUMENTS_MOVE_FILE: "documents.moveFile",
+  DOCUMENTS_MOVE_FOLDER: "documents.moveFolder",
+} as const;
+
+export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
+
+export const AUDIT_ENTITY_TYPES = [
+  "event",
+  "album",
+  "photo",
+  "photo_comment",
+  "prayer_request",
+  "user",
+  "invite",
+  "social_link",
+  "contact_message",
+  "member_profile",
+  "document_folder",
+  "document",
+] as const;
+
+export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];

@@ -3,6 +3,9 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { contactMessages } from "@/db/schema";
+import { AUDIT_ACTIONS } from "@/modules/audit/actions";
+import { diffFields } from "@/modules/audit/diff";
+import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import { contactFormSchema } from "@/modules/contact/schema";
 import {
   baseProcedure,
@@ -45,20 +48,69 @@ export const contactRouter = createTRPCRouter({
 
   markAsRead: requireCapability("contact:manage")
     .input(z.object({ id: z.uuid(), read: z.boolean() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await db
+        .select({
+          id: contactMessages.id,
+          name: contactMessages.name,
+          readAt: contactMessages.readAt,
+        })
+        .from(contactMessages)
+        .where(eq(contactMessages.id, input.id));
+
       const [message] = await db
         .update(contactMessages)
         .set({ readAt: input.read ? new Date() : null })
         .where(eq(contactMessages.id, input.id))
         .returning();
 
+      if (message) {
+        const wasRead = Boolean(existing?.readAt);
+        const changes = diffFields(
+          { read: wasRead },
+          { read: input.read },
+        );
+
+        if (changes.length > 0) {
+          await writeAuditLog({
+            actor: ctx.session.user,
+            action: AUDIT_ACTIONS.CONTACT_MARK_READ,
+            entityType: "contact_message",
+            entityId: message.id,
+            metadata: {
+              name: message.name,
+              changes,
+            },
+          });
+        }
+      }
+
       return message;
     }),
 
   remove: requireCapability("contact:manage")
     .input(z.object({ id: z.uuid() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await db
+        .select({
+          id: contactMessages.id,
+          name: contactMessages.name,
+        })
+        .from(contactMessages)
+        .where(eq(contactMessages.id, input.id));
+
       await db.delete(contactMessages).where(eq(contactMessages.id, input.id));
+
+      if (existing) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.CONTACT_REMOVE,
+          entityType: "contact_message",
+          entityId: existing.id,
+          metadata: { name: existing.name },
+        });
+      }
+
       return { success: true };
     }),
 });

@@ -3,6 +3,9 @@ import { asc, desc, eq, gt, lt } from "drizzle-orm";
 
 import { db } from "@/db";
 import { socialLinks } from "@/db/schema";
+import { AUDIT_ACTIONS } from "@/modules/audit/actions";
+import { diffFields } from "@/modules/audit/diff";
+import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import {
   createSocialLinkSchema,
   removeSocialLinkSchema,
@@ -33,7 +36,7 @@ export const socialRouter = createTRPCRouter({
 
   create: requireCapability("site:write")
     .input(createSocialLinkSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const existing = await db.select({ id: socialLinks.id }).from(socialLinks);
 
       const [created] = await db
@@ -48,12 +51,36 @@ export const socialRouter = createTRPCRouter({
         })
         .returning();
 
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.SOCIAL_CREATE,
+        entityType: "social_link",
+        entityId: created.id,
+        metadata: {
+          label: created.label,
+          published: created.published,
+          platform: created.platform,
+        },
+      });
+
       return created;
     }),
 
   update: requireCapability("site:write")
     .input(updateSocialLinkSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await db
+        .select()
+        .from(socialLinks)
+        .where(eq(socialLinks.id, input.id));
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Rede social não encontrada.",
+        });
+      }
+
       const [updated] = await db
         .update(socialLinks)
         .set({
@@ -74,19 +101,64 @@ export const socialRouter = createTRPCRouter({
         });
       }
 
+      const changes = diffFields(
+        {
+          label: existing.label,
+          published: existing.published,
+          platform: existing.platform,
+        },
+        {
+          label: updated.label,
+          published: updated.published,
+          platform: updated.platform,
+        },
+      );
+
+      if (changes.length > 0) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.SOCIAL_UPDATE,
+          entityType: "social_link",
+          entityId: updated.id,
+          metadata: {
+            label: updated.label,
+            changes,
+          },
+        });
+      }
+
       return updated;
     }),
 
   remove: requireCapability("site:write")
     .input(removeSocialLinkSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await db
+        .select({
+          id: socialLinks.id,
+          label: socialLinks.label,
+        })
+        .from(socialLinks)
+        .where(eq(socialLinks.id, input.id));
+
       await db.delete(socialLinks).where(eq(socialLinks.id, input.id));
+
+      if (existing) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.SOCIAL_REMOVE,
+          entityType: "social_link",
+          entityId: existing.id,
+          metadata: { label: existing.label },
+        });
+      }
+
       return { success: true };
     }),
 
   reorder: requireCapability("site:write")
     .input(reorderSocialLinkSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [current] = await db
         .select()
         .from(socialLinks)
@@ -128,6 +200,17 @@ export const socialRouter = createTRPCRouter({
         .update(socialLinks)
         .set({ sortOrder: current.sortOrder, updatedAt: new Date() })
         .where(eq(socialLinks.id, neighbor.id));
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.SOCIAL_REORDER,
+        entityType: "social_link",
+        entityId: current.id,
+        metadata: {
+          label: current.label,
+          direction: input.direction,
+        },
+      });
 
       return { success: true };
     }),

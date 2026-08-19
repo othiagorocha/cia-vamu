@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, max, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { session, user } from "@/db/auth-schema";
-import { invites, memberProfiles } from "@/db/schema";
+import { invites, inviteUses, memberProfiles } from "@/db/schema";
 import {
   buildInviteUrl,
   createInviteToken,
@@ -15,10 +15,15 @@ import {
 import {
   ALL_CAPABILITIES,
   capabilitiesFromRole,
+  editorModulesFromCapabilities,
   parseCapabilities,
+  roleFromCapabilities,
 } from "@/lib/permissions";
 import { uploadImageToStorage } from "@/lib/storage";
 import { isSuperAdminEmail } from "@/lib/super-admin";
+import { AUDIT_ACTIONS } from "@/modules/audit/actions";
+import { diffFields } from "@/modules/audit/diff";
+import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import {
   createStaffUser,
   setStaffPassword,
@@ -29,6 +34,7 @@ import {
   createInviteSchema,
   createStaffSchema,
   inviteTokenSchema,
+  listInviteUsesSchema,
   removeStaffSchema,
   revealInviteSchema,
   revokeInviteSchema,
@@ -36,7 +42,7 @@ import {
   setStaffPasswordSchema,
   updateStaffSchema,
 } from "@/modules/staff/schema";
-import type { InviteRecord, StaffRecord } from "@/modules/staff/types";
+import type { InviteRecord, InviteUseRecord, StaffRecord } from "@/modules/staff/types";
 import {
   baseProcedure,
   createTRPCRouter,
@@ -54,6 +60,7 @@ const toStaffRecord = (row: {
   isMember: boolean | null;
   showOnAbout: boolean | null;
   photoUrl: string | null;
+  lastAccessAt?: Date | null;
 }): StaffRecord => ({
   id: row.id,
   name: row.name,
@@ -62,9 +69,11 @@ const toStaffRecord = (row: {
   disabled: row.disabled,
   isMember: row.isMember ?? false,
   showOnAbout: row.showOnAbout ?? false,
+  isSuperAdmin: isSuperAdminEmail(row.email),
   role: row.role,
   photoUrl: row.photoUrl,
   createdAt: row.createdAt,
+  lastAccessAt: row.lastAccessAt ?? null,
 });
 
 const countGestores = async (excludeUserId?: string) => {
@@ -119,14 +128,42 @@ export const staffRouter = createTRPCRouter({
       .leftJoin(memberProfiles, eq(memberProfiles.userId, user.id))
       .orderBy(desc(user.createdAt));
 
-    return rows.map(toStaffRecord);
+    const lastAccessRows = await db
+      .select({
+        userId: session.userId,
+        lastAccessAt: max(session.updatedAt),
+      })
+      .from(session)
+      .groupBy(session.userId);
+
+    const lastAccessByUser = new Map(
+      lastAccessRows.map((row) => [row.userId, row.lastAccessAt]),
+    );
+
+    return rows.map((row) =>
+      toStaffRecord({
+        ...row,
+        lastAccessAt: lastAccessByUser.get(row.id) ?? null,
+      }),
+    );
   }),
 
   create: requireCapability("users:manage")
     .input(createStaffSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
         const created = await createStaffUser(input);
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.STAFF_CREATE,
+          entityType: "user",
+          entityId: created.id,
+          metadata: {
+            name: created.name,
+            email: created.email,
+            capabilities: input.capabilities,
+          },
+        });
         return toStaffRecord({
           ...created,
           role: null,
@@ -141,7 +178,7 @@ export const staffRouter = createTRPCRouter({
 
   update: requireCapability("users:manage")
     .input(updateStaffSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [existing] = await db
         .select()
         .from(user)
@@ -182,6 +219,36 @@ export const staffRouter = createTRPCRouter({
         ? [...ALL_CAPABILITIES]
         : input.capabilities;
 
+      const [existingProfile] = await db
+        .select()
+        .from(memberProfiles)
+        .where(eq(memberProfiles.userId, input.id));
+
+      const nextRole = input.role?.trim() || null;
+      const nextShowOnAbout = input.isMember ? input.showOnAbout : false;
+      const existingCapabilities = parseCapabilities(existing.capabilities);
+      const nextModules = editorModulesFromCapabilities(capabilities);
+      const previousModules = editorModulesFromCapabilities(existingCapabilities);
+
+      const changes = diffFields(
+        {
+          name: existing.name,
+          accessRole: roleFromCapabilities(existingCapabilities),
+          editorModules: previousModules.join(",") || null,
+          ministryRole: existingProfile?.role ?? null,
+          isMember: existingProfile?.isMember ?? false,
+          showOnAbout: existingProfile?.showOnAbout ?? false,
+        },
+        {
+          name: input.name.trim(),
+          accessRole: roleFromCapabilities(capabilities),
+          editorModules: nextModules.join(",") || null,
+          ministryRole: nextRole,
+          isMember: input.isMember,
+          showOnAbout: nextShowOnAbout,
+        },
+      );
+
       const [updated] = await db
         .update(user)
         .set({
@@ -203,16 +270,16 @@ export const staffRouter = createTRPCRouter({
         .insert(memberProfiles)
         .values({
           userId: input.id,
-          role: input.role?.trim() || null,
+          role: nextRole,
           isMember: input.isMember,
-          showOnAbout: input.isMember ? input.showOnAbout : false,
+          showOnAbout: nextShowOnAbout,
         })
         .onConflictDoUpdate({
           target: memberProfiles.userId,
           set: {
-            role: input.role?.trim() || null,
+            role: nextRole,
             isMember: input.isMember,
-            showOnAbout: input.isMember ? input.showOnAbout : false,
+            showOnAbout: nextShowOnAbout,
             updatedAt: new Date(),
           },
         });
@@ -221,6 +288,19 @@ export const staffRouter = createTRPCRouter({
         .select()
         .from(memberProfiles)
         .where(eq(memberProfiles.userId, input.id));
+
+      if (changes.length > 0) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.STAFF_UPDATE,
+          entityType: "user",
+          entityId: updated.id,
+          metadata: {
+            name: updated.name,
+            changes,
+          },
+        });
+      }
 
       return toStaffRecord({
         ...updated,
@@ -233,9 +313,9 @@ export const staffRouter = createTRPCRouter({
 
   setPassword: requireCapability("users:manage")
     .input(setStaffPasswordSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [existing] = await db
-        .select({ id: user.id })
+        .select({ id: user.id, name: user.name, email: user.email })
         .from(user)
         .where(eq(user.id, input.id));
 
@@ -246,7 +326,25 @@ export const staffRouter = createTRPCRouter({
         });
       }
 
-      await setStaffPassword(input.id, input.password);
+      if (isSuperAdminEmail(existing.email)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "A senha do super admin não pode ser redefinida.",
+        });
+      }
+
+      await setStaffPassword(input.id, input.password, {
+        requirePasswordChange: true,
+      });
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.STAFF_PASSWORD_RESET,
+        entityType: "user",
+        entityId: existing.id,
+        metadata: { name: existing.name },
+      });
+
       return { success: true };
     }),
 
@@ -303,6 +401,19 @@ export const staffRouter = createTRPCRouter({
         .set({ disabled: input.disabled, updatedAt: new Date() })
         .where(eq(user.id, input.id));
 
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: input.disabled
+          ? AUDIT_ACTIONS.STAFF_DISABLE
+          : AUDIT_ACTIONS.STAFF_ENABLE,
+        entityType: "user",
+        entityId: existing.id,
+        metadata: {
+          name: existing.name,
+          disabled: input.disabled,
+        },
+      });
+
       return { success: true };
     }),
 
@@ -347,6 +458,15 @@ export const staffRouter = createTRPCRouter({
       }
 
       await db.delete(user).where(eq(user.id, input.id));
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.STAFF_REMOVE,
+        entityType: "user",
+        entityId: existing.id,
+        metadata: { name: existing.name },
+      });
+
       return { success: true };
     }),
 
@@ -411,6 +531,17 @@ export const staffRouter = createTRPCRouter({
         });
       }
 
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.STAFF_INVITE_CREATE,
+        entityType: "invite",
+        entityId: created.id,
+        metadata: {
+          accessRole: input.accessRole,
+          reusable: input.reusable,
+        },
+      });
+
       return {
         id: created.id,
         url: buildInviteUrl(token),
@@ -424,7 +555,7 @@ export const staffRouter = createTRPCRouter({
 
   revealInvite: requireCapability("users:manage")
     .input(revealInviteSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const now = new Date();
       const [invite] = await db
         .select()
@@ -450,17 +581,27 @@ export const staffRouter = createTRPCRouter({
         });
       }
 
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.STAFF_INVITE_REVEAL,
+        entityType: "invite",
+        entityId: invite.id,
+        metadata: {
+          accessRole: roleFromCapabilities(parseCapabilities(invite.capabilities)),
+        },
+      });
+
       return { url: buildInviteUrl(decryptInviteToken(invite.tokenCipher)) };
     }),
 
   revokeInvite: requireCapability("users:manage")
     .input(revokeInviteSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [updated] = await db
         .update(invites)
         .set({ revokedAt: new Date() })
         .where(and(eq(invites.id, input.id), isNull(invites.revokedAt)))
-        .returning({ id: invites.id });
+        .returning({ id: invites.id, capabilities: invites.capabilities });
 
       if (!updated) {
         throw new TRPCError({
@@ -469,7 +610,64 @@ export const staffRouter = createTRPCRouter({
         });
       }
 
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.STAFF_INVITE_REVOKE,
+        entityType: "invite",
+        entityId: updated.id,
+        metadata: {
+          accessRole: roleFromCapabilities(parseCapabilities(updated.capabilities)),
+        },
+      });
+
       return { success: true };
+    }),
+
+  listUses: requireCapability("users:manage")
+    .input(listInviteUsesSchema)
+    .query(async ({ input }) => {
+      const [invite] = await db
+        .select({
+          id: invites.id,
+          usedCount: invites.usedCount,
+        })
+        .from(invites)
+        .where(eq(invites.id, input.id));
+
+      if (!invite) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Convite não encontrado.",
+        });
+      }
+
+      const rows = await db
+        .select({
+          id: inviteUses.id,
+          name: inviteUses.name,
+          email: inviteUses.email,
+          createdAt: inviteUses.createdAt,
+          userId: inviteUses.userId,
+          disabled: user.disabled,
+        })
+        .from(inviteUses)
+        .leftJoin(user, eq(user.id, inviteUses.userId))
+        .where(eq(inviteUses.inviteId, input.id))
+        .orderBy(desc(inviteUses.createdAt));
+
+      return {
+        usedCount: invite.usedCount,
+        uses: rows.map(
+          (row): InviteUseRecord => ({
+            id: row.id,
+            name: row.name,
+            email: row.email,
+            createdAt: row.createdAt,
+            userExists: Boolean(row.userId),
+            disabled: row.disabled ?? false,
+          }),
+        ),
+      };
     }),
 
   getInvite: baseProcedure.input(inviteTokenSchema).query(async ({ input }) => {
@@ -504,6 +702,7 @@ export const staffRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       const tokenHash = hashInviteToken(input.token);
       let createdUserId: string | undefined;
+      let acceptedInviteId: string | undefined;
 
       try {
         await db.transaction(async (tx) => {
@@ -556,10 +755,19 @@ export const staffRouter = createTRPCRouter({
               email: input.email,
               password: input.password,
               capabilities: parseCapabilities(invite.capabilities),
+              mustChangePassword: false,
             },
             tx,
           );
           createdUserId = created.id;
+          acceptedInviteId = invite.id;
+
+          await tx.insert(inviteUses).values({
+            inviteId: invite.id,
+            userId: created.id,
+            name: created.name,
+            email: created.email,
+          });
         });
       } catch (error) {
         mapStaffError(error);
@@ -584,6 +792,23 @@ export const staffRouter = createTRPCRouter({
         } catch {
           // A conta já foi criada; a foto pode ser enviada depois no perfil.
         }
+      }
+
+      if (createdUserId && acceptedInviteId) {
+        await writeAuditLog({
+          actor: {
+            id: createdUserId,
+            name: input.name,
+            email: input.email,
+          },
+          action: AUDIT_ACTIONS.STAFF_INVITE_ACCEPT,
+          entityType: "invite",
+          entityId: acceptedInviteId,
+          metadata: {
+            name: input.name,
+            hasPhoto: Boolean(input.photo),
+          },
+        });
       }
 
       return { success: true };

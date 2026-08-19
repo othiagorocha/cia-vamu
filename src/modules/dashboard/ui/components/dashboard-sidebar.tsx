@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarDaysIcon,
   ExternalLinkIcon,
-  HeartHandshakeIcon,
+  FilesIcon,
+  HistoryIcon,
   ImagesIcon,
   LayoutDashboardIcon,
   LogOutIcon,
@@ -14,6 +15,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { PiHandsPrayingBold } from "react-icons/pi";
 
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -59,7 +61,8 @@ export const DashboardSidebar = ({
     { href: "/admin", label: t("overview"), icon: LayoutDashboardIcon },
     { href: "/admin/events", label: t("events"), icon: CalendarDaysIcon },
     { href: "/admin/albums", label: t("albums"), icon: ImagesIcon },
-    { href: "/admin/oracao", label: t("prayers"), icon: HeartHandshakeIcon },
+    { href: "/admin/oracao", label: t("prayers"), icon: PiHandsPrayingBold },
+    { href: "/admin/documentos", label: t("documents"), icon: FilesIcon },
     ...(hasCapability(session, "site:write")
       ? [{ href: "/admin/redes", label: t("social"), icon: Share2Icon }]
       : []),
@@ -68,6 +71,9 @@ export const DashboardSidebar = ({
       : []),
     ...(hasCapability(session, "users:manage")
       ? [{ href: "/admin/equipe", label: t("staff"), icon: UsersIcon }]
+      : []),
+    ...(hasCapability(session, "users:manage")
+      ? [{ href: "/admin/auditoria", label: t("audit"), icon: HistoryIcon }]
       : []),
   ];
 

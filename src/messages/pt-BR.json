@@ -193,13 +193,22 @@
       "name": "Nome",
       "email": "E-mail",
       "password": "Senha",
+      "confirmPassword": "Confirmar senha",
       "photo": "Foto",
       "photoHint": "Opcional. Você também pode adicionar depois no perfil.",
       "photoCropError": "Não foi possível recortar a foto. Tente de novo.",
       "submit": "Criar conta",
-      "success": "Conta criada. Entre com o e-mail e a senha.",
+      "success": "Conta criada. Bem-vindo à equipe.",
       "invalidTitle": "Convite inválido",
       "invalidDescription": "Este link já foi usado ou expirou. Peça um novo convite a um gestor."
+    },
+    "changePassword": {
+      "title": "Defina sua senha",
+      "description": "A senha temporária precisa ser trocada antes de continuar no painel.",
+      "password": "Nova senha",
+      "confirmPassword": "Confirmar senha",
+      "submit": "Salvar senha",
+      "success": "Senha atualizada."
     }
   },
   "dashboard": {
@@ -208,8 +217,10 @@
       "overview": "Visão geral",
       "events": "Agenda",
       "albums": "Álbuns",
-      "prayers": "Peça uma oração",
+      "prayers": "Pedidos de oração",
+      "documents": "Documentos",
       "staff": "Equipe",
+      "audit": "Auditoria",
       "viewSite": "Ver site",
       "social": "Redes",
       "messages": "Mensagens",
@@ -251,6 +262,12 @@
       "reusable": "Várias pessoas, até eu revogar",
       "reusableWarning": "Este link cria vários editores ou gestores se for encaminhado. Use só se tiver certeza.",
       "uses": "{count, plural, one {# uso} other {# usos}}",
+      "viewUses": "Ver quem usou este convite",
+      "usesTitle": "Quem usou este convite",
+      "usesDescription": "{count, plural, one {# pessoa criou acesso com este link.} other {# pessoas criaram acesso com este link.}}",
+      "usesEmpty": "Ninguém usou este convite ainda.",
+      "usesRemoved": "Conta removida",
+      "usesUnrecorded": "{count, plural, one {# uso anterior não tem nome registrado.} other {# usos anteriores não têm nome registrado.}}",
       "modeColumn": "Tipo",
       "roleColumn": "Papel",
       "revoke": "Revogar",
@@ -269,8 +286,10 @@
       "email": "E-mail",
       "permissions": "Permissões",
       "member": "Integrante",
+      "lastAccess": "Último acesso",
       "actions": "Ações"
     },
+    "lastAccessNever": "Nunca",
     "capabilities": {
       "events": "Agenda",
       "albums": "Álbuns",
@@ -285,11 +304,11 @@
     },
     "form": {
       "createTitle": "Novo acesso",
-      "createDescription": "A pessoa poderá entrar no painel com este e-mail e senha.",
+      "createDescription": "A pessoa poderá entrar no painel com este e-mail e senha temporária. No primeiro acesso, precisará definir a senha dela.",
       "editTitle": "Editar acesso",
       "editDescription": "Atualize o nome e as permissões.",
       "passwordTitle": "Redefinir senha",
-      "passwordDescription": "Defina uma senha temporária para {name}.",
+      "passwordDescription": "Defina uma senha temporária para {name}. No próximo login, a pessoa precisará criar a senha dela.",
       "name": "Nome",
       "email": "E-mail",
       "password": "Senha",
@@ -393,8 +412,15 @@
       "author": "Autor",
       "date": "Data",
       "body": "Pedido",
+      "praying": "Orando",
       "actions": "Ações"
     },
+    "pray": "Estou orando",
+    "prayed": "Você está orando",
+    "prayCount": "{count, plural, one {# pessoa orando} other {# pessoas orando}}",
+    "reactorsTitle": "Quem está orando",
+    "reactorsEmpty": "Ninguém reagiu ainda.",
+    "viewReactors": "Ver quem está orando",
     "deleted": "Pedido excluído.",
     "deleteTitle": "Excluir pedido?",
     "deleteDescription": "Esta ação não pode ser desfeita. O pedido sai da lista da equipe."
@@ -408,5 +434,292 @@
     "markRead": "Marcar como lida",
     "markUnread": "Marcar como não lida",
     "deleted": "Mensagem excluída."
+  },
+  "audit": {
+    "title": "Auditoria",
+    "subtitle": "Quem alterou conteúdo no painel, e quando.",
+    "empty": "Nenhuma ação registrada ainda.",
+    "emptyFiltered": "Nenhuma ação encontrada com estes filtros.",
+    "loading": "Carregando registros…",
+    "anonymous": "Anônimo",
+    "changesEmpty": "—",
+    "viewChanges": "Ver mudanças",
+    "viewChangesTitle": "O que mudou",
+    "viewChangesDescription": "{action} em {target}, por {actor} em {when}.",
+    "viewChangesPhotoMove": "Moveu a foto {photo} do álbum {from} para o álbum {to}, por {actor} em {when}.",
+    "targetPhotoMove": "{photo} · {from} → {to}",
+    "targetPhotoInAlbum": "{photo} · {album}",
+    "targetCover": "{album} · {photo}",
+    "inviteLabel": "Convite de {role}",
+    "untitled": {
+      "photo": "Foto sem título",
+      "album": "Álbum",
+      "albumRemoved": "Álbum removido",
+      "comment": "Comentário",
+      "invite": "Convite",
+      "event": "Evento",
+      "user": "Pessoa",
+      "prayer": "Pedido de oração",
+      "social": "Rede",
+      "message": "Mensagem",
+      "member": "Integrante",
+      "folder": "Pasta",
+      "document": "Arquivo",
+      "record": "Registro"
+    },
+    "changesFrom": "Antes",
+    "changesTo": "Depois",
+    "columns": {
+      "when": "Data",
+      "person": "Pessoa",
+      "action": "Ação",
+      "target": "Alvo",
+      "changes": "O que mudou"
+    },
+    "filters": {
+      "person": "Pessoa",
+      "personAll": "Todas as pessoas",
+      "module": "Módulo",
+      "moduleAll": "Todos os módulos",
+      "from": "De",
+      "to": "Até"
+    },
+    "modules": {
+      "events": "Agenda",
+      "albums": "Álbuns",
+      "prayers": "Oração",
+      "staff": "Equipe",
+      "social": "Redes",
+      "contact": "Mensagens",
+      "members": "Perfil",
+      "documents": "Documentos"
+    },
+    "pagination": {
+      "previous": "Anterior",
+      "next": "Próxima",
+      "page": "Página {page} de {pages}"
+    },
+    "actions": {
+      "events": {
+        "create": "Criou evento",
+        "update": "Editou evento",
+        "remove": "Excluiu evento",
+        "reorder": "Reordenou evento"
+      },
+      "albums": {
+        "create": "Criou álbum",
+        "update": "Editou álbum",
+        "remove": "Excluiu álbum",
+        "photo": {
+          "add": "Enviou foto",
+          "update": "Editou foto",
+          "move": "Moveu foto",
+          "delete": "Excluiu foto"
+        },
+        "cover": {
+          "set": "Definiu capa"
+        },
+        "comment": {
+          "hide": "Ocultou comentário",
+          "restore": "Restaurou comentário",
+          "delete": "Excluiu comentário"
+        }
+      },
+      "prayers": {
+        "create": "Criou pedido de oração",
+        "remove": "Excluiu pedido de oração"
+      },
+      "staff": {
+        "create": "Criou acesso",
+        "update": "Editou integrante",
+        "password": {
+          "reset": "Redefiniu senha"
+        },
+        "disable": "Desativou acesso",
+        "enable": "Reativou acesso",
+        "remove": "Excluiu acesso",
+        "invite": {
+          "create": "Gerou convite",
+          "reveal": "Copiou convite",
+          "revoke": "Revogou convite",
+          "accept": "Aceitou convite"
+        }
+      },
+      "social": {
+        "create": "Criou rede",
+        "update": "Editou rede",
+        "remove": "Excluiu rede",
+        "reorder": "Reordenou rede"
+      },
+      "contact": {
+        "markRead": "Alterou leitura da mensagem",
+        "remove": "Excluiu mensagem"
+      },
+      "members": {
+        "updateMe": "Atualizou o próprio perfil",
+        "updateFlags": "Atualizou perfil de integrante"
+      },
+      "documents": {
+        "createFolder": "Criou pasta",
+        "renameFolder": "Renomeou pasta",
+        "removeFolder": "Excluiu pasta",
+        "upload": "Enviou arquivo",
+        "renameFile": "Renomeou arquivo",
+        "removeFile": "Excluiu arquivo",
+        "moveFile": "Moveu arquivo",
+        "moveFolder": "Moveu pasta"
+      }
+    },
+    "actionByField": {
+      "name": "Alterou nome",
+      "accessRole": "Alterou papel no painel",
+      "editorModules": "Alterou papel no painel",
+      "ministryRole": "Alterou função",
+      "isMember": "Alterou status de integrante",
+      "showOnAbout": "Alterou visibilidade em Quem somos",
+      "published": "Alterou publicação",
+      "title": "Alterou título",
+      "type": "Alterou tipo",
+      "location": "Alterou local",
+      "platform": "Alterou plataforma",
+      "label": "Alterou rótulo",
+      "photo": "Alterou foto",
+      "read": "Alterou leitura da mensagem",
+      "albumId": "Moveu de álbum"
+    },
+    "fields": {
+      "name": "Nome",
+      "accessRole": "Papel no painel",
+      "editorModules": "Pode publicar",
+      "ministryRole": "Função no ministério",
+      "isMember": "É integrante",
+      "showOnAbout": "Mostrar em Quem somos",
+      "published": "Publicado",
+      "title": "Título",
+      "type": "Tipo",
+      "location": "Local",
+      "platform": "Plataforma",
+      "label": "Rótulo",
+      "photo": "Foto",
+      "read": "Leitura",
+      "albumId": "Álbum"
+    },
+    "values": {
+      "yes": "Sim",
+      "no": "Não",
+      "read": "Lida",
+      "unread": "Não lida",
+      "published": "Publicado",
+      "draft": "Despublicado",
+      "accessRole": {
+        "member": "Membro",
+        "editor": "Editor",
+        "gestor": "Gestor"
+      },
+      "eventType": {
+        "teatro": "Teatro",
+        "viagem": "Viagem",
+        "evangelismo": "Evangelismo",
+        "outro": "Outro"
+      },
+      "platform": {
+        "instagram": "Instagram",
+        "youtube": "YouTube",
+        "facebook": "Facebook",
+        "whatsapp": "WhatsApp",
+        "spotify": "Spotify",
+        "other": "Outro"
+      },
+      "photo": {
+        "set": "Havia foto",
+        "empty": "Sem foto",
+        "updated": "Alterada",
+        "removed": "Removida"
+      },
+      "capability": {
+        "events": "Agenda",
+        "albums": "Álbuns",
+        "site": "Redes"
+      }
+    }
+  },
+  "documents": {
+    "title": "Documentos",
+    "subtitle": "Peças, roteiros e arquivos internos da equipe.",
+    "root": "Documentos",
+    "empty": "Nenhuma pasta ou arquivo nesta pasta.",
+    "emptyRoot": "Nenhuma pasta ou arquivo ainda.",
+    "emptyDrop": "Ou arraste arquivos para cá.",
+    "dropTitle": "Solte para enviar",
+    "dropHint": "Os arquivos entram nesta pasta.",
+    "newFolder": "Nova pasta",
+    "upload": "Enviar arquivos",
+    "folderName": "Nome da pasta",
+    "fileName": "Nome do arquivo",
+    "createFolderTitle": "Nova pasta",
+    "renameFolderTitle": "Renomear pasta",
+    "renameFileTitle": "Renomear arquivo",
+    "created": "Pasta criada.",
+    "folderRenamed": "Pasta renomeada.",
+    "folderRemoved": "Pasta excluída.",
+    "uploaded": "Arquivo enviado.",
+    "uploadedMany": "{count, plural, one {# arquivo enviado.} other {# arquivos enviados.}}",
+    "fileRenamed": "Arquivo renomeado.",
+    "fileRemoved": "Arquivo excluído.",
+    "deleteFolderTitle": "Excluir pasta?",
+    "deleteFolderDescription": "A pasta \"{name}\" e todo o conteúdo dentro dela serão excluídos.",
+    "deleteFileTitle": "Excluir arquivo?",
+    "deleteFileDescription": "O arquivo \"{name}\" será removido.",
+    "open": "Abrir",
+    "download": "Baixar",
+    "rename": "Renomear",
+    "move": "Mover",
+    "moveTitle": "Mover para",
+    "moveDescription": "Escolha a pasta de destino para \"{name}\".",
+    "moveCurrent": "Atual",
+    "fileMoved": "Arquivo movido.",
+    "folderMoved": "Pasta movida.",
+    "breadcrumb": "Caminho da pasta",
+    "uploadProgress": {
+      "title": "Enviando arquivos",
+      "doneTitle": "Envio concluído",
+      "sending": "Enviando {current} de {total}",
+      "done": "{count} de {total} enviados.",
+      "status": {
+        "queued": "Na fila",
+        "uploading": "Enviando…",
+        "saving": "Salvando…",
+        "done": "Enviado",
+        "error": "Falha no envio",
+        "skipped": "Não enviado"
+      }
+    },
+    "preview": {
+      "title": "Visualizar documento",
+      "error": "Não foi possível abrir o documento.",
+      "unavailable": "Este formato não pode ser visualizado no site. Baixe o arquivo para abrir.",
+      "truncated": "O arquivo é grande; mostrando apenas o início.",
+      "empty": "O documento está vazio."
+    },
+    "columns": {
+      "name": "Nome",
+      "type": "Tipo",
+      "size": "Tamanho",
+      "updated": "Atualizado",
+      "author": "Enviado por",
+      "actions": "Ações"
+    },
+    "types": {
+      "folder": "Pasta",
+      "pdf": "PDF",
+      "markdown": "Markdown",
+      "text": "Texto",
+      "word": "Word",
+      "audio": "Áudio",
+      "file": "Arquivo"
+    },
+    "invalidType": "Use PDF, Markdown, texto, Word ou áudio.",
+    "tooLarge": "O arquivo deve ter no máximo 25 MB.",
+    "uploadError": "Não foi possível enviar o arquivo."
   }
 }

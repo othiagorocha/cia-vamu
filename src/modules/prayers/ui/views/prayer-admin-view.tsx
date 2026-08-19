@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { formatBrazilDateTimeShort } from "@/lib/brazil-datetime";
 import { useToastError } from "@/lib/use-toast-error";
+import { PrayerReactButton } from "@/modules/prayers/ui/components/prayer-react-button";
 import { PrayerRequestDialog } from "@/modules/prayers/ui/components/prayer-request-dialog";
 import { PrayerRequestFormDialog } from "@/modules/prayers/ui/components/prayer-request-form-dialog";
 import type { PrayerRequestRecord } from "@/modules/prayers/types";
@@ -36,6 +37,10 @@ type PrayerAdminViewProps = {
 };
 
 type ViewMode = "grid" | "table";
+
+const isolateCardEvent = (event: { stopPropagation: () => void }) => {
+  event.stopPropagation();
+};
 
 const authorLabel = (
   request: PrayerRequestRecord,
@@ -155,6 +160,19 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
               <p className="line-clamp-4 text-sm text-muted-foreground">
                 {request.body}
               </p>
+              <div
+                className="mt-auto flex justify-end pt-1"
+                onClick={isolateCardEvent}
+                onPointerDown={isolateCardEvent}
+                onMouseDown={isolateCardEvent}
+                onKeyDown={isolateCardEvent}
+              >
+                <PrayerReactButton
+                  requestId={request.id}
+                  reacted={request.reacted}
+                  reactors={request.reactors}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -166,6 +184,7 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
                 <TableHead>{t("columns.author")}</TableHead>
                 <TableHead>{t("columns.date")}</TableHead>
                 <TableHead>{t("columns.body")}</TableHead>
+                <TableHead>{t("columns.praying")}</TableHead>
                 {canManage ? (
                   <TableHead>{t("columns.actions")}</TableHead>
                 ) : null}
@@ -187,6 +206,18 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
                   </TableCell>
                   <TableCell className="max-w-md whitespace-normal">
                     <span className="line-clamp-2">{request.body}</span>
+                  </TableCell>
+                  <TableCell
+                    onClick={isolateCardEvent}
+                    onPointerDown={isolateCardEvent}
+                    onMouseDown={isolateCardEvent}
+                    onKeyDown={isolateCardEvent}
+                  >
+                    <PrayerReactButton
+                      requestId={request.id}
+                      reacted={request.reacted}
+                      reactors={request.reactors}
+                    />
                   </TableCell>
                   {canManage ? (
                     <TableCell>

@@ -8,9 +8,11 @@ export type StaffRecord = {
   disabled: boolean;
   isMember: boolean;
   showOnAbout: boolean;
+  isSuperAdmin: boolean;
   role: string | null;
   photoUrl: string | null;
   createdAt: Date;
+  lastAccessAt: Date | null;
 };
 
 export type InviteRecord = {
@@ -20,4 +22,13 @@ export type InviteRecord = {
   createdAt: Date;
   maxUses: number | null;
   usedCount: number;
+};
+
+export type InviteUseRecord = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: Date;
+  userExists: boolean;
+  disabled: boolean;
 };

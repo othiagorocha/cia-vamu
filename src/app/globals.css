@@ -171,10 +171,85 @@
   animation: photo-fade 280ms ease-out;
 }
 
+@keyframes prayer-react-pop {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  28% {
+    transform: scale(0.78) rotate(-10deg);
+  }
+  62% {
+    transform: scale(1.32) rotate(8deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes prayer-react-spark {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--spark-x), var(--spark-y)) scale(0.2);
+  }
+}
+
+.prayer-react-pop {
+  animation: prayer-react-pop 0.48s cubic-bezier(0.22, 1.5, 0.36, 1);
+}
+
+.prayer-react-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 9999px;
+  background: #fb923c;
+  box-shadow: 0 0 6px #fb923c;
+  animation: prayer-react-spark 0.5s ease-out forwards;
+  pointer-events: none;
+}
+
+.prayer-react-spark-1 {
+  --spark-x: -16px;
+  --spark-y: -18px;
+}
+
+.prayer-react-spark-2 {
+  --spark-x: 16px;
+  --spark-y: -14px;
+}
+
+.prayer-react-spark-3 {
+  --spark-x: -12px;
+  --spark-y: 16px;
+}
+
+.prayer-react-spark-4 {
+  --spark-x: 14px;
+  --spark-y: 16px;
+}
+
+.prayer-react-spark-5 {
+  --spark-x: 0px;
+  --spark-y: -22px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
-  .photo-fade {
+  .photo-fade,
+  .prayer-react-pop,
+  .prayer-react-spark {
     animation: none;
+  }
+
+  .prayer-react-spark {
+    display: none;
   }
 
   .reveal {

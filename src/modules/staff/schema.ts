@@ -127,6 +127,10 @@ export const revealInviteSchema = z.object({
   id: z.uuid(),
 });
 
+export const listInviteUsesSchema = z.object({
+  id: z.uuid(),
+});
+
 export const inviteTokenSchema = z.object({
   token: z.string().min(32),
 });
@@ -140,3 +144,14 @@ export const acceptInviteSchema = z.object({
 });
 
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
+
+export const acceptInviteFormSchema = acceptInviteSchema
+  .extend({
+    confirmPassword: z.string().min(1, "Confirme a senha."),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem.",
+    path: ["confirmPassword"],
+  });
+
+export type AcceptInviteFormInput = z.infer<typeof acceptInviteFormSchema>;

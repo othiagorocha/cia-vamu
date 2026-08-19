@@ -5,6 +5,9 @@ import { z } from "zod";
 import { db } from "@/db";
 import { events } from "@/db/schema";
 import { deleteImageFromStorage, uploadImageToStorage } from "@/lib/storage";
+import { AUDIT_ACTIONS } from "@/modules/audit/actions";
+import { diffFields } from "@/modules/audit/diff";
+import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import {
   createEventSchema,
   removeEventSchema,
@@ -61,7 +64,7 @@ export const eventsRouter = createTRPCRouter({
 
   create: requireCapability("events:write")
     .input(createEventSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { image, ...data } = input;
       const [last] = await db
         .select({ sortOrder: events.sortOrder })
@@ -83,31 +86,45 @@ export const eventsRouter = createTRPCRouter({
         })
         .returning();
 
-      if (!image) {
-        return created;
+      let result = created;
+
+      if (image) {
+        const uploaded = await uploadImageToStorage({
+          dataUrl: image,
+          folder: `events/${created.id}`,
+        });
+
+        const [event] = await db
+          .update(events)
+          .set({
+            imageUrl: uploaded.imageUrl,
+            storagePath: uploaded.storagePath,
+            updatedAt: new Date(),
+          })
+          .where(eq(events.id, created.id))
+          .returning();
+
+        result = event ?? created;
       }
 
-      const uploaded = await uploadImageToStorage({
-        dataUrl: image,
-        folder: `events/${created.id}`,
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.EVENTS_CREATE,
+        entityType: "event",
+        entityId: result.id,
+        metadata: {
+          title: result.title,
+          published: result.published,
+          type: result.type,
+        },
       });
 
-      const [event] = await db
-        .update(events)
-        .set({
-          imageUrl: uploaded.imageUrl,
-          storagePath: uploaded.storagePath,
-          updatedAt: new Date(),
-        })
-        .where(eq(events.id, created.id))
-        .returning();
-
-      return event;
+      return result;
     }),
 
   update: requireCapability("events:write")
     .input(updateEventSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [existing] = await db
         .select()
         .from(events)
@@ -162,12 +179,42 @@ export const eventsRouter = createTRPCRouter({
         .where(eq(events.id, input.id))
         .returning();
 
+      if (event) {
+        const changes = diffFields(
+          {
+            title: existing.title,
+            published: existing.published,
+            type: existing.type,
+            location: existing.location,
+          },
+          {
+            title: event.title,
+            published: event.published,
+            type: event.type,
+            location: event.location,
+          },
+        );
+
+        if (changes.length > 0) {
+          await writeAuditLog({
+            actor: ctx.session.user,
+            action: AUDIT_ACTIONS.EVENTS_UPDATE,
+            entityType: "event",
+            entityId: event.id,
+            metadata: {
+              title: event.title,
+              changes,
+            },
+          });
+        }
+      }
+
       return event;
     }),
 
   remove: requireCapability("events:write")
     .input(removeEventSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [existing] = await db
         .select()
         .from(events)
@@ -185,12 +232,21 @@ export const eventsRouter = createTRPCRouter({
       }
 
       await db.delete(events).where(eq(events.id, input.id));
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.EVENTS_REMOVE,
+        entityType: "event",
+        entityId: existing.id,
+        metadata: { title: existing.title },
+      });
+
       return { success: true };
     }),
 
   reorder: requireCapability("events:write")
     .input(reorderEventSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const ordered = await db.select().from(events).orderBy(...eventListOrder);
       const currentIndex = ordered.findIndex((event) => event.id === input.id);
 
@@ -213,6 +269,18 @@ export const eventsRouter = createTRPCRouter({
       reordered.splice(targetIndex, 0, moved);
 
       await persistEventOrder(reordered.map((event) => event.id));
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.EVENTS_REORDER,
+        entityType: "event",
+        entityId: moved.id,
+        metadata: {
+          title: moved.title,
+          direction: input.direction,
+        },
+      });
+
       return { success: true };
     }),
 });
