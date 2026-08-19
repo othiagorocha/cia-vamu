@@ -4,14 +4,16 @@ import Link from "next/link";
 import {
   ArrowRightIcon,
   CalendarDaysIcon,
+  FilesIcon,
   ImagesIcon,
   MailIcon,
+  UsersIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { PiHandsPrayingBold } from "react-icons/pi";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventCard } from "@/modules/events/ui/components/event-card";
 import { trpc } from "@/trpc/client";
 
@@ -19,23 +21,43 @@ type DashboardOverviewViewProps = {
   canEvents: boolean;
   canAlbums: boolean;
   canContact: boolean;
+  canStaff: boolean;
 };
 
-type OverviewCard = {
+type OverviewKpi = {
   href: string;
   label: string;
   value: number;
-  total: number;
-  icon: LucideIcon;
-  extra?: string;
+  icon: LucideIcon | typeof PiHandsPrayingBold;
 };
 
 const UPCOMING_LIMIT = 8;
+const MAX_KPIS = 6;
+
+const OverviewKpiCard = ({ kpi }: { kpi: OverviewKpi }) => {
+  return (
+    <Link
+      href={kpi.href}
+      className="block h-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+    >
+      <div className="flex h-full items-center justify-between gap-3 rounded-lg bg-card px-4 py-3 ring-1 ring-foreground/10 transition-colors hover:bg-muted/40">
+        <div className="min-w-0">
+          <p className="truncate text-xs leading-tight text-muted-foreground">
+            {kpi.label}
+          </p>
+          <p className="mt-1 text-2xl font-semibold leading-none">{kpi.value}</p>
+        </div>
+        <kpi.icon className="size-4 shrink-0 text-orange-400" />
+      </div>
+    </Link>
+  );
+};
 
 export const DashboardOverviewView = ({
   canEvents,
   canAlbums,
   canContact,
+  canStaff,
 }: DashboardOverviewViewProps) => {
   const t = useTranslations("dashboard.overview");
   const eventsQuery = trpc.events.listAll.useQuery(undefined, {
@@ -44,13 +66,21 @@ export const DashboardOverviewView = ({
   const albumsQuery = trpc.albums.listAll.useQuery(undefined, {
     enabled: canAlbums,
   });
+  const prayersQuery = trpc.prayers.list.useQuery();
+  const documentsQuery = trpc.documents.listFolderTree.useQuery();
   const messagesQuery = trpc.contact.listAll.useQuery(undefined, {
     enabled: canContact,
+  });
+  const staffQuery = trpc.staff.list.useQuery(undefined, {
+    enabled: canStaff,
   });
 
   const events = eventsQuery.data ?? [];
   const albums = albumsQuery.data ?? [];
+  const prayers = prayersQuery.data ?? [];
+  const documentFolders = documentsQuery.data ?? [];
   const messages = messagesQuery.data ?? [];
+  const staff = staffQuery.data ?? [];
   const now = Date.now();
 
   const publishedEvents = events.filter((event) => event.published).length;
@@ -61,15 +91,19 @@ export const DashboardOverviewView = ({
     .filter((event) => new Date(event.startsAt).getTime() >= now)
     .slice(0, UPCOMING_LIMIT);
 
-  const cards: OverviewCard[] = [
+  const kpis: OverviewKpi[] = [
     ...(canEvents
       ? [
           {
             href: "/admin/agenda",
             label: t("publishedEvents"),
             value: publishedEvents,
-            total: events.length,
-            extra: t("teamEventsCount", { count: teamEvents }),
+            icon: CalendarDaysIcon,
+          },
+          {
+            href: "/admin/agenda",
+            label: t("teamEvents"),
+            value: teamEvents,
             icon: CalendarDaysIcon,
           },
         ]
@@ -80,59 +114,68 @@ export const DashboardOverviewView = ({
             href: "/admin/albums",
             label: t("publishedAlbums"),
             value: publishedAlbums,
-            total: albums.length,
             icon: ImagesIcon,
           },
         ]
       : []),
+    {
+      href: "/admin/oracao",
+      label: t("prayers"),
+      value: prayers.length,
+      icon: PiHandsPrayingBold,
+    },
     ...(canContact
       ? [
           {
             href: "/admin/mensagens",
             label: t("unreadMessages"),
             value: unreadMessages,
-            total: messages.length,
             icon: MailIcon,
           },
         ]
+      : [
+          {
+            href: "/admin/documentos",
+            label: t("documents"),
+            value: documentFolders.length,
+            icon: FilesIcon,
+          },
+        ]),
+    ...(canStaff
+      ? [
+          {
+            href: "/admin/equipe",
+            label: t("users"),
+            value: staff.length,
+            icon: UsersIcon,
+          },
+        ]
       : []),
-  ];
+  ].slice(0, MAX_KPIS);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
 
-      {cards.length === 0 ? (
+      {kpis.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("empty")}</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {cards.map((card) => (
-            <Link key={card.href} href={card.href} className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
-              <Card className="h-full transition-colors hover:bg-muted/40">
-                <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {card.label}
-                  </CardTitle>
-                  <card.icon className="size-4 text-orange-400" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-semibold">
-                    {card.value}
-                    <span className="ml-1 text-sm font-normal text-muted-foreground">
-                      / {card.total} {t("ofTotal")}
-                    </span>
-                  </p>
-                  {card.extra ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {card.extra}
-                    </p>
-                  ) : null}
-                </CardContent>
-              </Card>
-            </Link>
+        <div
+          role="list"
+          aria-label={t("kpis")}
+          className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-6 pb-1 [scrollbar-width:none] touch-pan-x sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 sm:snap-none xl:grid-cols-6 [&::-webkit-scrollbar]:hidden"
+        >
+          {kpis.map((kpi) => (
+            <div
+              key={`${kpi.href}-${kpi.label}`}
+              role="listitem"
+              className="w-[min(16.5rem,72vw)] shrink-0 snap-start sm:w-auto sm:min-w-0"
+            >
+              <OverviewKpiCard kpi={kpi} />
+            </div>
           ))}
         </div>
       )}
@@ -169,11 +212,14 @@ export const DashboardOverviewView = ({
 
 export const DashboardOverviewViewSkeleton = () => {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-24 animate-pulse rounded-lg border bg-muted/40" />
+      <div className="-mx-6 flex gap-3 overflow-hidden px-6 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0 xl:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-[4.25rem] w-[min(16.5rem,72vw)] shrink-0 animate-pulse rounded-lg bg-muted/40 sm:w-auto sm:min-w-0"
+          />
         ))}
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">

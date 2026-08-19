@@ -21,11 +21,16 @@ const AdminPage = async () => {
   const canEvents = Boolean(session);
   const canAlbums = Boolean(session);
   const canContact = hasCapability(session, "contact:manage");
+  const canStaff = hasCapability(session, "users:manage");
 
   await Promise.all([
     trpc.events.listAll.prefetch(),
     trpc.albums.listAll.prefetch(),
-    canContact ? trpc.contact.listAll.prefetch() : Promise.resolve(),
+    trpc.prayers.list.prefetch(),
+    canContact
+      ? trpc.contact.listAll.prefetch()
+      : trpc.documents.listFolderTree.prefetch(),
+    canStaff ? trpc.staff.list.prefetch() : Promise.resolve(),
   ]);
 
   return (
@@ -36,6 +41,7 @@ const AdminPage = async () => {
             canEvents={canEvents}
             canAlbums={canAlbums}
             canContact={canContact}
+            canStaff={canStaff}
           />
         </Suspense>
       </ErrorBoundary>

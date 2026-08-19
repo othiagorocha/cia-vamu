@@ -7,6 +7,7 @@ import {
   CopyIcon,
   KeyRoundIcon,
   LinkIcon,
+  MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   Trash2Icon,
@@ -27,6 +28,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -213,136 +220,142 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
           <p>{t("empty")}</p>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
           {staffList.map((member) => {
             const isCurrentUser = member.id === currentUserId;
             const isSuperAdmin = member.isSuperAdmin;
             const canMutateAccess = !isCurrentUser && !isSuperAdmin;
             const role = roleFromCapabilities(member.capabilities);
+            const editorModules =
+              role === "editor"
+                ? editorModulesFromCapabilities(member.capabilities)
+                : [];
 
             return (
               <article
                 key={member.id}
-                className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
+                className="relative flex flex-col items-center gap-3 rounded-xl bg-card px-4 pb-5 pt-6 text-center ring-1 ring-foreground/10"
               >
-                <div className="flex items-start gap-3">
-                  {member.photoUrl ? (
-                    <button
-                      type="button"
-                      className="size-12 shrink-0 overflow-hidden rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      onClick={() =>
-                        setExpandedPhoto({
-                          src: member.photoUrl!,
-                          alt: member.name,
-                        })
-                      }
-                      aria-label={t("expandPhoto", { name: member.name })}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={member.photoUrl}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    </button>
-                  ) : (
-                    <div
-                      aria-hidden
-                      className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground"
-                    >
-                      {member.name.trim().charAt(0).toUpperCase() || "?"}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{member.name}</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {member.email}
-                    </p>
+                {isSuperAdmin ? null : (
+                  <div className="absolute right-2 top-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("columns.actions")}
+                        >
+                          <MoreHorizontalIcon className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedStaff(member);
+                            setFormOpen(true);
+                          }}
+                        >
+                          <PencilIcon />
+                          {tCommon("actions.edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setPasswordTarget(member)}
+                        >
+                          <KeyRoundIcon />
+                          {t("form.passwordTitle")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={!canMutateAccess}
+                          onClick={() => {
+                            disableMutation.mutate({
+                              id: member.id,
+                              disabled: !member.disabled,
+                            });
+                          }}
+                        >
+                          {member.disabled ? t("reactivate") : t("deactivate")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={!canMutateAccess}
+                          onClick={() => setDeleteTarget(member)}
+                        >
+                          <Trash2Icon />
+                          {tCommon("actions.delete")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
+                )}
+
+                {member.photoUrl ? (
+                  <button
+                    type="button"
+                    className="size-24 shrink-0 overflow-hidden rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 motion-safe:hover:scale-105"
+                    onClick={() =>
+                      setExpandedPhoto({
+                        src: member.photoUrl!,
+                        alt: member.name,
+                      })
+                    }
+                    aria-label={t("expandPhoto", { name: member.name })}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={member.photoUrl}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                  </button>
+                ) : (
+                  <div
+                    aria-hidden
+                    className="flex size-24 shrink-0 items-center justify-center rounded-full bg-muted text-xl font-medium text-muted-foreground"
+                  >
+                    {member.name.trim().charAt(0).toUpperCase() || "?"}
+                  </div>
+                )}
+
+                <div className="flex min-w-0 flex-col gap-1">
+                  <h3 className="text-lg font-semibold leading-snug">
+                    {member.name}
+                  </h3>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {member.email}
+                  </p>
+                  <p className="text-sm text-orange-400">
+                    {isSuperAdmin
+                      ? t("superAdmin")
+                      : t(`roles.${role}`)}
+                  </p>
                 </div>
-                <div className="flex flex-wrap gap-1">
+
+                <div className="flex flex-wrap justify-center gap-1">
                   {isCurrentUser ? (
                     <Badge variant="outline">{t("you")}</Badge>
-                  ) : null}
-                  {isSuperAdmin ? (
-                    <Badge className="bg-orange-400 text-black hover:bg-orange-400">
-                      {t("superAdmin")}
-                    </Badge>
                   ) : null}
                   {member.disabled ? (
                     <Badge variant="secondary">{t("deactivated")}</Badge>
                   ) : null}
-                  <Badge variant="secondary">{t(`roles.${role}`)}</Badge>
-                  {role === "editor"
-                    ? editorModulesFromCapabilities(member.capabilities).map(
-                        (capability) => (
-                          <Badge key={capability} variant="outline">
-                            {t(`capabilities.${MODULE_LABELS[capability]}`)}
-                          </Badge>
-                        ),
-                      )
-                    : null}
-                  <Badge variant={member.isMember ? "default" : "secondary"}>
-                    {member.isMember ? t("yes") : t("no")}
-                  </Badge>
+                  {member.isMember ? (
+                    <Badge variant="secondary">{t("onAbout")}</Badge>
+                  ) : null}
+                  {editorModules.map((capability) => (
+                    <Badge key={capability} variant="outline">
+                      {t(`capabilities.${MODULE_LABELS[capability]}`)}
+                    </Badge>
+                  ))}
                 </div>
+
                 <p className="text-xs text-muted-foreground">
                   {member.lastAccessAt
-                    ? formatDistanceToNow(member.lastAccessAt, {
+                    ? `${t("columns.lastAccess")} ${formatDistanceToNow(member.lastAccessAt, {
                         locale: ptBR,
                         addSuffix: true,
-                      })
+                      })}`
                     : t("lastAccessNever")}
                 </p>
-                {isSuperAdmin ? null : (
-                  <div className="mt-auto flex flex-wrap items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => {
-                        setSelectedStaff(member);
-                        setFormOpen(true);
-                      }}
-                      aria-label={tCommon("actions.edit")}
-                    >
-                      <PencilIcon className="size-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setPasswordTarget(member)}
-                      aria-label={t("form.passwordTitle")}
-                    >
-                      <KeyRoundIcon className="size-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={!canMutateAccess}
-                      onClick={() => {
-                        disableMutation.mutate({
-                          id: member.id,
-                          disabled: !member.disabled,
-                        });
-                      }}
-                    >
-                      {member.disabled ? t("reactivate") : t("deactivate")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      disabled={!canMutateAccess}
-                      onClick={() => setDeleteTarget(member)}
-                      aria-label={tCommon("actions.delete")}
-                    >
-                      <Trash2Icon className="size-4 text-destructive" />
-                    </Button>
-                  </div>
-                )}
               </article>
             );
           })}
