@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAdminViewMode } from "@/lib/admin-view-mode";
+import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +60,7 @@ export const SocialAdminView = () => {
   const toastError = useToastError();
   const utils = trpc.useUtils();
   const [links] = trpc.social.listAll.useSuspenseQuery();
+  const [viewMode, setViewMode] = useAdminViewMode();
   const [formOpen, setFormOpen] = useState(false);
   const [selected, setSelected] = useState<SocialLinkRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SocialLinkRecord | null>(
@@ -143,25 +146,112 @@ export const SocialAdminView = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelected(null);
-            setFormOpen(true);
-          }}
-        >
-          <PlusIcon />
-          {t("new")}
-        </Button>
+        <div className="flex items-center gap-2">
+          {links.length > 0 ? (
+            <AdminViewModeToggle
+              value={viewMode}
+              onChange={(mode) => {
+                void setViewMode(mode);
+              }}
+            />
+          ) : null}
+          <Button
+            onClick={() => {
+              setSelected(null);
+              setFormOpen(true);
+            }}
+          >
+            <PlusIcon />
+            {t("new")}
+          </Button>
+        </div>
       </div>
 
       {links.length === 0 ? (
         <div className="rounded-lg border border-dashed py-16 text-center text-muted-foreground">
           {t("empty")}
+        </div>
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+          {links.map((link, index) => {
+            const Icon = getSocialIcon(link.platform, link.iconName);
+
+            return (
+              <article
+                key={link.id}
+                className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Icon className="size-5 shrink-0" />
+                    <p className="truncate font-medium">{link.label}</p>
+                  </div>
+                  <Badge variant={link.published ? "default" : "secondary"}>
+                    {link.published ? t("published") : t("draft")}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t(`platforms.${link.platform}`)}
+                </p>
+                <div className="mt-auto flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={index === 0 || reorderMutation.isPending}
+                    onClick={() =>
+                      reorderMutation.mutate({
+                        id: link.id,
+                        direction: "up",
+                      })
+                    }
+                    aria-label={t("moveUp")}
+                  >
+                    <ArrowUpIcon className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={
+                      index === links.length - 1 || reorderMutation.isPending
+                    }
+                    onClick={() =>
+                      reorderMutation.mutate({
+                        id: link.id,
+                        direction: "down",
+                      })
+                    }
+                    aria-label={t("moveDown")}
+                  >
+                    <ArrowDownIcon className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => {
+                      setSelected(link);
+                      setFormOpen(true);
+                    }}
+                    aria-label={tCommon("actions.edit")}
+                  >
+                    <PencilIcon className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setDeleteTarget(link)}
+                    aria-label={tCommon("actions.delete")}
+                  >
+                    <Trash2Icon className="size-4 text-destructive" />
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       ) : (
         <div className="rounded-lg border">

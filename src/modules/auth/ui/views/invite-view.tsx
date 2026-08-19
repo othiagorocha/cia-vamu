@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2Icon } from "lucide-react";
@@ -22,6 +21,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { cropPhotoToSquare, type PhotoFrame } from "@/lib/crop-photo";
+import { hardNavigate } from "@/lib/hard-navigate";
 import { useToastError } from "@/lib/use-toast-error";
 import {
   PROFILE_PHOTO_VIEWPORT,
@@ -39,7 +39,6 @@ export const InviteView = ({ token }: { token: string }) => {
   const t = useTranslations("auth.invite");
   const tLogin = useTranslations("auth.login");
   const toastError = useToastError();
-  const router = useRouter();
   const inviteQuery = trpc.staff.getInvite.useQuery({ token });
   const [isPending, setIsPending] = useState(false);
   const [source, setSource] = useState<string | null>(null);
@@ -127,8 +126,7 @@ export const InviteView = ({ token }: { token: string }) => {
       {
         onSuccess: () => {
           toast.success(t("success"));
-          router.push("/admin");
-          router.refresh();
+          hardNavigate("/admin");
         },
         onError: (ctx) => {
           toastError({
@@ -136,7 +134,7 @@ export const InviteView = ({ token }: { token: string }) => {
             code: ctx.error.code,
             status: ctx.error.status,
           });
-          router.push("/admin/login");
+          hardNavigate("/admin/login");
         },
       },
     );

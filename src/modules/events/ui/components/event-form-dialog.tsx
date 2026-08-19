@@ -38,11 +38,11 @@ import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
 
-const EVENT_TYPE_OPTIONS: { value: EventFormInput["type"]; label: string }[] = [
-  { value: "teatro", label: "Teatro" },
-  { value: "viagem", label: "Viagem" },
-  { value: "evangelismo", label: "Evangelismo" },
-  { value: "outro", label: "Outro" },
+const EVENT_TYPE_OPTIONS: EventFormInput["type"][] = [
+  "teatro",
+  "viagem",
+  "evangelismo",
+  "outro",
 ];
 
 type EventFormDialogProps = {
@@ -61,6 +61,7 @@ export const EventFormDialog = ({
   onSubmit,
 }: EventFormDialogProps) => {
   const t = useTranslations("events");
+  const tCommon = useTranslations("common");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isPasting, setIsPasting] = useState(false);
@@ -152,10 +153,10 @@ export const EventFormDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{event ? "Editar evento" : "Novo evento"}</DialogTitle>
-          <DialogDescription>
-            Preencha os dados do evento. Você pode anexar ou colar uma arte/flyer.
-          </DialogDescription>
+          <DialogTitle>
+            {event ? t("form.editTitle") : t("form.createTitle")}
+          </DialogTitle>
+          <DialogDescription>{t("form.description")}</DialogDescription>
         </DialogHeader>
 
         <form
@@ -170,7 +171,7 @@ export const EventFormDialog = ({
               name="title"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="title">Título</FieldLabel>
+                  <FieldLabel htmlFor="title">{t("form.title")}</FieldLabel>
                   <Input {...field} id="title" aria-invalid={fieldState.invalid} />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
@@ -182,7 +183,7 @@ export const EventFormDialog = ({
               name="description"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="description">Descrição</FieldLabel>
+                  <FieldLabel htmlFor="description">{t("form.body")}</FieldLabel>
                   <Textarea {...field} id="description" rows={3} />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
@@ -194,7 +195,7 @@ export const EventFormDialog = ({
               name="image"
               render={({ field: { onChange, ...field } }) => (
                 <Field>
-                  <FieldLabel htmlFor="event-image">Arte / flyer (opcional)</FieldLabel>
+                  <FieldLabel htmlFor="event-image">{t("form.image")}</FieldLabel>
                   <div className="flex items-start gap-3">
                     <div className="relative flex aspect-3/4 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
                       {preview ? (
@@ -235,7 +236,7 @@ export const EventFormDialog = ({
                           ) : (
                             <ClipboardPasteIcon />
                           )}
-                          Colar imagem
+                          {t("form.pasteImage")}
                         </Button>
                         {preview ? (
                           <Button
@@ -257,7 +258,7 @@ export const EventFormDialog = ({
                           </Button>
                         ) : null}
                         <span className="text-xs text-muted-foreground">
-                          ou Ctrl+V / Cmd+V com o diálogo aberto
+                          {t("form.pasteHint")}
                         </span>
                       </div>
                     </div>
@@ -272,15 +273,15 @@ export const EventFormDialog = ({
                 name="type"
                 render={({ field }) => (
                   <Field>
-                    <FieldLabel htmlFor="type">Tipo</FieldLabel>
+                    <FieldLabel htmlFor="type">{t("form.type")}</FieldLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger id="type" className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {EVENT_TYPE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                          <SelectItem key={option} value={option}>
+                            {t(`types.${option}`)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -294,7 +295,7 @@ export const EventFormDialog = ({
                 name="location"
                 render={({ field }) => (
                   <Field>
-                    <FieldLabel htmlFor="location">Local</FieldLabel>
+                    <FieldLabel htmlFor="location">{t("form.location")}</FieldLabel>
                     <Input {...field} id="location" />
                   </Field>
                 )}
@@ -307,7 +308,7 @@ export const EventFormDialog = ({
                 name="startsAt"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="startsAt">Início</FieldLabel>
+                    <FieldLabel htmlFor="startsAt">{t("form.startsAt")}</FieldLabel>
                     <Input
                       {...field}
                       id="startsAt"
@@ -324,7 +325,7 @@ export const EventFormDialog = ({
                 name="endsAt"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="endsAt">Término (opcional)</FieldLabel>
+                    <FieldLabel htmlFor="endsAt">{t("form.endsAt")}</FieldLabel>
                     <Input
                       {...field}
                       id="endsAt"
@@ -341,18 +342,42 @@ export const EventFormDialog = ({
               control={form.control}
               name="published"
               render={({ field }) => (
-                <Field orientation="horizontal">
-                  <input
-                    id="published"
-                    type="checkbox"
-                    className="size-4 rounded border-input"
-                    checked={field.value}
-                    onChange={(inputEvent) => field.onChange(inputEvent.target.checked)}
-                  />
-                  <FieldLabel htmlFor="published" className="font-normal">
-                    Publicar na agenda pública
-                  </FieldLabel>
-                </Field>
+                <div className="flex flex-col gap-2">
+                  <Field orientation="horizontal">
+                    <input
+                      id="visibility-public"
+                      type="checkbox"
+                      className="size-4 rounded border-input"
+                      checked={field.value}
+                      onChange={() => field.onChange(true)}
+                    />
+                    <FieldLabel htmlFor="visibility-public" className="font-normal">
+                      <span className="flex flex-col gap-0.5">
+                        <span>{t("visibility.public")}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("visibility.publicHint")}
+                        </span>
+                      </span>
+                    </FieldLabel>
+                  </Field>
+                  <Field orientation="horizontal">
+                    <input
+                      id="visibility-team"
+                      type="checkbox"
+                      className="size-4 rounded border-input"
+                      checked={!field.value}
+                      onChange={() => field.onChange(false)}
+                    />
+                    <FieldLabel htmlFor="visibility-team" className="font-normal">
+                      <span className="flex flex-col gap-0.5">
+                        <span>{t("visibility.team")}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("visibility.teamHint")}
+                        </span>
+                      </span>
+                    </FieldLabel>
+                  </Field>
+                </div>
               )}
             />
           </FieldGroup>
@@ -360,11 +385,11 @@ export const EventFormDialog = ({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} type="button">
-            Cancelar
+            {tCommon("actions.cancel")}
           </Button>
           <Button type="submit" form="event-form" disabled={isSubmitting}>
             {isSubmitting && <Loader2Icon className="animate-spin" />}
-            Salvar
+            {tCommon("actions.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

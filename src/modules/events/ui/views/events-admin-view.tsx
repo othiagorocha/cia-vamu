@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   Trash2Icon,
@@ -26,6 +27,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -33,20 +40,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAdminViewMode } from "@/lib/admin-view-mode";
+import { useToastError } from "@/lib/use-toast-error";
+import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
+import { EventCard } from "@/modules/events/ui/components/event-card";
+import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
 import { EventFormDialog } from "@/modules/events/ui/components/event-form-dialog";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
+import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
 import type { EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
 import { trpc } from "@/trpc/client";
-import { useToastError } from "@/lib/use-toast-error";
 
 export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   const t = useTranslations("events");
+  const tCommon = useTranslations("common");
   const toastError = useToastError();
   const utils = trpc.useUtils();
   const [events] = trpc.events.listAll.useSuspenseQuery();
+  const [viewMode, setViewMode] = useAdminViewMode();
   const [formOpen, setFormOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
+  const [detailEvent, setDetailEvent] = useState<EventRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
 
   const invalidate = () => {
@@ -56,7 +71,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
 
   const createMutation = trpc.events.create.useMutation({
     onSuccess: () => {
-      toast.success("Evento criado com sucesso.");
+      toast.success(t("created"));
       setFormOpen(false);
       invalidate();
     },
@@ -65,7 +80,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
 
   const updateMutation = trpc.events.update.useMutation({
     onSuccess: () => {
-      toast.success("Evento atualizado com sucesso.");
+      toast.success(t("updated"));
       setFormOpen(false);
       invalidate();
     },
@@ -74,7 +89,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
 
   const removeMutation = trpc.events.remove.useMutation({
     onSuccess: () => {
-      toast.success("Evento removido.");
+      toast.success(t("removed"));
       setDeleteTarget(null);
       invalidate();
     },
@@ -94,71 +109,152 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
     }
   };
 
+  const openEditor = (event: EventRecord) => {
+    if (!canWrite) {
+      return;
+    }
+
+    setDetailEvent(null);
+    setSelectedEvent(event);
+    setFormOpen(true);
+  };
+
+  const eventActions = (event: EventRecord, index: number) =>
+    canWrite ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("columns.actions")}
+            onClick={(clickEvent) => clickEvent.stopPropagation()}
+          >
+            <MoreHorizontalIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          onClick={(clickEvent) => clickEvent.stopPropagation()}
+        >
+          <DropdownMenuItem
+            disabled={index === 0 || reorderMutation.isPending}
+            onClick={() =>
+              reorderMutation.mutate({
+                id: event.id,
+                direction: "up",
+              })
+            }
+          >
+            <ArrowUpIcon />
+            {t("moveUp")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={
+              index === events.length - 1 || reorderMutation.isPending
+            }
+            onClick={() =>
+              reorderMutation.mutate({
+                id: event.id,
+                direction: "down",
+              })
+            }
+          >
+            <ArrowDownIcon />
+            {t("moveDown")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openEditor(event)}>
+            <PencilIcon />
+            {tCommon("actions.edit")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => setDeleteTarget(event)}
+          >
+            <Trash2Icon />
+            {tCommon("actions.delete")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : null;
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Agenda</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t("adminTitle")}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie os eventos exibidos na agenda pública. {t("orderHint")}
+            {t("adminSubtitle", { hint: t("orderHint") })}
           </p>
         </div>
-        {canWrite ? (
-          <Button
-            onClick={() => {
-              setSelectedEvent(null);
-              setFormOpen(true);
-            }}
-          >
-            <PlusIcon />
-            Novo evento
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {events.length > 0 ? (
+            <AdminViewModeToggle
+              value={viewMode}
+              onChange={(mode) => {
+                void setViewMode(mode);
+              }}
+            />
+          ) : null}
+          {canWrite ? (
+            <Button
+              onClick={() => {
+                setSelectedEvent(null);
+                setFormOpen(true);
+              }}
+            >
+              <PlusIcon />
+              {t("new")}
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {events.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-16 text-center text-muted-foreground">
-          <p>Nenhum evento cadastrado ainda.</p>
+          <p>{t("adminEmpty")}</p>
+        </div>
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
+          {events.map((event, index) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              showVisibility
+              onEdit={canWrite ? () => openEditor(event) : undefined}
+              actions={eventActions(event, index)}
+            />
+          ))}
         </div>
       ) : (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Título</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Arte</TableHead>
-                <TableHead>Início</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-0">Ações</TableHead>
+                <TableHead>{t("columns.title")}</TableHead>
+                <TableHead>{t("columns.type")}</TableHead>
+                <TableHead>{t("columns.art")}</TableHead>
+                <TableHead>{t("columns.startsAt")}</TableHead>
+                <TableHead>{t("columns.status")}</TableHead>
+                <TableHead className="w-0">{t("columns.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {events.map((event, index) => (
                 <TableRow
                   key={event.id}
-                  tabIndex={canWrite ? 0 : undefined}
-                  className={canWrite ? "cursor-pointer" : undefined}
-                  onClick={() => {
-                    if (!canWrite) {
-                      return;
-                    }
-
-                    setSelectedEvent(event);
-                    setFormOpen(true);
-                  }}
+                  tabIndex={0}
+                  className="cursor-pointer"
+                  onClick={() => setDetailEvent(event)}
                   onKeyDown={(keyboardEvent) => {
-                    if (!canWrite) {
-                      return;
-                    }
-
                     if (
                       keyboardEvent.key === "Enter" ||
                       keyboardEvent.key === " "
                     ) {
                       keyboardEvent.preventDefault();
-                      setSelectedEvent(event);
-                      setFormOpen(true);
+                      setDetailEvent(event);
                     }
                   }}
                 >
@@ -168,7 +264,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
                   </TableCell>
                   <TableCell>
                     <Badge variant={event.imageUrl ? "outline" : "secondary"}>
-                      {event.imageUrl ? "Sim" : "Não"}
+                      {event.imageUrl ? t("hasArt") : t("noArt")}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -177,70 +273,16 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
                     })}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={event.published ? "default" : "secondary"}>
-                      {event.published ? "Publicado" : "Rascunho"}
-                    </Badge>
+                    <EventVisibilityBadge published={event.published} />
                   </TableCell>
                   <TableCell>
                     {canWrite ? (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={index === 0 || reorderMutation.isPending}
-                        onClick={(clickEvent) => {
-                          clickEvent.stopPropagation();
-                          reorderMutation.mutate({
-                            id: event.id,
-                            direction: "up",
-                          });
-                        }}
-                        aria-label={t("moveUp")}
+                      <div
+                        className="flex items-center gap-1"
+                        onClick={(clickEvent) => clickEvent.stopPropagation()}
                       >
-                        <ArrowUpIcon className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={
-                          index === events.length - 1 ||
-                          reorderMutation.isPending
-                        }
-                        onClick={(clickEvent) => {
-                          clickEvent.stopPropagation();
-                          reorderMutation.mutate({
-                            id: event.id,
-                            direction: "down",
-                          });
-                        }}
-                        aria-label={t("moveDown")}
-                      >
-                        <ArrowDownIcon className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={(clickEvent) => {
-                          clickEvent.stopPropagation();
-                          setSelectedEvent(event);
-                          setFormOpen(true);
-                        }}
-                        aria-label="Editar"
-                      >
-                        <PencilIcon className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={(clickEvent) => {
-                          clickEvent.stopPropagation();
-                          setDeleteTarget(event);
-                        }}
-                        aria-label="Excluir"
-                      >
-                        <Trash2Icon className="size-4 text-destructive" />
-                      </Button>
-                    </div>
+                        {eventActions(event, index)}
+                      </div>
                     ) : null}
                   </TableCell>
                 </TableRow>
@@ -249,6 +291,16 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
           </Table>
         </div>
       )}
+
+      {detailEvent ? (
+        <EventDetailDialog
+          event={detailEvent}
+          open
+          onOpenChange={(open) => !open && setDetailEvent(null)}
+          showVisibility
+          onEdit={canWrite ? () => openEditor(detailEvent) : undefined}
+        />
+      ) : null}
 
       <EventFormDialog
         open={formOpen}
@@ -264,20 +316,19 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir evento?</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Essa ação não pode ser desfeita. O evento &quot;{deleteTarget?.title}
-              &quot; será removido permanentemente.
+              {t("deleteDescription", { title: deleteTarget?.title ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{tCommon("actions.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 deleteTarget && removeMutation.mutate({ id: deleteTarget.id })
               }
             >
-              Excluir
+              {tCommon("actions.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -290,7 +341,14 @@ export const EventsAdminViewSkeleton = () => {
   return (
     <div className="flex flex-col gap-4">
       <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-      <div className="h-64 animate-pulse rounded-lg border bg-muted/40" />
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-80 animate-pulse rounded-xl border bg-muted/40"
+          />
+        ))}
+      </div>
     </div>
   );
 };
