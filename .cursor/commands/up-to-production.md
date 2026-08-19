@@ -1,0 +1,1 @@
+faça um merge da branch dev para main para iniciar o deploy do site em produção, ou da branch que eu disser.

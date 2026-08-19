@@ -41,5 +41,7 @@ alwaysApply: true
 ## Deploy na Hostinger (contexto)
 
 - Runtime: **Node 22**.
-- Preferir **pnpm** (mesmo `pnpm-lock.yaml` do local). Builds nativos precisam estar em `onlyBuiltDependencies` / `allowBuilds` no `pnpm-workspace.yaml`; senão o pnpm 10+ falha com `ERR_PNPM_IGNORED_BUILDS`.
+- Preferir **pnpm** (mesmo `pnpm-lock.yaml` do local).
+- Builds nativos permitidos: `sharp`, `@swc/core`, `@parcel/watcher`, `unrs-resolver`.
+- **Não** autorizar `esbuild`: o postinstall tenta executar o binário e a Hostinger responde `EACCES`. O `next build` usa SWC; `drizzle-kit`/`tsx` só no local.
 - Fallback: **npm**, se o painel não aceitar pnpm.
