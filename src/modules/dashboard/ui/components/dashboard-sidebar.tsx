@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   CalendarDaysIcon,
   ExternalLinkIcon,
@@ -33,6 +33,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { hardNavigate } from "@/lib/hard-navigate";
 import { trpc } from "@/trpc/client";
 
 type DashboardSidebarProps = {
@@ -48,7 +49,6 @@ export const DashboardSidebar = ({
   capabilities,
 }: DashboardSidebarProps) => {
   const pathname = usePathname();
-  const router = useRouter();
   const t = useTranslations("dashboard.nav");
   const tCommon = useTranslations("common");
   const session = { user: { capabilities } };
@@ -79,8 +79,7 @@ export const DashboardSidebar = ({
 
   const handleSignOut = async () => {
     await authClient.signOut();
-    router.push("/admin/login");
-    router.refresh();
+    hardNavigate("/admin/login");
   };
 
   const isActive = (href: string) =>

@@ -5,6 +5,12 @@ import { getSessionCookie } from "better-auth/cookies";
 const ADMIN_PREFIX = "/admin";
 const LOGIN_PATH = "/admin/login";
 const INVITE_PREFIX = "/admin/convite";
+const NO_STORE = "private, no-store, must-revalidate";
+
+function withNoStore(response: NextResponse) {
+  response.headers.set("Cache-Control", NO_STORE);
+  return response;
+}
 
 export function middleware(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
@@ -17,10 +23,10 @@ export function middleware(request: NextRequest) {
   if (isAdminRoute && !isLoginRoute && !isInviteRoute && !sessionCookie) {
     const loginUrl = new URL(LOGIN_PATH, request.url);
     loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    return withNoStore(NextResponse.redirect(loginUrl));
   }
 
-  return NextResponse.next();
+  return withNoStore(NextResponse.next());
 }
 
 export const config = {

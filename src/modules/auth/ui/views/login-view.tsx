@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2Icon } from "lucide-react";
@@ -19,13 +19,13 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { getSafeAdminRedirect, hardNavigate } from "@/lib/hard-navigate";
 import { useToastError } from "@/lib/use-toast-error";
 import { loginSchema, type LoginInput } from "@/modules/auth/schema";
 
 export const LoginView = () => {
   const t = useTranslations("auth.login");
   const toastError = useToastError();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, setIsPending] = useState(false);
 
@@ -44,9 +44,7 @@ export const LoginView = () => {
       },
       {
         onSuccess: () => {
-          const redirectTo = searchParams.get("redirect") ?? "/admin";
-          router.push(redirectTo);
-          router.refresh();
+          hardNavigate(getSafeAdminRedirect(searchParams.get("redirect")));
         },
         onError: (ctx) => {
           toastError({

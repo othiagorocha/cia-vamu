@@ -3,6 +3,7 @@ import { JetBrains_Mono, Outfit } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { ReloadOnStaleChunk } from "@/components/reload-on-stale-chunk";
 import { Toaster } from "@/components/ui/sonner";
 import { TRPCProvider } from "@/trpc/client";
 import "./globals.css";
@@ -46,6 +47,7 @@ export default async function RootLayout({
           <NuqsAdapter>
             <TRPCProvider>
               {children}
+              <ReloadOnStaleChunk />
               <Toaster richColors position="top-center" />
             </TRPCProvider>
           </NuqsAdapter>
