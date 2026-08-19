@@ -1,14 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { CalendarIcon, MapPinIcon } from "lucide-react";
+import { CalendarIcon, MapPinIcon, PencilIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,6 +24,7 @@ type EventDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   showVisibility?: boolean;
+  onEdit?: () => void;
 };
 
 export const EventDetailDialog = ({
@@ -29,8 +32,10 @@ export const EventDetailDialog = ({
   open,
   onOpenChange,
   showVisibility = false,
+  onEdit,
 }: EventDetailDialogProps) => {
   const t = useTranslations("events");
+  const tCommon = useTranslations("common");
   const startsAtLabel = formatBrazilDateTime(event.startsAt);
   const endsAtLabel = event.endsAt ? formatBrazilDateTime(event.endsAt) : null;
 
@@ -51,10 +56,10 @@ export const EventDetailDialog = ({
           )}
         </div>
 
-        <div className="flex flex-col gap-4 p-4">
+        <div className={onEdit ? "flex flex-col gap-5 px-5 pt-5" : "flex flex-col gap-5 p-5"}>
           <DialogHeader className="gap-3">
             <div className="flex items-start justify-between gap-3">
-              <DialogTitle className="text-xl leading-snug">
+              <DialogTitle className="text-2xl font-semibold leading-snug">
                 {event.title}
               </DialogTitle>
               <div className="flex shrink-0 flex-col items-end gap-1">
@@ -92,11 +97,20 @@ export const EventDetailDialog = ({
           </div>
 
           {event.description ? (
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">
               {event.description}
             </p>
           ) : null}
         </div>
+
+        {onEdit ? (
+          <DialogFooter className="mx-0 mb-0 mt-5">
+            <Button type="button" onClick={onEdit}>
+              <PencilIcon />
+              {tCommon("actions.edit")}
+            </Button>
+          </DialogFooter>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

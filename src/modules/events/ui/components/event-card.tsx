@@ -16,38 +16,28 @@ import type { EventRecord } from "@/modules/events/types";
 type EventCardProps = {
   event: EventRecord;
   showVisibility?: boolean;
-  onSelect?: () => void;
+  onEdit?: () => void;
   actions?: ReactNode;
 };
 
 export const EventCard = ({
   event,
   showVisibility = false,
-  onSelect,
+  onEdit,
   actions,
 }: EventCardProps) => {
   const t = useTranslations("events");
   const [open, setOpen] = useState(false);
   const dateLabel = formatBrazilDateTime(event.startsAt);
-  const usesInternalDialog = !onSelect;
-
-  const handleSelect = () => {
-    if (onSelect) {
-      onSelect();
-      return;
-    }
-
-    setOpen(true);
-  };
 
   return (
     <>
       <article className="relative h-full">
         <button
           type="button"
-          onClick={handleSelect}
-          aria-haspopup={usesInternalDialog ? "dialog" : undefined}
-          aria-expanded={usesInternalDialog ? open : undefined}
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={open}
           aria-label={t("expand", { title: event.title })}
           className="h-full w-full cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
@@ -74,13 +64,18 @@ export const EventCard = ({
               ) : null}
             </div>
 
-            <CardHeader className="gap-2 p-3">
+            <CardHeader className="gap-3 p-4">
               <div className="flex items-start justify-between gap-2">
-                <CardTitle className="min-w-0 flex-1 line-clamp-2">
+                <CardTitle className="min-w-0 flex-1 text-lg font-semibold leading-snug">
                   {event.title}
                 </CardTitle>
                 <EventTypeBadge type={event.type} />
               </div>
+              {event.description ? (
+                <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+                  {event.description}
+                </p>
+              ) : null}
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <CalendarIcon className="size-3.5 shrink-0" />
@@ -103,14 +98,20 @@ export const EventCard = ({
         ) : null}
       </article>
 
-      {usesInternalDialog ? (
-        <EventDetailDialog
-          event={event}
-          open={open}
-          onOpenChange={setOpen}
-          showVisibility={showVisibility}
-        />
-      ) : null}
+      <EventDetailDialog
+        event={event}
+        open={open}
+        onOpenChange={setOpen}
+        showVisibility={showVisibility}
+        onEdit={
+          onEdit
+            ? () => {
+                setOpen(false);
+                onEdit();
+              }
+            : undefined
+        }
+      />
     </>
   );
 };

@@ -44,6 +44,7 @@ import { useAdminViewMode } from "@/lib/admin-view-mode";
 import { useToastError } from "@/lib/use-toast-error";
 import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
 import { EventCard } from "@/modules/events/ui/components/event-card";
+import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
 import { EventFormDialog } from "@/modules/events/ui/components/event-form-dialog";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
@@ -60,6 +61,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   const [viewMode, setViewMode] = useAdminViewMode();
   const [formOpen, setFormOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
+  const [detailEvent, setDetailEvent] = useState<EventRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
 
   const invalidate = () => {
@@ -107,11 +109,12 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
     }
   };
 
-  const openEvent = (event: EventRecord) => {
+  const openEditor = (event: EventRecord) => {
     if (!canWrite) {
       return;
     }
 
+    setDetailEvent(null);
     setSelectedEvent(event);
     setFormOpen(true);
   };
@@ -160,7 +163,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
             <ArrowDownIcon />
             {t("moveDown")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => openEvent(event)}>
+          <DropdownMenuItem onClick={() => openEditor(event)}>
             <PencilIcon />
             {tCommon("actions.edit")}
           </DropdownMenuItem>
@@ -220,7 +223,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
               key={event.id}
               event={event}
               showVisibility
-              onSelect={canWrite ? () => openEvent(event) : undefined}
+              onEdit={canWrite ? () => openEditor(event) : undefined}
               actions={eventActions(event, index)}
             />
           ))}
@@ -242,20 +245,16 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
               {events.map((event, index) => (
                 <TableRow
                   key={event.id}
-                  tabIndex={canWrite ? 0 : undefined}
-                  className={canWrite ? "cursor-pointer" : undefined}
-                  onClick={() => openEvent(event)}
+                  tabIndex={0}
+                  className="cursor-pointer"
+                  onClick={() => setDetailEvent(event)}
                   onKeyDown={(keyboardEvent) => {
-                    if (!canWrite) {
-                      return;
-                    }
-
                     if (
                       keyboardEvent.key === "Enter" ||
                       keyboardEvent.key === " "
                     ) {
                       keyboardEvent.preventDefault();
-                      openEvent(event);
+                      setDetailEvent(event);
                     }
                   }}
                 >
@@ -292,6 +291,16 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
           </Table>
         </div>
       )}
+
+      {detailEvent ? (
+        <EventDetailDialog
+          event={detailEvent}
+          open
+          onOpenChange={(open) => !open && setDetailEvent(null)}
+          showVisibility
+          onEdit={canWrite ? () => openEditor(detailEvent) : undefined}
+        />
+      ) : null}
 
       <EventFormDialog
         open={formOpen}
