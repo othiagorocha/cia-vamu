@@ -1,7 +1,9 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -95,6 +97,26 @@ export const prayerRequests = pgTable("prayer_requests", {
     .notNull()
     .defaultNow(),
 });
+
+export const prayerReactions = pgTable(
+  "prayer_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    requestId: uuid("request_id")
+      .notNull()
+      .references(() => prayerRequests.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("prayer_reactions_request_user").on(table.requestId, table.userId),
+    index("prayer_reactions_request_id_idx").on(table.requestId),
+  ],
+);
 
 export const contactMessages = pgTable("contact_messages", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -211,10 +233,18 @@ export const memberProfilesRelations = relations(memberProfiles, ({ one }) => ({
   }),
 }));
 
-export const prayerRequestsRelations = relations(prayerRequests, ({ one }) => ({
+export const prayerRequestsRelations = relations(prayerRequests, ({ one, many }) => ({
   author: one(user, {
     fields: [prayerRequests.authorUserId],
     references: [user.id],
+  }),
+  reactions: many(prayerReactions),
+}));
+
+export const prayerReactionsRelations = relations(prayerReactions, ({ one }) => ({
+  request: one(prayerRequests, {
+    fields: [prayerReactions.requestId],
+    references: [prayerRequests.id],
   }),
 }));
 
@@ -235,3 +265,75 @@ export const invites = pgTable("invites", {
     .notNull()
     .defaultNow(),
 });
+
+export const inviteUses = pgTable(
+  "invite_uses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    inviteId: uuid("invite_id")
+      .notNull()
+      .references(() => invites.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("invite_uses_invite_id_idx").on(table.inviteId)],
+);
+
+export const invitesRelations = relations(invites, ({ many }) => ({
+  uses: many(inviteUses),
+}));
+
+export const inviteUsesRelations = relations(inviteUses, ({ one }) => ({
+  invite: one(invites, {
+    fields: [inviteUses.inviteId],
+    references: [invites.id],
+  }),
+}));
+
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorUserId: text("actor_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    actorName: text("actor_name").notNull(),
+    actorEmail: text("actor_email").notNull(),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    metadata: jsonb("metadata").$type<
+      Record<
+        string,
+        | string
+        | number
+        | boolean
+        | null
+        | string[]
+        | Array<{ field: string; from: string | boolean | null; to: string | boolean | null }>
+      >
+    >(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("audit_logs_created_at_idx").on(table.createdAt),
+    index("audit_logs_actor_user_id_idx").on(table.actorUserId),
+    index("audit_logs_entity_idx").on(table.entityType, table.entityId),
+    index("audit_logs_action_idx").on(table.action),
+  ],
+);
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  actor: one(user, {
+    fields: [auditLogs.actorUserId],
+    references: [user.id],
+  }),
+}));

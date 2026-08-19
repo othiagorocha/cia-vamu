@@ -18,6 +18,9 @@ import {
   publicUrlForStoragePath,
   uploadImageToStorage,
 } from "@/lib/storage";
+import { AUDIT_ACTIONS } from "@/modules/audit/actions";
+import { diffFields } from "@/modules/audit/diff";
+import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import {
   addPhotoSchema,
   createAlbumSchema,
@@ -228,7 +231,7 @@ export const albumsRouter = createTRPCRouter({
 
   create: requireCapability("albums:write")
     .input(createAlbumSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       await assertValidParent(input.parentId);
 
       let coverImageUrl: string | undefined;
@@ -258,12 +261,29 @@ export const albumsRouter = createTRPCRouter({
           .where(eq(albums.id, album.id));
       }
 
-      return { ...album, coverImageUrl: coverImageUrl ?? album.coverImageUrl };
+      const result = {
+        ...album,
+        coverImageUrl: coverImageUrl ?? album.coverImageUrl,
+      };
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_CREATE,
+        entityType: "album",
+        entityId: result.id,
+        metadata: {
+          title: result.title,
+          published: result.published,
+          parentId: result.parentId,
+        },
+      });
+
+      return result;
     }),
 
   update: requireCapability("albums:write")
     .input(updateAlbumSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [existing] = await db
         .select()
         .from(albums)
@@ -306,19 +326,61 @@ export const albumsRouter = createTRPCRouter({
         .where(eq(albums.id, input.id))
         .returning();
 
+      if (album) {
+        const changes = diffFields(
+          {
+            title: existing.title,
+            published: existing.published,
+          },
+          {
+            title: album.title,
+            published: album.published,
+          },
+        );
+
+        if (changes.length > 0) {
+          await writeAuditLog({
+            actor: ctx.session.user,
+            action: AUDIT_ACTIONS.ALBUMS_UPDATE,
+            entityType: "album",
+            entityId: album.id,
+            metadata: {
+              title: album.title,
+              changes,
+            },
+          });
+        }
+      }
+
       return album;
     }),
 
   remove: requireCapability("albums:write")
     .input(removeAlbumSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await db
+        .select({ id: albums.id, title: albums.title })
+        .from(albums)
+        .where(eq(albums.id, input.id));
+
       await db.delete(albums).where(eq(albums.id, input.id));
+
+      if (existing) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.ALBUMS_REMOVE,
+          entityType: "album",
+          entityId: existing.id,
+          metadata: { title: existing.title },
+        });
+      }
+
       return { success: true };
     }),
 
   addPhoto: requireCapability("albums:write")
     .input(addPhotoSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [album] = await db
         .select()
         .from(albums)
@@ -352,6 +414,17 @@ export const albumsRouter = createTRPCRouter({
         })
         .returning();
 
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_PHOTO_ADD,
+        entityType: "photo",
+        entityId: photo.id,
+        metadata: {
+          albumId: input.albumId,
+          title: photo.title,
+        },
+      });
+
       return photo;
     }),
 
@@ -375,9 +448,13 @@ export const albumsRouter = createTRPCRouter({
 
   updatePhoto: requireCapability("albums:write")
     .input(updatePhotoSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [photo] = await db
-        .select({ id: photos.id })
+        .select({
+          id: photos.id,
+          albumId: photos.albumId,
+          title: photos.title,
+        })
         .from(photos)
         .where(eq(photos.id, input.id));
 
@@ -397,12 +474,33 @@ export const albumsRouter = createTRPCRouter({
         .where(eq(photos.id, input.id))
         .returning();
 
+      if (updated) {
+        const changes = diffFields(
+          { title: photo.title },
+          { title: updated.title },
+        );
+
+        if (changes.length > 0) {
+          await writeAuditLog({
+            actor: ctx.session.user,
+            action: AUDIT_ACTIONS.ALBUMS_PHOTO_UPDATE,
+            entityType: "photo",
+            entityId: updated.id,
+            metadata: {
+              albumId: updated.albumId,
+              title: updated.title,
+              changes,
+            },
+          });
+        }
+      }
+
       return updated;
     }),
 
   removePhoto: requireCapability("albums:write")
     .input(removePhotoSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [photo] = await db
         .select()
         .from(photos)
@@ -418,12 +516,23 @@ export const albumsRouter = createTRPCRouter({
         await deleteImageFromStorage(photo.storagePath).catch(() => undefined);
       }
 
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_PHOTO_DELETE,
+        entityType: "photo",
+        entityId: photo.id,
+        metadata: {
+          albumId: photo.albumId,
+          title: photo.title,
+        },
+      });
+
       return { success: true };
     }),
 
   movePhoto: requireCapability("albums:write")
     .input(movePhotoSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [photo] = await db
         .select()
         .from(photos)
@@ -469,12 +578,29 @@ export const albumsRouter = createTRPCRouter({
         .where(eq(photos.id, input.id))
         .returning();
 
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_PHOTO_MOVE,
+        entityType: "photo",
+        entityId: moved.id,
+        metadata: {
+          title: moved.title,
+          changes: [
+            {
+              field: "albumId",
+              from: photo.albumId,
+              to: input.albumId,
+            },
+          ],
+        },
+      });
+
       return moved;
     }),
 
   setCover: requireCapability("albums:write")
     .input(setCoverSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const [photo] = await db
         .select()
         .from(photos)
@@ -502,6 +628,17 @@ export const albumsRouter = createTRPCRouter({
           message: "Álbum não encontrado.",
         });
       }
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_COVER_SET,
+        entityType: "album",
+        entityId: album.id,
+        metadata: {
+          title: album.title,
+          photoId: input.photoId,
+        },
+      });
 
       return album;
     }),
@@ -607,28 +744,71 @@ export const albumsRouter = createTRPCRouter({
 
   hideComment: requireCapability("users:manage")
     .input(z.object({ id: z.uuid() }))
-    .mutation(async ({ input }) => {
-      await db
+    .mutation(async ({ ctx, input }) => {
+      const [comment] = await db
         .update(photoComments)
         .set({ deletedAt: new Date() })
-        .where(eq(photoComments.id, input.id));
+        .where(eq(photoComments.id, input.id))
+        .returning({ id: photoComments.id, photoId: photoComments.photoId });
+
+      if (comment) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.ALBUMS_COMMENT_HIDE,
+          entityType: "photo_comment",
+          entityId: comment.id,
+          metadata: { photoId: comment.photoId },
+        });
+      }
+
       return { success: true };
     }),
 
   restoreComment: requireCapability("users:manage")
     .input(z.object({ id: z.uuid() }))
-    .mutation(async ({ input }) => {
-      await db
+    .mutation(async ({ ctx, input }) => {
+      const [comment] = await db
         .update(photoComments)
         .set({ deletedAt: null })
-        .where(eq(photoComments.id, input.id));
+        .where(eq(photoComments.id, input.id))
+        .returning({ id: photoComments.id, photoId: photoComments.photoId });
+
+      if (comment) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.ALBUMS_COMMENT_RESTORE,
+          entityType: "photo_comment",
+          entityId: comment.id,
+          metadata: { photoId: comment.photoId },
+        });
+      }
+
       return { success: true };
     }),
 
   deleteComment: requireCapability("users:manage")
     .input(z.object({ id: z.uuid() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const [comment] = await db
+        .select({
+          id: photoComments.id,
+          photoId: photoComments.photoId,
+        })
+        .from(photoComments)
+        .where(eq(photoComments.id, input.id));
+
       await db.delete(photoComments).where(eq(photoComments.id, input.id));
+
+      if (comment) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.ALBUMS_COMMENT_DELETE,
+          entityType: "photo_comment",
+          entityId: comment.id,
+          metadata: { photoId: comment.photoId },
+        });
+      }
+
       return { success: true };
     }),
 });

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
 import { cropPhotoToSquare, type PhotoFrame } from "@/lib/crop-photo";
 import { useToastError } from "@/lib/use-toast-error";
 import {
@@ -27,8 +28,8 @@ import {
   ProfilePhotoEditor,
 } from "@/modules/members/ui/components/profile-photo-editor";
 import {
-  acceptInviteSchema,
-  type AcceptInviteInput,
+  acceptInviteFormSchema,
+  type AcceptInviteFormInput,
 } from "@/modules/staff/schema";
 import { trpc } from "@/trpc/client";
 
@@ -44,19 +45,19 @@ export const InviteView = ({ token }: { token: string }) => {
   const [source, setSource] = useState<string | null>(null);
   const [frame, setFrame] = useState<PhotoFrame>(DEFAULT_FRAME);
 
-  const form = useForm<AcceptInviteInput>({
-    resolver: zodResolver(acceptInviteSchema),
-    defaultValues: { token, name: "", email: "", password: "" },
+  const form = useForm<AcceptInviteFormInput>({
+    resolver: zodResolver(acceptInviteFormSchema),
+    defaultValues: {
+      token,
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
   const acceptMutation = trpc.staff.acceptInvite.useMutation({
-    onSuccess: () => {
-      toast.success(t("success"));
-      router.push("/admin/login");
-      router.refresh();
-    },
     onError: toastError,
-    onSettled: () => setIsPending(false),
   });
 
   if (inviteQuery.isLoading) {
@@ -86,7 +87,7 @@ export const InviteView = ({ token }: { token: string }) => {
     );
   }
 
-  const onSubmit = async (values: AcceptInviteInput) => {
+  const onSubmit = async (values: AcceptInviteFormInput) => {
     setIsPending(true);
 
     let photo = values.photo;
@@ -105,7 +106,42 @@ export const InviteView = ({ token }: { token: string }) => {
       }
     }
 
-    acceptMutation.mutate({ ...values, token, photo });
+    try {
+      await acceptMutation.mutateAsync({
+        token,
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        photo,
+      });
+    } catch {
+      setIsPending(false);
+      return;
+    }
+
+    await authClient.signIn.email(
+      {
+        email: values.email.toLowerCase().trim(),
+        password: values.password,
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("success"));
+          router.push("/admin");
+          router.refresh();
+        },
+        onError: (ctx) => {
+          toastError({
+            message: ctx.error.message,
+            code: ctx.error.code,
+            status: ctx.error.status,
+          });
+          router.push("/admin/login");
+        },
+      },
+    );
+
+    setIsPending(false);
   };
 
   return (
@@ -201,6 +237,27 @@ export const InviteView = ({ token }: { token: string }) => {
                     <Input
                       {...field}
                       id="invite-password"
+                      type="password"
+                      autoComplete="new-password"
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="confirmPassword"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="invite-confirm-password">
+                      {t("confirmPassword")}
+                    </FieldLabel>
+                    <Input
+                      {...field}
+                      id="invite-confirm-password"
                       type="password"
                       autoComplete="new-password"
                       aria-invalid={fieldState.invalid}
