@@ -40,4 +40,6 @@ alwaysApply: true
 
 ## Deploy na Hostinger (contexto)
 
-- Build no servidor: **`npm`** (não `pnpm`) + **Node 22**.
+- Runtime: **Node 22**.
+- Preferir **pnpm** (mesmo `pnpm-lock.yaml` do local). Builds nativos precisam estar em `onlyBuiltDependencies` / `allowBuilds` no `pnpm-workspace.yaml`; senão o pnpm 10+ falha com `ERR_PNPM_IGNORED_BUILDS`.
+- Fallback: **npm**, se o painel não aceitar pnpm.
