@@ -26,6 +26,7 @@ export const AUDIT_ACTIONS = {
   ALBUMS_COVER_SET: "albums.cover.set",
   ALBUMS_COMMENT_HIDE: "albums.comment.hide",
   ALBUMS_COMMENT_RESTORE: "albums.comment.restore",
+  ALBUMS_COMMENT_UPDATE: "albums.comment.update",
   ALBUMS_COMMENT_DELETE: "albums.comment.delete",
   PRAYERS_CREATE: "prayers.create",
   PRAYERS_REMOVE: "prayers.remove",

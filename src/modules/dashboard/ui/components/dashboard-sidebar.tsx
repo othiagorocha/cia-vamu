@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -31,6 +32,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 import { hardNavigate } from "@/lib/hard-navigate";
@@ -49,6 +51,7 @@ export const DashboardSidebar = ({
   capabilities,
 }: DashboardSidebarProps) => {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
   const t = useTranslations("dashboard.nav");
   const tCommon = useTranslations("common");
   const session = { user: { capabilities } };
@@ -56,6 +59,10 @@ export const DashboardSidebar = ({
   const photoUrl = meQuery.data?.photoUrl ?? null;
   const displayName = meQuery.data?.name ?? user.name;
   const initial = displayName.trim().charAt(0).toUpperCase() || "?";
+
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
 
   const NAV_ITEMS = [
     { href: "/admin", label: t("overview"), icon: LayoutDashboardIcon },

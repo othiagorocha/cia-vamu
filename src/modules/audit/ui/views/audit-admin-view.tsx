@@ -61,6 +61,7 @@ const FIELD_KEYS = [
   "photo",
   "read",
   "albumId",
+  "body",
 ] as const;
 
 type FieldKey = (typeof FIELD_KEYS)[number];
@@ -296,7 +297,13 @@ export const AuditAdminView = () => {
       return t("actionByField.accessRole");
     }
 
-    if (changes.length === 1 && isFieldKey(changes[0].field)) {
+    if (
+      changes.length === 1 &&
+      isFieldKey(changes[0].field) &&
+      !log.action.endsWith(".delete") &&
+      !log.action.endsWith(".remove") &&
+      !log.action.endsWith(".hide")
+    ) {
       return t(`actionByField.${changes[0].field}`);
     }
 
