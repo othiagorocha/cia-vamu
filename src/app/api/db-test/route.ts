@@ -282,6 +282,59 @@ export async function GET(request: Request) {
       ) || accounts.some((item) => item.providerId === "credential" && item.hasPassword),
     );
 
+    const probePassword = url.searchParams.get("probePassword");
+    let signInProbe: {
+      attempted: boolean;
+      status?: number;
+      code?: string | null;
+      message?: string | null;
+      ok?: boolean;
+      error?: string;
+    } = { attempted: false };
+
+    if (email && probePassword) {
+      signInProbe.attempted = true;
+
+      try {
+        const response = await auth.api.signInEmail({
+          body: { email, password: probePassword },
+          asResponse: true,
+        });
+        const text = await response.text();
+        let code: string | null = null;
+        let message: string | null = null;
+
+        try {
+          const parsed = JSON.parse(text) as {
+            code?: string;
+            message?: string;
+          };
+          code = parsed.code ?? null;
+          message = parsed.message ?? null;
+        } catch {
+          message = text.slice(0, 200);
+        }
+
+        signInProbe = {
+          attempted: true,
+          status: response.status,
+          code,
+          message,
+          ok: response.ok,
+        };
+      } catch (error) {
+        const err = error as { status?: string; message?: string; body?: { code?: string } };
+        signInProbe = {
+          attempted: true,
+          ok: false,
+          status: typeof err.status === "number" ? err.status : undefined,
+          code: err.body?.code ?? null,
+          message: err.message ?? "signInEmail threw",
+          error: err.message,
+        };
+      }
+    }
+
     const counts = {
       raw: {
         users: rawUserCount ?? null,
@@ -349,10 +402,12 @@ export async function GET(request: Request) {
             hasCredential,
           }
         : null,
+      signInProbe,
       verdict,
       compareLocally: {
-        passwordFingerprintExpectedIfSameEnv: "rode local e compare connection.*Fingerprint",
-        note: "Se counts.albums > 0 e counts.users = 0 → auth e conteúdo divergem. Se adapterFound=false com drizzleFound=true → bug do adapter neste build (npm/Node 22).",
+        passwordFingerprintExpectedIfSameEnv:
+          "rode local e compare connection.*Fingerprint",
+        note: "Passe &probePassword=SENHA para testar auth.api.signInEmail no mesmo processo. Se probe ok e o form 401 → body/HTTP. Se probe User not found → adapter no sign-in.",
       },
     });
   } catch (error) {
