@@ -43,6 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatBrazilDateTimeShort } from "@/lib/brazil-datetime";
+import { useAdminViewMode } from "@/lib/admin-view-mode";
 import { uploadFileToSignedUrl } from "@/lib/upload-to-signed-url";
 import { useToastError } from "@/lib/use-toast-error";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,7 @@ import {
   DocumentsUploadDialog,
   type DocumentUploadItem,
 } from "@/modules/documents/ui/components/documents-upload-dialog";
+import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
 import { trpc } from "@/trpc/client";
 
 type DocumentsAdminViewProps = {
@@ -124,6 +126,7 @@ export const DocumentsAdminView = ({ folderId }: DocumentsAdminViewProps) => {
   const utils = trpc.useUtils();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [folder] = trpc.documents.listFolder.useSuspenseQuery({ folderId });
+  const [viewMode, setViewMode] = useAdminViewMode();
   const [isUploading, setIsUploading] = useState(false);
   const [folderDialog, setFolderDialog] = useState<"create" | "rename" | null>(
     null,
@@ -390,6 +393,126 @@ export const DocumentsAdminView = ({ folderId }: DocumentsAdminViewProps) => {
 
   const isEmpty = folder.folders.length === 0 && folder.files.length === 0;
 
+  const renderFolderMenu = (item: DocumentFolderRecord) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t("columns.actions")}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <MoreHorizontalIcon className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            setRenameFolder(item);
+          }}
+        >
+          <PencilIcon />
+          {t("rename")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            setMoveTarget({
+              kind: "folder",
+              id: item.id,
+              name: item.name,
+              parentId: item.parentId,
+            });
+          }}
+        >
+          <FolderInputIcon />
+          {t("move")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={(event) => {
+            event.stopPropagation();
+            setDeleteFolder(item);
+          }}
+        >
+          <Trash2Icon />
+          {tCommon("actions.delete")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const renderFileMenu = (file: DocumentFileRecord) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t("columns.actions")}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <MoreHorizontalIcon className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            setPreviewFile(file);
+          }}
+        >
+          <FileTextIcon />
+          {t("open")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            void handleDownloadFile(file);
+          }}
+        >
+          <DownloadIcon />
+          {t("download")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            setRenameFile(file);
+          }}
+        >
+          <PencilIcon />
+          {t("rename")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            setMoveTarget({
+              kind: "file",
+              id: file.id,
+              name: file.name,
+              folderId: file.folderId,
+            });
+          }}
+        >
+          <FolderInputIcon />
+          {t("move")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={(event) => {
+            event.stopPropagation();
+            setDeleteFile(file);
+          }}
+        >
+          <Trash2Icon />
+          {tCommon("actions.delete")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <div
       className="relative flex min-h-[24rem] flex-col gap-4"
@@ -410,7 +533,15 @@ export const DocumentsAdminView = ({ folderId }: DocumentsAdminViewProps) => {
           <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {!isEmpty ? (
+            <AdminViewModeToggle
+              value={viewMode}
+              onChange={(mode) => {
+                void setViewMode(mode);
+              }}
+            />
+          ) : null}
           <input
             ref={fileInputRef}
             type="file"
@@ -446,6 +577,54 @@ export const DocumentsAdminView = ({ folderId }: DocumentsAdminViewProps) => {
             {folderId ? t("empty") : t("emptyRoot")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">{t("emptyDrop")}</p>
+        </div>
+      ) : viewMode === "grid" ? (
+        <div
+          className={cn(
+            "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3",
+            isDragging && "rounded-lg ring-2 ring-orange-400",
+          )}
+        >
+          {folder.folders.map((item) => (
+            <article key={item.id} className="relative">
+              <button
+                type="button"
+                className="flex h-full w-full cursor-pointer flex-col items-center gap-2 rounded-xl bg-card p-4 text-center ring-1 ring-foreground/10 transition-colors hover:bg-muted/40"
+                onClick={() => router.push(`/admin/documentos/${item.id}`)}
+              >
+                <FolderIcon className="size-10 text-orange-400" />
+                <span className="line-clamp-2 w-full text-sm font-medium">
+                  {item.name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {t("types.folder")}
+                </span>
+              </button>
+              <div className="absolute right-1 top-1">{renderFolderMenu(item)}</div>
+            </article>
+          ))}
+          {folder.files.map((file) => (
+            <article key={file.id} className="relative">
+              <button
+                type="button"
+                className="flex h-full w-full cursor-pointer flex-col items-center gap-2 rounded-xl bg-card p-4 text-center ring-1 ring-foreground/10 transition-colors hover:bg-muted/40"
+                onClick={() => setPreviewFile(file)}
+              >
+                {isAudioMimeType(file.mimeType) ? (
+                  <FileAudioIcon className="size-10 text-orange-400" />
+                ) : (
+                  <FileTextIcon className="size-10 text-muted-foreground" />
+                )}
+                <span className="line-clamp-2 w-full text-sm font-medium">
+                  {file.name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {t(`types.${fileTypeKey(file.mimeType)}`)}
+                </span>
+              </button>
+              <div className="absolute right-1 top-1">{renderFileMenu(file)}</div>
+            </article>
+          ))}
         </div>
       ) : (
         <div
@@ -484,56 +663,7 @@ export const DocumentsAdminView = ({ folderId }: DocumentsAdminViewProps) => {
                     {formatBrazilDateTimeShort(item.updatedAt)}
                   </TableCell>
                   <TableCell>{item.createdByName ?? "—"}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t("columns.actions")}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <MoreHorizontalIcon className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setRenameFolder(item);
-                          }}
-                        >
-                          <PencilIcon />
-                          {t("rename")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setMoveTarget({
-                              kind: "folder",
-                              id: item.id,
-                              name: item.name,
-                              parentId: item.parentId,
-                            });
-                          }}
-                        >
-                          <FolderInputIcon />
-                          {t("move")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setDeleteFolder(item);
-                          }}
-                        >
-                          <Trash2Icon />
-                          {tCommon("actions.delete")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  <TableCell>{renderFolderMenu(item)}</TableCell>
                 </TableRow>
               ))}
               {folder.files.map((file) => (
@@ -558,74 +688,7 @@ export const DocumentsAdminView = ({ folderId }: DocumentsAdminViewProps) => {
                     {formatBrazilDateTimeShort(file.updatedAt)}
                   </TableCell>
                   <TableCell>{file.createdByName ?? "—"}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t("columns.actions")}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <MoreHorizontalIcon className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setPreviewFile(file);
-                          }}
-                        >
-                          <FileTextIcon />
-                          {t("open")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void handleDownloadFile(file);
-                          }}
-                        >
-                          <DownloadIcon />
-                          {t("download")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setRenameFile(file);
-                          }}
-                        >
-                          <PencilIcon />
-                          {t("rename")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setMoveTarget({
-                              kind: "file",
-                              id: file.id,
-                              name: file.name,
-                              folderId: file.folderId,
-                            });
-                          }}
-                        >
-                          <FolderInputIcon />
-                          {t("move")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setDeleteFile(file);
-                          }}
-                        >
-                          <Trash2Icon />
-                          {tCommon("actions.delete")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  <TableCell>{renderFileMenu(file)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

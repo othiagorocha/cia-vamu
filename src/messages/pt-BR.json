@@ -10,6 +10,8 @@
       "prayerCta": "Peça uma oração",
       "contact": "Contato"
     },
+    "viewGrid": "Ver em grade",
+    "viewTable": "Ver em tabela",
     "actions": {
       "save": "Salvar",
       "cancel": "Cancelar",
@@ -117,6 +119,23 @@
     "nextAlbum": "Próximo álbum",
     "photoCount": "{count, plural, one {# foto} other {# fotos}}",
     "childCount": "{count, plural, one {# álbum} other {# álbuns}}",
+    "adminTitle": "Álbuns",
+    "adminSubtitle": "Gerencie os álbuns e fotos da galeria pública.",
+    "adminEmpty": "Nenhum álbum cadastrado ainda.",
+    "new": "Novo álbum",
+    "created": "Álbum criado com sucesso.",
+    "updated": "Álbum atualizado com sucesso.",
+    "removed": "Álbum removido.",
+    "deleteTitle": "Excluir álbum?",
+    "deleteDescription": "Essa ação não pode ser desfeita. O álbum \"{title}\" e todas as suas fotos serão removidos permanentemente.",
+    "published": "Publicado",
+    "draft": "Rascunho",
+    "openAlbum": "Abrir álbum {title}",
+    "columns": {
+      "title": "Título",
+      "status": "Status",
+      "actions": "Ações"
+    },
     "parent": "Álbum pai",
     "noParent": "Nenhum (álbum principal)",
     "newChild": "Novo subálbum",
@@ -165,6 +184,15 @@
     "title": "Agenda",
     "subtitle": "Confira os próximos eventos da CIA VAMU.",
     "empty": "Nenhum evento programado no momento.",
+    "adminTitle": "Agenda",
+    "adminSubtitle": "Eventos da agenda pública e os encontros só da equipe. {hint}",
+    "adminEmpty": "Nenhum evento cadastrado ainda.",
+    "new": "Novo evento",
+    "created": "Evento criado com sucesso.",
+    "updated": "Evento atualizado com sucesso.",
+    "removed": "Evento removido.",
+    "deleteTitle": "Excluir evento?",
+    "deleteDescription": "Essa ação não pode ser desfeita. O evento \"{title}\" será removido permanentemente.",
     "orderHint": "A ordem desta lista é a mesma da agenda pública.",
     "moveUp": "Subir na agenda",
     "moveDown": "Descer na agenda",
@@ -172,6 +200,36 @@
     "expand": "Ver detalhes de {title}",
     "endsAt": "Término",
     "removeImage": "Remover arte",
+    "hasArt": "Sim",
+    "noArt": "Não",
+    "visibility": {
+      "public": "Agenda pública",
+      "team": "Somente equipe",
+      "publicHint": "Aparece na agenda do site.",
+      "teamHint": "Visível só para quem entra no painel."
+    },
+    "form": {
+      "createTitle": "Novo evento",
+      "editTitle": "Editar evento",
+      "description": "Preencha os dados do evento. Você pode anexar ou colar uma arte/flyer.",
+      "title": "Título",
+      "body": "Descrição",
+      "image": "Arte / flyer (opcional)",
+      "pasteImage": "Colar imagem",
+      "pasteHint": "ou Ctrl+V / Cmd+V com o diálogo aberto",
+      "type": "Tipo",
+      "location": "Local",
+      "startsAt": "Início",
+      "endsAt": "Término (opcional)"
+    },
+    "columns": {
+      "title": "Título",
+      "type": "Tipo",
+      "art": "Arte",
+      "startsAt": "Início",
+      "status": "Status",
+      "actions": "Ações"
+    },
     "types": {
       "teatro": "Teatro",
       "viagem": "Viagem",
@@ -227,12 +285,17 @@
       "profile": "Meu perfil"
     },
     "overview": {
-      "title": "Visão geral",
-      "subtitle": "Resumo do conteúdo do site CIA VAMU.",
-      "publishedEvents": "Eventos publicados",
+      "title": "Painel da equipe",
+      "subtitle": "Acompanhe a agenda interna e o conteúdo do site.",
+      "publishedEvents": "Agenda pública",
+      "teamEvents": "Somente equipe",
+      "teamEventsCount": "{count, plural, one {# somente equipe} other {# somente equipe}}",
       "publishedAlbums": "Álbuns publicados",
       "unreadMessages": "Mensagens não lidas",
       "ofTotal": "no total",
+      "upcoming": "Próximos eventos",
+      "upcomingEmpty": "Nenhum evento próximo no momento.",
+      "viewAgenda": "Ver agenda",
       "empty": "Você ainda não tem permissão para ver resumos de conteúdo."
     }
   },
@@ -406,8 +469,6 @@
     "new": "Novo pedido",
     "empty": "Nenhum pedido ainda.",
     "anonymous": "Anônimo",
-    "viewTable": "Ver em tabela",
-    "viewGrid": "Ver em grade",
     "columns": {
       "author": "Autor",
       "date": "Data",
@@ -433,7 +494,13 @@
     "unread": "Não lida",
     "markRead": "Marcar como lida",
     "markUnread": "Marcar como não lida",
-    "deleted": "Mensagem excluída."
+    "deleted": "Mensagem excluída.",
+    "columns": {
+      "name": "Nome",
+      "email": "E-mail",
+      "date": "Data",
+      "status": "Status"
+    }
   },
   "audit": {
     "title": "Auditoria",

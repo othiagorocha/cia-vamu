@@ -59,7 +59,7 @@ export const DashboardSidebar = ({
 
   const NAV_ITEMS = [
     { href: "/admin", label: t("overview"), icon: LayoutDashboardIcon },
-    { href: "/admin/events", label: t("events"), icon: CalendarDaysIcon },
+    { href: "/admin/agenda", label: t("events"), icon: CalendarDaysIcon },
     { href: "/admin/albums", label: t("albums"), icon: ImagesIcon },
     { href: "/admin/oracao", label: t("prayers"), icon: PiHandsPrayingBold },
     { href: "/admin/documentos", label: t("documents"), icon: FilesIcon },

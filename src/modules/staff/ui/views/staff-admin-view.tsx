@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatBrazilDateTimeShort } from "@/lib/brazil-datetime";
+import { useAdminViewMode } from "@/lib/admin-view-mode";
 import type { EditorCapability } from "@/lib/permissions";
 import { useToastError } from "@/lib/use-toast-error";
 import {
@@ -46,6 +47,7 @@ import { StaffFormDialog } from "@/modules/staff/ui/components/staff-form-dialog
 import { StaffInviteDialog } from "@/modules/staff/ui/components/staff-invite-dialog";
 import { StaffInviteUsesDialog } from "@/modules/staff/ui/components/staff-invite-uses-dialog";
 import { StaffPasswordDialog } from "@/modules/staff/ui/components/staff-password-dialog";
+import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
 import type {
   CreateInviteInput,
   StaffFormInput,
@@ -71,6 +73,7 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
   const utils = trpc.useUtils();
   const [staffList] = trpc.staff.list.useSuspenseQuery();
   const [inviteList] = trpc.staff.listInvites.useSuspenseQuery();
+  const [viewMode, setViewMode] = useAdminViewMode();
   const [formOpen, setFormOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [usesInviteId, setUsesInviteId] = useState<string | null>(null);
@@ -169,12 +172,20 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {staffList.length > 0 ? (
+            <AdminViewModeToggle
+              value={viewMode}
+              onChange={(mode) => {
+                void setViewMode(mode);
+              }}
+            />
+          ) : null}
           <Button
             variant="outline"
             onClick={() => {
@@ -200,6 +211,141 @@ export const StaffAdminView = ({ currentUserId }: StaffAdminViewProps) => {
       {staffList.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-16 text-center text-muted-foreground">
           <p>{t("empty")}</p>
+        </div>
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+          {staffList.map((member) => {
+            const isCurrentUser = member.id === currentUserId;
+            const isSuperAdmin = member.isSuperAdmin;
+            const canMutateAccess = !isCurrentUser && !isSuperAdmin;
+            const role = roleFromCapabilities(member.capabilities);
+
+            return (
+              <article
+                key={member.id}
+                className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
+              >
+                <div className="flex items-start gap-3">
+                  {member.photoUrl ? (
+                    <button
+                      type="button"
+                      className="size-12 shrink-0 overflow-hidden rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() =>
+                        setExpandedPhoto({
+                          src: member.photoUrl!,
+                          alt: member.name,
+                        })
+                      }
+                      aria-label={t("expandPhoto", { name: member.name })}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={member.photoUrl}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    </button>
+                  ) : (
+                    <div
+                      aria-hidden
+                      className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground"
+                    >
+                      {member.name.trim().charAt(0).toUpperCase() || "?"}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{member.name}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {member.email}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {isCurrentUser ? (
+                    <Badge variant="outline">{t("you")}</Badge>
+                  ) : null}
+                  {isSuperAdmin ? (
+                    <Badge className="bg-orange-400 text-black hover:bg-orange-400">
+                      {t("superAdmin")}
+                    </Badge>
+                  ) : null}
+                  {member.disabled ? (
+                    <Badge variant="secondary">{t("deactivated")}</Badge>
+                  ) : null}
+                  <Badge variant="secondary">{t(`roles.${role}`)}</Badge>
+                  {role === "editor"
+                    ? editorModulesFromCapabilities(member.capabilities).map(
+                        (capability) => (
+                          <Badge key={capability} variant="outline">
+                            {t(`capabilities.${MODULE_LABELS[capability]}`)}
+                          </Badge>
+                        ),
+                      )
+                    : null}
+                  <Badge variant={member.isMember ? "default" : "secondary"}>
+                    {member.isMember ? t("yes") : t("no")}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {member.lastAccessAt
+                    ? formatDistanceToNow(member.lastAccessAt, {
+                        locale: ptBR,
+                        addSuffix: true,
+                      })
+                    : t("lastAccessNever")}
+                </p>
+                {isSuperAdmin ? null : (
+                  <div className="mt-auto flex flex-wrap items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => {
+                        setSelectedStaff(member);
+                        setFormOpen(true);
+                      }}
+                      aria-label={tCommon("actions.edit")}
+                    >
+                      <PencilIcon className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setPasswordTarget(member)}
+                      aria-label={t("form.passwordTitle")}
+                    >
+                      <KeyRoundIcon className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={!canMutateAccess}
+                      onClick={() => {
+                        disableMutation.mutate({
+                          id: member.id,
+                          disabled: !member.disabled,
+                        });
+                      }}
+                    >
+                      {member.disabled ? t("reactivate") : t("deactivate")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={!canMutateAccess}
+                      onClick={() => setDeleteTarget(member)}
+                      aria-label={tCommon("actions.delete")}
+                    >
+                      <Trash2Icon className="size-4 text-destructive" />
+                    </Button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
       ) : (
         <div className="rounded-lg border">

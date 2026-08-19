@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutGridIcon, PlusIcon, TableIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -25,7 +25,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatBrazilDateTimeShort } from "@/lib/brazil-datetime";
+import { useAdminViewMode } from "@/lib/admin-view-mode";
 import { useToastError } from "@/lib/use-toast-error";
+import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
 import { PrayerReactButton } from "@/modules/prayers/ui/components/prayer-react-button";
 import { PrayerRequestDialog } from "@/modules/prayers/ui/components/prayer-request-dialog";
 import { PrayerRequestFormDialog } from "@/modules/prayers/ui/components/prayer-request-form-dialog";
@@ -35,8 +37,6 @@ import { trpc } from "@/trpc/client";
 type PrayerAdminViewProps = {
   canManage: boolean;
 };
-
-type ViewMode = "grid" | "table";
 
 const isolateCardEvent = (event: { stopPropagation: () => void }) => {
   event.stopPropagation();
@@ -53,7 +53,7 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
   const toastError = useToastError();
   const utils = trpc.useUtils();
   const [requests] = trpc.prayers.list.useSuspenseQuery();
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useAdminViewMode();
   const [formOpen, setFormOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PrayerRequestRecord | null>(
@@ -86,26 +86,14 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
           <p className="text-sm text-muted-foreground">{t("adminSubtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant={viewMode === "grid" ? "secondary" : "ghost"}
-            size="icon-sm"
-            aria-label={t("viewGrid")}
-            aria-pressed={viewMode === "grid"}
-            onClick={() => setViewMode("grid")}
-          >
-            <LayoutGridIcon />
-          </Button>
-          <Button
-            type="button"
-            variant={viewMode === "table" ? "secondary" : "ghost"}
-            size="icon-sm"
-            aria-label={t("viewTable")}
-            aria-pressed={viewMode === "table"}
-            onClick={() => setViewMode("table")}
-          >
-            <TableIcon />
-          </Button>
+          {requests.length > 0 ? (
+            <AdminViewModeToggle
+              value={viewMode}
+              onChange={(mode) => {
+                void setViewMode(mode);
+              }}
+            />
+          ) : null}
           <Button type="button" onClick={() => setFormOpen(true)}>
             <PlusIcon />
             {t("new")}

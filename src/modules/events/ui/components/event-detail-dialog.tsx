@@ -14,18 +14,21 @@ import {
 } from "@/components/ui/dialog";
 import { formatBrazilDateTime } from "@/lib/brazil-datetime";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
+import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
 import type { EventRecord } from "@/modules/events/types";
 
 type EventDetailDialogProps = {
   event: EventRecord;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  showVisibility?: boolean;
 };
 
 export const EventDetailDialog = ({
   event,
   open,
   onOpenChange,
+  showVisibility = false,
 }: EventDetailDialogProps) => {
   const t = useTranslations("events");
   const startsAtLabel = formatBrazilDateTime(event.startsAt);
@@ -54,7 +57,12 @@ export const EventDetailDialog = ({
               <DialogTitle className="text-xl leading-snug">
                 {event.title}
               </DialogTitle>
-              <EventTypeBadge type={event.type} />
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <EventTypeBadge type={event.type} />
+                {showVisibility ? (
+                  <EventVisibilityBadge published={event.published} />
+                ) : null}
+              </div>
             </div>
             <DialogDescription className="sr-only">
               {t("details")}
