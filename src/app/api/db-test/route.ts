@@ -1,12 +1,34 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, scrypt as nodeScrypt, timingSafeEqual } from "node:crypto";
 
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { account, user } from "@/db/auth-schema";
 import { albums, events } from "@/db/schema";
 import { auth } from "@/lib/auth";
+
+const SCRYPT_CONFIG = { N: 16384, r: 16, p: 1, dkLen: 64 } as const;
+
+const nodeScryptKey = (password: string, salt: string) =>
+  new Promise<string>((resolve, reject) => {
+    nodeScrypt(
+      password.normalize("NFKC"),
+      salt,
+      SCRYPT_CONFIG.dkLen,
+      {
+        N: SCRYPT_CONFIG.N,
+        r: SCRYPT_CONFIG.r,
+        p: SCRYPT_CONFIG.p,
+        maxmem: 128 * SCRYPT_CONFIG.N * SCRYPT_CONFIG.r * 2,
+      },
+      (err, key) => {
+        if (err) reject(err);
+        else resolve(key.toString("hex"));
+      },
+    );
+  });
+
 
 export const dynamic = "force-dynamic";
 
@@ -283,6 +305,55 @@ export async function GET(request: Request) {
     );
 
     const probePassword = url.searchParams.get("probePassword");
+
+    const hashProbe: {
+      attempted: boolean;
+      storedHashLength?: number;
+      saltLength?: number;
+      keyLength?: number;
+      nodeCryptoMatches?: boolean;
+      contextPasswordVerifyMatches?: boolean;
+      error?: string;
+    } = { attempted: false };
+
+    if (match[0] && probePassword) {
+      hashProbe.attempted = true;
+
+      try {
+        const [fullAccount] = await db
+          .select({ password: account.password })
+          .from(account)
+          .where(
+            and(eq(account.userId, match[0].id), eq(account.providerId, "credential")),
+          );
+
+        const storedHash = fullAccount?.password ?? null;
+
+        if (!storedHash) {
+          hashProbe.error = "no stored hash";
+        } else {
+          const [salt, key] = storedHash.split(":");
+          hashProbe.storedHashLength = storedHash.length;
+          hashProbe.saltLength = salt?.length ?? 0;
+          hashProbe.keyLength = key?.length ?? 0;
+
+          if (salt && key) {
+            const nodeKey = await nodeScryptKey(probePassword, salt);
+
+            hashProbe.nodeCryptoMatches = nodeKey === key;
+          }
+
+          const ctx = await auth.$context;
+          hashProbe.contextPasswordVerifyMatches = await ctx.password.verify({
+            hash: storedHash,
+            password: probePassword,
+          });
+        }
+      } catch (error) {
+        hashProbe.error = error instanceof Error ? error.message : "hash probe failed";
+      }
+    }
+
     let signInProbe: {
       attempted: boolean;
       status?: number;
@@ -402,6 +473,7 @@ export async function GET(request: Request) {
             hasCredential,
           }
         : null,
+      hashProbe,
       signInProbe,
       verdict,
       compareLocally: {
