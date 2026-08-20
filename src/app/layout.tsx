@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { JetBrains_Mono, Outfit } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-import { ReloadOnStaleChunk } from "@/components/reload-on-stale-chunk";
 import { Toaster } from "@/components/ui/sonner";
 import { TRPCProvider } from "@/trpc/client";
 import "./globals.css";
@@ -42,10 +42,10 @@ export default async function RootLayout({
       className={`${outfit.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
+        <Script src="/reload-stale-assets.js" strategy="beforeInteractive" />
         <NextIntlClientProvider messages={messages}>
           <TRPCProvider>
             {children}
-            <ReloadOnStaleChunk />
             <Toaster richColors position="top-center" />
           </TRPCProvider>
         </NextIntlClientProvider>
