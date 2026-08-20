@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { nextCookies } from "better-auth/next-js";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -74,6 +75,10 @@ export const auth = betterAuth({
       ipAddressHeaders: ["x-forwarded-for", "x-real-ip"],
     },
   },
+  // nextCookies precisa ser o último plugin: aplica os Set-Cookie da
+  // resposta do better-auth direto na resposta do Next quando chamamos
+  // auth.api.* de dentro de uma Server Action / Route Handler.
+  plugins: [nextCookies()],
 });
 
 export type Session = typeof auth.$Infer.Session;

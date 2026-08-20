@@ -18,10 +18,9 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
-import { getSafeAdminRedirect, hardNavigate } from "@/lib/hard-navigate";
 import { useToastError } from "@/lib/use-toast-error";
 import { loginSchema, type LoginInput } from "@/modules/auth/schema";
+import { signInAction } from "@/modules/auth/server/actions";
 
 export const LoginView = () => {
   const t = useTranslations("auth.login");
@@ -37,26 +36,13 @@ export const LoginView = () => {
   const onSubmit = async (values: LoginInput) => {
     setIsPending(true);
 
-    await authClient.signIn.email(
-      {
-        email: values.email.toLowerCase().trim(),
-        password: values.password,
-      },
-      {
-        onSuccess: () => {
-          hardNavigate(getSafeAdminRedirect(searchParams.get("redirect")));
-        },
-        onError: (ctx) => {
-          toastError({
-            message: ctx.error.message,
-            code: ctx.error.code,
-            status: ctx.error.status,
-          });
-        },
-      },
-    );
+    const result = await signInAction(values, searchParams.get("redirect"));
 
-    setIsPending(false);
+    if (result?.error) {
+      toastError(result.error);
+      setIsPending(false);
+    }
+    // Sem erro: a própria action já disparou o redirect() no servidor.
   };
 
   return (
