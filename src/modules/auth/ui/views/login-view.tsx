@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2Icon } from "lucide-react";
@@ -22,10 +21,13 @@ import { useToastError } from "@/lib/use-toast-error";
 import { loginSchema, type LoginInput } from "@/modules/auth/schema";
 import { signInAction } from "@/modules/auth/server/actions";
 
-export const LoginView = () => {
+type LoginViewProps = {
+  redirectTo: string | null;
+};
+
+export const LoginView = ({ redirectTo }: LoginViewProps) => {
   const t = useTranslations("auth.login");
   const toastError = useToastError();
-  const searchParams = useSearchParams();
   const [isPending, setIsPending] = useState(false);
 
   const form = useForm<LoginInput>({
@@ -36,7 +38,7 @@ export const LoginView = () => {
   const onSubmit = async (values: LoginInput) => {
     setIsPending(true);
 
-    const result = await signInAction(values, searchParams.get("redirect"));
+    const result = await signInAction(values, redirectTo);
 
     if (result?.error) {
       toastError(result.error);
