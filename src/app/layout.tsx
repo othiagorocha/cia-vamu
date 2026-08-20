@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { JetBrains_Mono, Outfit } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { ReloadOnStaleChunk } from "@/components/reload-on-stale-chunk";
 import { Toaster } from "@/components/ui/sonner";
 import { TRPCProvider } from "@/trpc/client";
@@ -44,13 +43,11 @@ export default async function RootLayout({
     >
       <body className="flex min-h-full flex-col font-sans">
         <NextIntlClientProvider messages={messages}>
-          <NuqsAdapter>
-            <TRPCProvider>
-              {children}
-              <ReloadOnStaleChunk />
-              <Toaster richColors position="top-center" />
-            </TRPCProvider>
-          </NuqsAdapter>
+          <TRPCProvider>
+            {children}
+            <ReloadOnStaleChunk />
+            <Toaster richColors position="top-center" />
+          </TRPCProvider>
         </NextIntlClientProvider>
       </body>
     </html>
