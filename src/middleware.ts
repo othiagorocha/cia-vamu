@@ -13,8 +13,16 @@ function withNoStore(response: NextResponse) {
 }
 
 export function middleware(request: NextRequest) {
-  const sessionCookie = getSessionCookie(request);
   const { pathname } = request.nextUrl;
+
+  let sessionCookie: string | null = null;
+  try {
+    sessionCookie = getSessionCookie(request);
+  } catch {
+    // Cookie malformado (ex.: proxy de operadora no mobile) não deve
+    // derrubar o middleware inteiro — trata como "sem sessão".
+    sessionCookie = null;
+  }
 
   const isAdminRoute = pathname === ADMIN_PREFIX || pathname.startsWith(`${ADMIN_PREFIX}/`);
   const isLoginRoute = pathname === LOGIN_PATH;
