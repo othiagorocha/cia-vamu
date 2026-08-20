@@ -6,25 +6,30 @@ import { APIError } from "better-auth/api";
 
 import { getSafeAdminRedirect } from "@/lib/hard-navigate";
 import { auth } from "@/lib/auth";
-import { loginSchema, type LoginInput } from "@/modules/auth/schema";
+import {
+  clientErrorKey,
+  type ErrorMessageKey,
+} from "@/lib/client-error";
+import { loginSchema } from "@/modules/auth/schema";
 
-export type SignInActionResult = {
-  error: { message?: string; code?: string; status?: number };
-} | null;
+function loginUrl(redirectTo: string, error?: ErrorMessageKey) {
+  const params = new URLSearchParams({ redirect: redirectTo });
+  if (error) params.set("error", error);
+  return `/admin/login?${params.toString()}`;
+}
 
-/**
- * Faz login e redireciona no mesmo request (SSR): o cookie de sessão e o
- * redirect saem na mesma resposta, sem a janela de corrida entre o fetch do
- * client e a navegação que causava tela em branco no mobile.
- */
-export async function signInAction(
-  values: LoginInput,
-  redirectTo: string | null,
-): Promise<SignInActionResult> {
-  const parsed = loginSchema.safeParse(values);
+export async function signInAction(formData: FormData) {
+  const redirectTo = getSafeAdminRedirect(
+    String(formData.get("redirectTo") ?? ""),
+  );
+
+  const parsed = loginSchema.safeParse({
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+  });
 
   if (!parsed.success) {
-    return { error: { message: "Dados inválidos." } };
+    redirect(loginUrl(redirectTo, "invalidCredentials"));
   }
 
   try {
@@ -37,19 +42,20 @@ export async function signInAction(
     });
   } catch (error) {
     if (error instanceof APIError) {
-      return {
-        error: {
-          message: error.body?.message ?? error.message,
-          code: error.body?.code,
-          status: error.statusCode,
-        },
-      };
+      redirect(
+        loginUrl(
+          redirectTo,
+          clientErrorKey({
+            message: error.body?.message ?? error.message,
+            code: error.body?.code,
+            status: error.statusCode,
+          }),
+        ),
+      );
     }
 
-    return {
-      error: { message: "Não foi possível entrar. Tente novamente." },
-    };
+    redirect(loginUrl(redirectTo, "generic"));
   }
 
-  redirect(getSafeAdminRedirect(redirectTo));
+  redirect(redirectTo);
 }

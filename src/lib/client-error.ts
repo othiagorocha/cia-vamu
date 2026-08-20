@@ -15,17 +15,41 @@ const AUTH_MESSAGE_KEYS = {
   "Too many requests": "tooManyRequests",
 } as const;
 
-type ErrorMessageKey =
-  | "invalidCredentials"
-  | "tooManyRequests"
-  | "sessionFailed"
-  | "server"
-  | "generic";
+const ERROR_MESSAGE_KEYS = [
+  "invalidCredentials",
+  "tooManyRequests",
+  "sessionFailed",
+  "server",
+  "generic",
+] as const;
+
+export type ErrorMessageKey = (typeof ERROR_MESSAGE_KEYS)[number];
 
 export type ClientErrorLike = {
   message?: string;
   code?: string;
   status?: number;
+};
+
+export const isErrorMessageKey = (value: string): value is ErrorMessageKey =>
+  ERROR_MESSAGE_KEYS.includes(value as ErrorMessageKey);
+
+export const clientErrorKey = (error: ClientErrorLike): ErrorMessageKey => {
+  const codeKey = error.code
+    ? AUTH_CODE_KEYS[error.code as keyof typeof AUTH_CODE_KEYS]
+    : undefined;
+
+  if (codeKey) return codeKey;
+
+  const messageKey = error.message
+    ? AUTH_MESSAGE_KEYS[error.message as keyof typeof AUTH_MESSAGE_KEYS]
+    : undefined;
+
+  if (messageKey) return messageKey;
+
+  if (error.status === 500) return "server";
+
+  return "generic";
 };
 
 export const clientErrorMessage = (
