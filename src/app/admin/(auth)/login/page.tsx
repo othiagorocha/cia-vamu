@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
+import { getSafeAdminRedirect } from "@/lib/hard-navigate";
 import { LoginView } from "@/modules/auth/ui/views/login-view";
 
 export const dynamic = "force-dynamic";
@@ -9,12 +9,17 @@ export const metadata: Metadata = {
   title: "Entrar",
 };
 
-const AdminLoginPage = () => {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
-      <LoginView />
-    </Suspense>
-  );
+type AdminLoginPageProps = {
+  searchParams: Promise<{ redirect?: string | string[] }>;
+};
+
+const AdminLoginPage = async ({ searchParams }: AdminLoginPageProps) => {
+  const params = await searchParams;
+  const raw = params.redirect;
+  const redirectTo =
+    typeof raw === "string" ? getSafeAdminRedirect(raw) : null;
+
+  return <LoginView redirectTo={redirectTo} />;
 };
 
 export default AdminLoginPage;
