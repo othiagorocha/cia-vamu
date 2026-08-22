@@ -75,9 +75,6 @@ export const auth = betterAuth({
       ipAddressHeaders: ["x-forwarded-for", "x-real-ip"],
     },
   },
-  // nextCookies precisa ser o último plugin: aplica os Set-Cookie da
-  // resposta do better-auth direto na resposta do Next quando chamamos
-  // auth.api.* de dentro de uma Server Action / Route Handler.
   plugins: [nextCookies()],
 });
 
