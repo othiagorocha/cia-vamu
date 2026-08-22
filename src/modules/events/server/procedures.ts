@@ -82,7 +82,8 @@ export const eventsRouter = createTRPCRouter({
           type: data.type,
           startsAt: data.startsAt,
           endsAt: data.endsAt ?? null,
-          location: data.location,
+          location: data.location ?? null,
+          locationMapsQuery: data.locationMapsQuery ?? null,
           published: data.published,
           sortOrder: (last?.sortOrder ?? -1) + 1,
         })
@@ -172,7 +173,8 @@ export const eventsRouter = createTRPCRouter({
           type: data.type,
           startsAt: data.startsAt,
           endsAt: data.endsAt ?? null,
-          location: data.location,
+          location: data.location ?? null,
+          locationMapsQuery: data.locationMapsQuery ?? null,
           published: data.published,
           imageUrl,
           storagePath,
@@ -188,12 +190,14 @@ export const eventsRouter = createTRPCRouter({
             published: existing.published,
             type: existing.type,
             location: existing.location,
+            locationMapsQuery: existing.locationMapsQuery,
           },
           {
             title: event.title,
             published: event.published,
             type: event.type,
             location: event.location,
+            locationMapsQuery: event.locationMapsQuery,
           },
         );
 

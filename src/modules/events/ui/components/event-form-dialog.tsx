@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -37,7 +37,8 @@ import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
-import { LocationSuggestInput, isPlacesSuggestEvent } from "@/modules/events/ui/components/location-suggest-input";
+import { EventLocationFields } from "@/modules/events/ui/components/event-location-fields";
+import { isPlacesSuggestEvent } from "@/modules/events/ui/components/location-suggest-input";
 
 const EVENT_TYPE_OPTIONS: EventFormInput["type"][] = [
   "teatro",
@@ -66,6 +67,7 @@ export const EventFormDialog = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isPasting, setIsPasting] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
 
   const form = useForm<EventFormInput>({
     resolver: zodResolver(eventFormSchema),
@@ -76,6 +78,7 @@ export const EventFormDialog = ({
       startsAt: "",
       endsAt: "",
       location: "",
+      locationMapsQuery: "",
       published: false,
       image: undefined,
       removeImage: false,
@@ -107,11 +110,15 @@ export const EventFormDialog = ({
         startsAt: toBrazilDateTimeLocal(event?.startsAt),
         endsAt: toBrazilDateTimeLocal(event?.endsAt),
         location: event?.location ?? "",
+        locationMapsQuery: event?.locationMapsQuery ?? "",
         published: event?.published ?? false,
         image: undefined,
         removeImage: false,
       });
       setPreview(event?.imageUrl ?? null);
+      setLocationOpen(
+        Boolean(event?.location?.trim() || event?.locationMapsQuery?.trim()),
+      );
     }
   }, [open, event, form]);
 
@@ -308,24 +315,12 @@ export const EventFormDialog = ({
                 )}
               />
 
-              <Controller
+              <EventLocationFields
                 control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <Field className="relative">
-                    <FieldLabel htmlFor="location">{t("form.location")}</FieldLabel>
-                    <LocationSuggestInput
-                      id="location"
-                      name={field.name}
-                      value={field.value ?? ""}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                    />
-                    <FieldDescription className="text-[11px] leading-tight text-muted-foreground/55">
-                      {t("form.locationHint")}
-                    </FieldDescription>
-                  </Field>
-                )}
+                getValues={form.getValues}
+                setValue={form.setValue}
+                open={locationOpen}
+                onOpen={() => setLocationOpen(true)}
               />
             </div>
 

@@ -56,6 +56,7 @@ const FIELD_KEYS = [
   "title",
   "type",
   "location",
+  "locationMapsQuery",
   "platform",
   "label",
   "photo",

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatBrazilDateTime } from "@/lib/brazil-datetime";
+import { eventLocationLabel } from "@/lib/google-maps-url";
 import { cn } from "@/lib/utils";
 import { EventLocationLink } from "@/modules/events/ui/components/event-location-link";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
@@ -40,6 +41,7 @@ export const EventDetailDialog = ({
   const startsAtLabel = formatBrazilDateTime(event.startsAt);
   const endsAtLabel = event.endsAt ? formatBrazilDateTime(event.endsAt) : null;
   const hasArt = Boolean(event.imageUrl);
+  const locationLabel = eventLocationLabel(event);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,9 +107,10 @@ export const EventDetailDialog = ({
                   ) : null}
                 </span>
               </span>
-              {event.location ? (
+              {locationLabel ? (
                 <EventLocationLink
-                  location={event.location}
+                  location={locationLabel}
+                  mapsQuery={event.locationMapsQuery}
                   className="gap-2"
                   iconClassName="size-4"
                 />

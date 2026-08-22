@@ -18,6 +18,7 @@ type LocationSuggestInputProps = {
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
+  onSelectSuggestion?: (suggestion: { text: string; mainText: string }) => void;
 };
 
 function useDebouncedValue(value: string, delayMs: number) {
@@ -88,6 +89,7 @@ export const LocationSuggestInput = ({
   value,
   onChange,
   onBlur,
+  onSelectSuggestion,
 }: LocationSuggestInputProps) => {
   const t = useTranslations("events");
   const listId = useId();
@@ -153,12 +155,13 @@ export const LocationSuggestInput = ({
     setActiveIndex(-1);
   }, [debouncedQuery]);
 
-  const selectSuggestion = (text: string) => {
+  const selectSuggestion = (suggestion: { text: string; mainText: string }) => {
     if (blurTimeoutRef.current !== null) {
       window.clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
     }
-    onChange(text);
+    onChange(suggestion.text);
+    onSelectSuggestion?.(suggestion);
     setOpen(false);
     setActiveIndex(-1);
   };
@@ -187,7 +190,7 @@ export const LocationSuggestInput = ({
 
     if (event.key === "Enter" && activeIndex >= 0) {
       event.preventDefault();
-      selectSuggestion(suggestions[activeIndex].text);
+      selectSuggestion(suggestions[activeIndex]);
       return;
     }
 
@@ -281,7 +284,7 @@ export const LocationSuggestInput = ({
                         onPointerDown={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
-                          selectSuggestion(suggestion.text);
+                          selectSuggestion(suggestion);
                         }}
                       >
                         <MapPinIcon

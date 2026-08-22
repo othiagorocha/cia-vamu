@@ -3,25 +3,42 @@
 import { MapPinIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { googleMapsSearchUrl } from "@/lib/google-maps-url";
+import { eventMapsHref } from "@/lib/google-maps-url";
 import { cn } from "@/lib/utils";
 
 type EventLocationLinkProps = {
   location: string;
+  mapsQuery?: string | null;
   className?: string;
   iconClassName?: string;
 };
 
 export const EventLocationLink = ({
   location,
+  mapsQuery,
   className,
   iconClassName,
 }: EventLocationLinkProps) => {
   const t = useTranslations("events");
+  const destination = mapsQuery?.trim();
+  const content = <span className="line-clamp-1">{location}</span>;
+
+  if (!destination) {
+    return (
+      <span
+        className={cn(
+          "inline-flex max-w-full items-start text-muted-foreground/70",
+          className,
+        )}
+      >
+        {content}
+      </span>
+    );
+  }
 
   return (
     <a
-      href={googleMapsSearchUrl(location)}
+      href={eventMapsHref(destination)}
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
@@ -31,7 +48,7 @@ export const EventLocationLink = ({
       aria-label={t("openInMaps", { location })}
     >
       <MapPinIcon className={cn("mt-0.5 size-3.5 shrink-0", iconClassName)} />
-      <span className="line-clamp-1">{location}</span>
+      {content}
     </a>
   );
 };

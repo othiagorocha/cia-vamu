@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import { Card, CardHeader } from "@/components/ui/card";
 import { formatBrazilDateTime } from "@/lib/brazil-datetime";
+import { eventLocationLabel } from "@/lib/google-maps-url";
 import { cn } from "@/lib/utils";
 import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
 import { EventLocationLink } from "@/modules/events/ui/components/event-location-link";
@@ -31,6 +32,7 @@ export const EventCard = ({
   const [open, setOpen] = useState(false);
   const dateLabel = formatBrazilDateTime(event.startsAt);
   const hasArt = Boolean(event.imageUrl);
+  const locationLabel = eventLocationLabel(event);
 
   return (
     <>
@@ -69,7 +71,7 @@ export const EventCard = ({
                 "flex flex-1 flex-col p-4",
                 hasArt ? "gap-3" : "gap-4 p-5",
                 actions && !hasArt && "pr-12",
-                event.location && (hasArt ? "pb-2" : "pb-3")
+                locationLabel && (hasArt ? "pb-2" : "pb-3")
               )}
             >
               <h2
@@ -115,7 +117,7 @@ export const EventCard = ({
               </div>
             </CardHeader>
           </button>
-          {event.location ? (
+          {locationLabel ? (
             <div
               className={cn(
                 "px-4 pb-4",
@@ -123,7 +125,8 @@ export const EventCard = ({
               )}
             >
               <EventLocationLink
-                location={event.location}
+                location={locationLabel}
+                mapsQuery={event.locationMapsQuery}
                 iconClassName={hasArt ? "mt-0 size-3.5" : "mt-0.5 size-3.5"}
               />
             </div>
