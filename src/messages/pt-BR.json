@@ -222,9 +222,10 @@
       "pasteHint": "ou Ctrl+V / Cmd+V com o diálogo aberto",
       "type": "Tipo",
       "location": "Local",
-      "locationHint": "Digite para buscar no Maps ou escreva um local livre.",
+      "locationHint": "Busca no Maps ou texto livre.",
       "locationSearching": "Buscando endereços…",
       "locationNoResults": "Nenhum endereço encontrado. Você pode salvar o texto assim mesmo.",
+      "locationAttribution": "Sugestões do Google Maps",
       "startsAt": "Início",
       "endsAt": "Término (opcional)"
     },

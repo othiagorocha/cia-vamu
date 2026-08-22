@@ -37,7 +37,7 @@ import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
-import { LocationSuggestInput } from "@/modules/events/ui/components/location-suggest-input";
+import { LocationSuggestInput, isPlacesSuggestEvent } from "@/modules/events/ui/components/location-suggest-input";
 
 const EVENT_TYPE_OPTIONS: EventFormInput["type"][] = [
   "teatro",
@@ -152,7 +152,24 @@ export const EventFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"
+        onPointerDownOutside={(event) => {
+          if (isPlacesSuggestEvent(event)) {
+            event.preventDefault();
+          }
+        }}
+        onFocusOutside={(event) => {
+          if (isPlacesSuggestEvent(event)) {
+            event.preventDefault();
+          }
+        }}
+        onInteractOutside={(event) => {
+          if (isPlacesSuggestEvent(event)) {
+            event.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>
             {event ? t("form.editTitle") : t("form.createTitle")}
@@ -304,7 +321,9 @@ export const EventFormDialog = ({
                       onChange={field.onChange}
                       onBlur={field.onBlur}
                     />
-                    <FieldDescription>{t("form.locationHint")}</FieldDescription>
+                    <FieldDescription className="text-[11px] leading-tight text-muted-foreground/55">
+                      {t("form.locationHint")}
+                    </FieldDescription>
                   </Field>
                 )}
               />
@@ -353,26 +372,10 @@ export const EventFormDialog = ({
                 <div className="flex flex-col gap-2">
                   <Field orientation="horizontal">
                     <input
-                      id="visibility-public"
-                      type="checkbox"
-                      className="size-4 rounded border-input"
-                      checked={field.value}
-                      onChange={() => field.onChange(true)}
-                    />
-                    <FieldLabel htmlFor="visibility-public" className="font-normal">
-                      <span className="flex flex-col gap-0.5">
-                        <span>{t("visibility.public")}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {t("visibility.publicHint")}
-                        </span>
-                      </span>
-                    </FieldLabel>
-                  </Field>
-                  <Field orientation="horizontal">
-                    <input
                       id="visibility-team"
-                      type="checkbox"
-                      className="size-4 rounded border-input"
+                      type="radio"
+                      name="event-visibility"
+                      className="size-4 border-input"
                       checked={!field.value}
                       onChange={() => field.onChange(false)}
                     />
@@ -381,6 +384,24 @@ export const EventFormDialog = ({
                         <span>{t("visibility.team")}</span>
                         <span className="text-xs text-muted-foreground">
                           {t("visibility.teamHint")}
+                        </span>
+                      </span>
+                    </FieldLabel>
+                  </Field>
+                  <Field orientation="horizontal">
+                    <input
+                      id="visibility-public"
+                      type="radio"
+                      name="event-visibility"
+                      className="size-4 border-input"
+                      checked={field.value}
+                      onChange={() => field.onChange(true)}
+                    />
+                    <FieldLabel htmlFor="visibility-public" className="font-normal">
+                      <span className="flex flex-col gap-0.5">
+                        <span>{t("visibility.public")}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("visibility.publicHint")}
                         </span>
                       </span>
                     </FieldLabel>

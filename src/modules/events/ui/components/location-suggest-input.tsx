@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { MapPinIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import type { PlaceTextMatch } from "@/modules/events/server/places-autocomplete";
 import { trpc } from "@/trpc/client";
+
+export const PLACES_SUGGEST_ATTR = "data-places-suggest";
 
 type LocationSuggestInputProps = {
   id?: string;
@@ -27,6 +31,57 @@ function useDebouncedValue(value: string, delayMs: number) {
   return debounced;
 }
 
+const HighlightedText = ({
+  text,
+  matches,
+}: {
+  text: string;
+  matches: PlaceTextMatch[];
+}) => {
+  if (matches.length === 0) {
+    return text;
+  }
+
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+
+  for (const match of matches) {
+    if (match.startOffset > cursor) {
+      parts.push(
+        <span key={`plain-${cursor}`}>
+          {text.slice(cursor, match.startOffset)}
+        </span>,
+      );
+    }
+
+    parts.push(
+      <span key={`match-${match.startOffset}`} className="font-semibold text-foreground">
+        {text.slice(match.startOffset, match.endOffset)}
+      </span>,
+    );
+    cursor = match.endOffset;
+  }
+
+  if (cursor < text.length) {
+    parts.push(<span key={`plain-${cursor}`}>{text.slice(cursor)}</span>);
+  }
+
+  return parts;
+};
+
+export const isPlacesSuggestEvent = (event: {
+  target: EventTarget | null;
+  detail?: { originalEvent?: Event };
+}) => {
+  const candidates = [event.target, event.detail?.originalEvent?.target];
+
+  return candidates.some(
+    (target) =>
+      target instanceof Element &&
+      Boolean(target.closest(`[${PLACES_SUGGEST_ATTR}]`)),
+  );
+};
+
 export const LocationSuggestInput = ({
   id,
   name,
@@ -37,6 +92,7 @@ export const LocationSuggestInput = ({
   const t = useTranslations("events");
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const blurTimeoutRef = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
@@ -58,6 +114,14 @@ export const LocationSuggestInput = ({
       setPlacesAvailable(false);
     }
   }, [suggestQuery.data?.available, suggestQuery.isError]);
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current !== null) {
+        window.clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const suggestions = suggestQuery.data?.suggestions ?? [];
   const showMenu =
@@ -90,6 +154,10 @@ export const LocationSuggestInput = ({
   }, [debouncedQuery]);
 
   const selectSuggestion = (text: string) => {
+    if (blurTimeoutRef.current !== null) {
+      window.clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
     onChange(text);
     setOpen(false);
     setActiveIndex(-1);
@@ -129,6 +197,8 @@ export const LocationSuggestInput = ({
     }
   };
 
+  const menuWidth = menuRect ? Math.max(menuRect.width, 280) : 280;
+
   return (
     <>
       <Input
@@ -148,53 +218,102 @@ export const LocationSuggestInput = ({
           onChange(event.target.value);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          if (blurTimeoutRef.current !== null) {
+            window.clearTimeout(blurTimeoutRef.current);
+            blurTimeoutRef.current = null;
+          }
+          setOpen(true);
+        }}
         onBlur={() => {
-          setOpen(false);
-          onBlur?.();
+          blurTimeoutRef.current = window.setTimeout(() => {
+            setOpen(false);
+            onBlur?.();
+          }, 120);
         }}
         onKeyDown={handleKeyDown}
       />
       {showMenu && menuRect
         ? createPortal(
-            <ul
-              id={listId}
-              role="listbox"
-              className="fixed z-[80] max-h-56 overflow-y-auto rounded-lg border bg-popover py-1 text-sm text-popover-foreground shadow-md"
+            <div
+              data-places-suggest=""
+              className="pointer-events-auto fixed z-[100] overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/10"
               style={{
-                top: menuRect.bottom + 4,
+                top: menuRect.bottom + 6,
                 left: menuRect.left,
-                width: menuRect.width,
+                width: menuWidth,
+              }}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
               }}
             >
-              {suggestQuery.isFetching && suggestions.length === 0 ? (
-                <li className="px-2.5 py-2 text-muted-foreground">
-                  {t("form.locationSearching")}
-                </li>
-              ) : suggestions.length === 0 ? (
-                <li className="px-2.5 py-2 text-muted-foreground">
-                  {t("form.locationNoResults")}
-                </li>
-              ) : (
-                suggestions.map((suggestion, index) => (
-                  <li
-                    key={`${suggestion.text}-${index}`}
-                    id={`${listId}-option-${index}`}
-                    role="option"
-                    aria-selected={index === activeIndex}
-                    className={cn(
-                      "cursor-pointer px-2.5 py-1.5",
-                      index === activeIndex && "bg-accent text-accent-foreground",
-                    )}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onClick={() => selectSuggestion(suggestion.text)}
-                  >
-                    {suggestion.text}
+              <ul
+                id={listId}
+                role="listbox"
+                className="max-h-64 overflow-y-auto py-1"
+              >
+                {suggestQuery.isFetching && suggestions.length === 0 ? (
+                  <li className="px-3 py-2.5 text-sm text-muted-foreground">
+                    {t("form.locationSearching")}
                   </li>
-                ))
-              )}
-            </ul>,
+                ) : suggestions.length === 0 ? (
+                  <li className="px-3 py-2.5 text-sm text-muted-foreground">
+                    {t("form.locationNoResults")}
+                  </li>
+                ) : (
+                  suggestions.map((suggestion, index) => {
+                    const selected = index === activeIndex;
+
+                    return (
+                      <li
+                        key={`${suggestion.text}-${index}`}
+                        id={`${listId}-option-${index}`}
+                        role="option"
+                        aria-selected={selected}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-2.5 px-3 py-2",
+                          selected
+                            ? "bg-orange-400/15"
+                            : "hover:bg-muted/70",
+                        )}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          selectSuggestion(suggestion.text);
+                        }}
+                      >
+                        <MapPinIcon
+                          className={cn(
+                            "mt-0.5 size-4 shrink-0",
+                            selected ? "text-orange-400" : "text-muted-foreground",
+                          )}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm text-foreground">
+                            <HighlightedText
+                              text={suggestion.mainText}
+                              matches={suggestion.mainTextMatches}
+                            />
+                          </span>
+                          {suggestion.secondaryText ? (
+                            <span className="mt-0.5 block truncate text-xs text-muted-foreground/80">
+                              {suggestion.secondaryText}
+                            </span>
+                          ) : null}
+                        </span>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+              {suggestions.length > 0 ? (
+                <p className="border-t border-border/70 px-3 py-1.5 text-[10px] tracking-wide text-muted-foreground/70">
+                  {t("form.locationAttribution")}
+                </p>
+              ) : null}
+            </div>,
             document.body,
           )
         : null}
