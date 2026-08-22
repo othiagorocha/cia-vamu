@@ -12,8 +12,10 @@ import {
   createEventSchema,
   removeEventSchema,
   reorderEventSchema,
+  suggestLocationsSchema,
   updateEventSchema,
 } from "@/modules/events/schema";
+import { fetchPlaceSuggestions } from "@/modules/events/server/places-autocomplete";
 import { baseProcedure, createTRPCRouter, protectedProcedure, requireCapability } from "@/trpc/init";
 
 const eventListOrder = [asc(events.sortOrder), asc(events.startsAt)] as const;
@@ -283,4 +285,8 @@ export const eventsRouter = createTRPCRouter({
 
       return { success: true };
     }),
+
+  suggestLocations: requireCapability("events:write")
+    .input(suggestLocationsSchema)
+    .query(async ({ input }) => fetchPlaceSuggestions(input.query)),
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { CalendarIcon, MapPinIcon, PencilIcon } from "lucide-react";
+import { CalendarIcon, PencilIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatBrazilDateTime } from "@/lib/brazil-datetime";
 import { cn } from "@/lib/utils";
+import { EventLocationLink } from "@/modules/events/ui/components/event-location-link";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
 import type { EventRecord } from "@/modules/events/types";
@@ -105,10 +106,11 @@ export const EventDetailDialog = ({
                 </span>
               </span>
               {event.location ? (
-                <span className="flex items-start gap-2">
-                  <MapPinIcon className="mt-0.5 size-4 shrink-0" />
-                  {event.location}
-                </span>
+                <EventLocationLink
+                  location={event.location}
+                  className="gap-2"
+                  iconClassName="size-4"
+                />
               ) : null}
             </div>
           </div>

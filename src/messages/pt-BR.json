@@ -200,6 +200,7 @@
     "moveDown": "Descer na agenda",
     "details": "Detalhes do evento",
     "expand": "Ver detalhes de {title}",
+    "openInMaps": "Abrir {location} no Google Maps",
     "endsAt": "Término",
     "removeImage": "Remover arte",
     "hasArt": "Sim",
@@ -221,6 +222,10 @@
       "pasteHint": "ou Ctrl+V / Cmd+V com o diálogo aberto",
       "type": "Tipo",
       "location": "Local",
+      "locationHint": "Busca no Maps ou texto livre.",
+      "locationSearching": "Buscando endereços…",
+      "locationNoResults": "Nenhum endereço encontrado. Você pode salvar o texto assim mesmo.",
+      "locationAttribution": "Sugestões do Google Maps",
       "startsAt": "Início",
       "endsAt": "Término (opcional)"
     },

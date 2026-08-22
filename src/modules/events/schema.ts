@@ -59,3 +59,7 @@ export const reorderEventSchema = z.object({
   id: z.uuid(),
   direction: z.enum(["up", "down"]),
 });
+
+export const suggestLocationsSchema = z.object({
+  query: z.string().trim().min(2).max(200),
+});
