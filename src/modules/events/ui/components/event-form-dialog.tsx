@@ -37,6 +37,8 @@ import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
+import { EventLocationFields } from "@/modules/events/ui/components/event-location-fields";
+import { isPlacesSuggestEvent } from "@/modules/events/ui/components/location-suggest-input";
 
 const EVENT_TYPE_OPTIONS: EventFormInput["type"][] = [
   "teatro",
@@ -65,6 +67,7 @@ export const EventFormDialog = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isPasting, setIsPasting] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
 
   const form = useForm<EventFormInput>({
     resolver: zodResolver(eventFormSchema),
@@ -75,6 +78,7 @@ export const EventFormDialog = ({
       startsAt: "",
       endsAt: "",
       location: "",
+      locationMapsQuery: "",
       published: false,
       image: undefined,
       removeImage: false,
@@ -106,11 +110,15 @@ export const EventFormDialog = ({
         startsAt: toBrazilDateTimeLocal(event?.startsAt),
         endsAt: toBrazilDateTimeLocal(event?.endsAt),
         location: event?.location ?? "",
+        locationMapsQuery: event?.locationMapsQuery ?? "",
         published: event?.published ?? false,
         image: undefined,
         removeImage: false,
       });
       setPreview(event?.imageUrl ?? null);
+      setLocationOpen(
+        Boolean(event?.location?.trim() || event?.locationMapsQuery?.trim()),
+      );
     }
   }, [open, event, form]);
 
@@ -151,7 +159,24 @@ export const EventFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"
+        onPointerDownOutside={(event) => {
+          if (isPlacesSuggestEvent(event)) {
+            event.preventDefault();
+          }
+        }}
+        onFocusOutside={(event) => {
+          if (isPlacesSuggestEvent(event)) {
+            event.preventDefault();
+          }
+        }}
+        onInteractOutside={(event) => {
+          if (isPlacesSuggestEvent(event)) {
+            event.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>
             {event ? t("form.editTitle") : t("form.createTitle")}
@@ -290,15 +315,12 @@ export const EventFormDialog = ({
                 )}
               />
 
-              <Controller
+              <EventLocationFields
                 control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <Field>
-                    <FieldLabel htmlFor="location">{t("form.location")}</FieldLabel>
-                    <Input {...field} id="location" />
-                  </Field>
-                )}
+                getValues={form.getValues}
+                setValue={form.setValue}
+                open={locationOpen}
+                onOpen={() => setLocationOpen(true)}
               />
             </div>
 
@@ -345,26 +367,10 @@ export const EventFormDialog = ({
                 <div className="flex flex-col gap-2">
                   <Field orientation="horizontal">
                     <input
-                      id="visibility-public"
-                      type="checkbox"
-                      className="size-4 rounded border-input"
-                      checked={field.value}
-                      onChange={() => field.onChange(true)}
-                    />
-                    <FieldLabel htmlFor="visibility-public" className="font-normal">
-                      <span className="flex flex-col gap-0.5">
-                        <span>{t("visibility.public")}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {t("visibility.publicHint")}
-                        </span>
-                      </span>
-                    </FieldLabel>
-                  </Field>
-                  <Field orientation="horizontal">
-                    <input
                       id="visibility-team"
-                      type="checkbox"
-                      className="size-4 rounded border-input"
+                      type="radio"
+                      name="event-visibility"
+                      className="size-4 border-input"
                       checked={!field.value}
                       onChange={() => field.onChange(false)}
                     />
@@ -373,6 +379,24 @@ export const EventFormDialog = ({
                         <span>{t("visibility.team")}</span>
                         <span className="text-xs text-muted-foreground">
                           {t("visibility.teamHint")}
+                        </span>
+                      </span>
+                    </FieldLabel>
+                  </Field>
+                  <Field orientation="horizontal">
+                    <input
+                      id="visibility-public"
+                      type="radio"
+                      name="event-visibility"
+                      className="size-4 border-input"
+                      checked={field.value}
+                      onChange={() => field.onChange(true)}
+                    />
+                    <FieldLabel htmlFor="visibility-public" className="font-normal">
+                      <span className="flex flex-col gap-0.5">
+                        <span>{t("visibility.public")}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("visibility.publicHint")}
                         </span>
                       </span>
                     </FieldLabel>

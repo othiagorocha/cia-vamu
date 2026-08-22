@@ -304,7 +304,12 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
 
       <EventFormDialog
         open={formOpen}
-        onOpenChange={setFormOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) {
+            setSelectedEvent(null);
+          }
+        }}
         event={selectedEvent}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         onSubmit={handleSubmit}

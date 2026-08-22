@@ -22,6 +22,7 @@ export const eventFormSchema = z
     startsAt: z.string().min(1, "Informe a data de início."),
     endsAt: z.string().optional(),
     location: z.string().optional(),
+    locationMapsQuery: z.string().optional(),
     published: z.boolean(),
     image: dataUrlSchema.optional(),
     removeImage: z.boolean().optional(),
@@ -42,6 +43,8 @@ export const createEventSchema = eventFormSchema.transform((data) => ({
   ...data,
   startsAt: parseBrazilDateTime(data.startsAt),
   endsAt: data.endsAt ? parseBrazilDateTime(data.endsAt) : undefined,
+  location: data.location?.trim() || undefined,
+  locationMapsQuery: data.locationMapsQuery?.trim() || undefined,
 }));
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
@@ -58,4 +61,8 @@ export const removeEventSchema = z.object({
 export const reorderEventSchema = z.object({
   id: z.uuid(),
   direction: z.enum(["up", "down"]),
+});
+
+export const suggestLocationsSchema = z.object({
+  query: z.string().trim().min(2).max(200),
 });

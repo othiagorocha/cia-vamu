@@ -72,6 +72,7 @@ export const events = pgTable("events", {
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
   endsAt: timestamp("ends_at", { withTimezone: true }),
   location: text("location"),
+  locationMapsQuery: text("location_maps_query"),
   imageUrl: text("image_url"),
   storagePath: text("storage_path"),
   published: boolean("published").notNull().default(false),
