@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -37,6 +37,7 @@ import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
+import { LocationSuggestInput } from "@/modules/events/ui/components/location-suggest-input";
 
 const EVENT_TYPE_OPTIONS: EventFormInput["type"][] = [
   "teatro",
@@ -294,9 +295,16 @@ export const EventFormDialog = ({
                 control={form.control}
                 name="location"
                 render={({ field }) => (
-                  <Field>
+                  <Field className="relative">
                     <FieldLabel htmlFor="location">{t("form.location")}</FieldLabel>
-                    <Input {...field} id="location" />
+                    <LocationSuggestInput
+                      id="location"
+                      name={field.name}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                    <FieldDescription>{t("form.locationHint")}</FieldDescription>
                   </Field>
                 )}
               />
