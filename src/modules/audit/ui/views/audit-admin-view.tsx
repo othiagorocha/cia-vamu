@@ -64,6 +64,7 @@ const FIELD_KEYS = [
   "albumId",
   "body",
   "color",
+  "defaultColor",
   "important",
 ] as const;
 
@@ -78,7 +79,7 @@ const CAPABILITY_LABEL: Record<string, "events" | "albums" | "site"> = {
 };
 
 const ACCESS_ROLES = ["member", "editor", "gestor"] as const;
-const EVENT_TYPES = ["teatro", "viagem", "evangelismo", "outro"] as const;
+const EVENT_TYPES = ["teatro", "viagem", "evangelismo", "visita", "outro"] as const;
 const PLATFORMS = [
   "instagram",
   "youtube",
@@ -91,6 +92,7 @@ const PHOTO_VALUES = ["set", "empty", "updated", "removed"] as const;
 
 const ENTITY_FALLBACK = {
   event: "event",
+  event_type: "eventType",
   album: "album",
   photo: "photo",
   photo_comment: "comment",

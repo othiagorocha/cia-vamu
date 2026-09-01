@@ -3,7 +3,7 @@ import { and, asc, desc, eq, gte, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { events } from "@/db/schema";
+import { eventTypes, events } from "@/db/schema";
 import { deleteImageFromStorage, uploadImageToStorage } from "@/lib/storage";
 import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { diffFields } from "@/modules/audit/diff";
@@ -17,9 +17,44 @@ import {
   updateEventSchema,
 } from "@/modules/events/schema";
 import { fetchPlaceSuggestions } from "@/modules/events/server/places-autocomplete";
+import { toEventRecord } from "@/modules/events/server/to-event-record";
 import { baseProcedure, createTRPCRouter, protectedProcedure, requireCapability } from "@/trpc/init";
 
 const eventListOrder = [asc(events.sortOrder), asc(events.startsAt)] as const;
+
+const eventWithType = {
+  with: { type: true as const },
+};
+
+const getEventWithType = async (id: string) => {
+  const event = await db.query.events.findFirst({
+    where: eq(events.id, id),
+    ...eventWithType,
+  });
+
+  if (!event?.type) {
+    return null;
+  }
+
+  return toEventRecord(event);
+};
+
+const requireEventType = async (typeId: string) => {
+  const [eventType] = await db
+    .select()
+    .from(eventTypes)
+    .where(eq(eventTypes.id, typeId))
+    .limit(1);
+
+  if (!eventType) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Tipo de agenda não encontrado.",
+    });
+  }
+
+  return eventType;
+};
 
 const persistEventOrder = async (orderedIds: string[]) => {
   await db.transaction(async (tx) => {
@@ -60,32 +95,34 @@ export const eventsRouter = createTRPCRouter({
   listUpcoming: baseProcedure.query(async () => {
     const now = new Date();
 
-    return db
-      .select()
-      .from(events)
-      .where(
-        and(
-          eq(events.published, true),
-          or(
-            gte(events.endsAt, now),
-            and(isNull(events.endsAt), gte(events.startsAt, now)),
-          ),
+    const rows = await db.query.events.findMany({
+      where: and(
+        eq(events.published, true),
+        or(
+          gte(events.endsAt, now),
+          and(isNull(events.endsAt), gte(events.startsAt, now)),
         ),
-      )
-      .orderBy(...eventListOrder);
+      ),
+      orderBy: [...eventListOrder],
+      ...eventWithType,
+    });
+
+    return rows.flatMap((event) => (event.type ? [toEventRecord(event)] : []));
   }),
 
   listAll: protectedProcedure.query(async () => {
-    return db.select().from(events).orderBy(...eventListOrder);
+    const rows = await db.query.events.findMany({
+      orderBy: [...eventListOrder],
+      ...eventWithType,
+    });
+
+    return rows.flatMap((event) => (event.type ? [toEventRecord(event)] : []));
   }),
 
   getOne: baseProcedure
     .input(z.object({ id: z.uuid() }))
     .query(async ({ input }) => {
-      const [event] = await db
-        .select()
-        .from(events)
-        .where(eq(events.id, input.id));
+      const event = await getEventWithType(input.id);
 
       if (!event) {
         throw new TRPCError({
@@ -101,6 +138,7 @@ export const eventsRouter = createTRPCRouter({
     .input(createEventSchema)
     .mutation(async ({ ctx, input }) => {
       const { image, sourceEventId, ...data } = input;
+      const eventType = await requireEventType(data.typeId);
       const [last] = await db
         .select({ sortOrder: events.sortOrder })
         .from(events)
@@ -112,7 +150,7 @@ export const eventsRouter = createTRPCRouter({
         .values({
           title: data.title,
           description: data.description,
-          type: data.type,
+          typeId: data.typeId,
           startsAt: data.startsAt,
           endsAt: data.endsAt ?? null,
           location: data.location ?? null,
@@ -124,25 +162,20 @@ export const eventsRouter = createTRPCRouter({
         })
         .returning();
 
-      let result = created;
-
       if (image) {
         const uploaded = await uploadImageToStorage({
           dataUrl: image,
           folder: `events/${created.id}`,
         });
 
-        const [event] = await db
+        await db
           .update(events)
           .set({
             imageUrl: uploaded.imageUrl,
             storagePath: uploaded.storagePath,
             updatedAt: new Date(),
           })
-          .where(eq(events.id, created.id))
-          .returning();
-
-        result = event ?? created;
+          .where(eq(events.id, created.id));
       } else if (sourceEventId) {
         const [source] = await db
           .select()
@@ -150,42 +183,38 @@ export const eventsRouter = createTRPCRouter({
           .where(eq(events.id, sourceEventId));
 
         if (source?.imageUrl) {
-          const [event] = await db
+          await db
             .update(events)
             .set({
               imageUrl: source.imageUrl,
               storagePath: source.storagePath,
               updatedAt: new Date(),
             })
-            .where(eq(events.id, created.id))
-            .returning();
-
-          result = event ?? created;
+            .where(eq(events.id, created.id));
         }
       }
+
+      const result = await getEventWithType(created.id);
 
       await writeAuditLog({
         actor: ctx.session.user,
         action: AUDIT_ACTIONS.EVENTS_CREATE,
         entityType: "event",
-        entityId: result.id,
+        entityId: created.id,
         metadata: {
-          title: result.title,
-          published: result.published,
-          type: result.type,
+          title: created.title,
+          published: created.published,
+          type: eventType.label,
         },
       });
 
-      return result;
+      return result ?? created;
     }),
 
   update: requireCapability("events:write")
     .input(updateEventSchema)
     .mutation(async ({ ctx, input }) => {
-      const [existing] = await db
-        .select()
-        .from(events)
-        .where(eq(events.id, input.id));
+      const existing = await getEventWithType(input.id);
 
       if (!existing) {
         throw new TRPCError({
@@ -194,6 +223,7 @@ export const eventsRouter = createTRPCRouter({
         });
       }
 
+      const eventType = await requireEventType(input.data.typeId);
       const { image, removeImage, ...data } = input.data;
       let imageUrl = existing.imageUrl;
       let storagePath = existing.storagePath;
@@ -254,7 +284,7 @@ export const eventsRouter = createTRPCRouter({
         .set({
           title: data.title,
           description: data.description,
-          type: data.type,
+          typeId: data.typeId,
           startsAt: data.startsAt,
           endsAt: data.endsAt ?? null,
           location: data.location ?? null,
@@ -274,7 +304,7 @@ export const eventsRouter = createTRPCRouter({
           {
             title: existing.title,
             published: existing.published,
-            type: existing.type,
+            type: existing.type.label,
             location: existing.location,
             locationMapsQuery: existing.locationMapsQuery,
             color: existing.color,
@@ -283,7 +313,7 @@ export const eventsRouter = createTRPCRouter({
           {
             title: event.title,
             published: event.published,
-            type: event.type,
+            type: eventType.label,
             location: event.location,
             locationMapsQuery: event.locationMapsQuery,
             color: event.color,
@@ -305,7 +335,7 @@ export const eventsRouter = createTRPCRouter({
         }
       }
 
-      return event;
+      return (await getEventWithType(input.id)) ?? event;
     }),
 
   remove: requireCapability("events:write")

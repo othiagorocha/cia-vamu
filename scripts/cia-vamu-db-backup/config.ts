@@ -10,6 +10,7 @@ export const TABLE_ORDER = [
   "verification",
   "albums",
   "photos",
+  "event_types",
   "events",
   "member_profiles",
   "photo_likes",

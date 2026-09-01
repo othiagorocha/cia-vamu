@@ -7,7 +7,7 @@ import {
   EVENT_ADMIN_IMPORTANT,
   EVENT_ADMIN_SCOPES,
   EVENT_ADMIN_SORTS,
-  EVENT_ADMIN_TYPES,
+  EVENT_ADMIN_TYPE_ALL,
   EVENT_ADMIN_VISIBILITIES,
   eventHasListFilters,
   type EventAdminFilters,
@@ -23,9 +23,7 @@ export const useEventAdminFilters = () => {
       .withDefault("active")
       .withOptions(filterOptions),
     q: parseAsString.withDefault("").withOptions(filterOptions),
-    type: parseAsStringLiteral(EVENT_ADMIN_TYPES)
-      .withDefault("all")
-      .withOptions(filterOptions),
+    type: parseAsString.withDefault(EVENT_ADMIN_TYPE_ALL).withOptions(filterOptions),
     visibility: parseAsStringLiteral(EVENT_ADMIN_VISIBILITIES)
       .withDefault("all")
       .withOptions(filterOptions),
@@ -52,7 +50,7 @@ export const useEventAdminFilters = () => {
   const resetFilters = () => {
     void setState({
       q: "",
-      type: "all",
+      type: EVENT_ADMIN_TYPE_ALL,
       visibility: "all",
       color: "all",
       important: "all",

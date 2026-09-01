@@ -6,24 +6,26 @@ import { cn } from "@/lib/utils";
 import {
   EVENT_COLOR_IDS,
   EVENT_COLOR_STYLES,
-  EVENT_TYPE_DEFAULT_COLOR,
+  FALLBACK_EVENT_COLOR,
+  isEventColorId,
   type EventColorId,
 } from "@/modules/events/event-colors";
-import type { EventType } from "@/modules/events/types";
 
 type EventColorPickerProps = {
-  type: EventType;
+  typeDefaultColor: string;
   value: EventColorId | null;
   onChange: (value: EventColorId | null) => void;
 };
 
 export const EventColorPicker = ({
-  type,
+  typeDefaultColor,
   value,
   onChange,
 }: EventColorPickerProps) => {
   const t = useTranslations("events");
-  const typeColor = EVENT_TYPE_DEFAULT_COLOR[type];
+  const typeColor = isEventColorId(typeDefaultColor)
+    ? typeDefaultColor
+    : FALLBACK_EVENT_COLOR;
 
   return (
     <div className="flex flex-col gap-2">

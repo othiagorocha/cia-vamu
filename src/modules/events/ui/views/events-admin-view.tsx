@@ -28,6 +28,7 @@ import {
   PlusIcon,
   Share2Icon,
   StarIcon,
+  TagsIcon,
   Trash2Icon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -85,7 +86,9 @@ import { EventFormDialog } from "@/modules/events/ui/components/event-form-dialo
 import { EventShareMenuItems } from "@/modules/events/ui/components/event-share-menu-items";
 import { EventSortableItem } from "@/modules/events/ui/components/event-sortable-item";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
+import { EventTypesDialog } from "@/modules/events/ui/components/event-types-dialog";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
+import { useAgendaAdminStorage } from "@/modules/events/ui/hooks/use-agenda-admin-storage";
 import { useEventAdminFilters } from "@/modules/events/ui/hooks/use-event-admin-filters";
 import type { EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
@@ -105,20 +108,35 @@ const applyActiveEventOrder = (
   return [...nextActive, ...archived];
 };
 
-export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
+export const EventsAdminView = ({
+  canWrite,
+  canManageTypes,
+}: {
+  canWrite: boolean;
+  canManageTypes: boolean;
+}) => {
   const t = useTranslations("events");
   const tCommon = useTranslations("common");
   const toastError = useToastError();
   const utils = trpc.useUtils();
   const [events] = trpc.events.listAll.useSuspenseQuery();
+  const [types] = trpc.eventTypes.list.useSuspenseQuery();
   const [viewMode, setViewMode] = useAdminViewMode();
   const { scope, setScope, filters, setFilters, hasListFilters, resetFilters } =
     useEventAdminFilters();
+  useAgendaAdminStorage({
+    scope,
+    filters,
+    viewMode: viewMode ?? "grid",
+    setFilters,
+    setViewMode,
+  });
   const [formOpen, setFormOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
   const [prefillEvent, setPrefillEvent] = useState<EventRecord | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
+  const [typesOpen, setTypesOpen] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   const { active, archived } = useMemo(
@@ -497,7 +515,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <EventTypeBadge type={event.type} color={color} />
+                  <EventTypeBadge label={event.type.label} color={color} />
                 </TableCell>
                 <TableCell>
                   <Badge variant={event.imageUrl ? "outline" : "secondary"}>
@@ -530,8 +548,8 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">
             {t("adminTitle")}
           </h1>
@@ -539,7 +557,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
             {t("adminSubtitle", { hint: t("orderHint") })}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           {events.length > 0 ? (
             <AdminViewModeToggle
               value={viewMode}
@@ -564,8 +582,18 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}
+          {canManageTypes ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setTypesOpen(true)}
+            >
+              <TagsIcon />
+              {t("typesAdmin.manage")}
+            </Button>
+          ) : null}
           {canWrite ? (
-            <Button onClick={openCreate}>
+            <Button className="max-sm:flex-1" onClick={openCreate}>
               <PlusIcon />
               {t("new")}
             </Button>
@@ -573,7 +601,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
@@ -601,6 +629,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
 
         <EventAdminFiltersBar
           filters={filters}
+          types={types}
           hasListFilters={hasListFilters}
           onReset={resetFilters}
           onChange={(patch) => {
@@ -670,9 +699,18 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
         }}
         event={selectedEvent}
         prefill={prefillEvent}
+        types={types}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         onSubmit={handleSubmit}
       />
+
+      {canManageTypes ? (
+        <EventTypesDialog
+          open={typesOpen}
+          onOpenChange={setTypesOpen}
+          types={types}
+        />
+      ) : null}
 
       <AlertDialog
         open={!!deleteTarget}

@@ -37,32 +37,30 @@ import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { isEventColorId } from "@/modules/events/event-colors";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
-import type { EventRecord } from "@/modules/events/types";
+import type { EventRecord, EventTypeRecord } from "@/modules/events/types";
 import { EventColorPicker } from "@/modules/events/ui/components/event-color-picker";
 import { EventLocationFields } from "@/modules/events/ui/components/event-location-fields";
 import { isPlacesSuggestEvent } from "@/modules/events/ui/components/location-suggest-input";
-
-const EVENT_TYPE_OPTIONS: EventFormInput["type"][] = [
-  "teatro",
-  "viagem",
-  "evangelismo",
-  "outro",
-];
 
 type EventFormDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   event?: EventRecord | null;
   prefill?: EventRecord | null;
+  types: EventTypeRecord[];
   isSubmitting?: boolean;
   onSubmit: (values: EventFormInput) => void;
 };
+
+const defaultTypeId = (types: EventTypeRecord[]) =>
+  types.find((type) => type.slug === "outro")?.id ?? types[0]?.id ?? "";
 
 export const EventFormDialog = ({
   open,
   onOpenChange,
   event,
   prefill,
+  types,
   isSubmitting,
   onSubmit,
 }: EventFormDialogProps) => {
@@ -78,7 +76,7 @@ export const EventFormDialog = ({
     defaultValues: {
       title: "",
       description: "",
-      type: "outro",
+      typeId: defaultTypeId(types),
       startsAt: "",
       endsAt: "",
       location: "",
@@ -115,7 +113,7 @@ export const EventFormDialog = ({
       form.reset({
         title: source?.title ?? "",
         description: source?.description ?? "",
-        type: source?.type ?? "outro",
+        typeId: source?.typeId ?? defaultTypeId(types),
         startsAt: isReuse ? "" : toBrazilDateTimeLocal(event?.startsAt),
         endsAt: isReuse ? "" : toBrazilDateTimeLocal(event?.endsAt),
         location: source?.location ?? "",
@@ -131,7 +129,7 @@ export const EventFormDialog = ({
         Boolean(source?.location?.trim() || source?.locationMapsQuery?.trim()),
       );
     }
-  }, [open, event, prefill, form]);
+  }, [open, event, prefill, form, types]);
 
   useEffect(() => {
     if (!open) return;
@@ -307,10 +305,10 @@ export const EventFormDialog = ({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Controller
                 control={form.control}
-                name="type"
+                name="typeId"
                 render={({ field }) => (
                   <Field>
                     <FieldLabel htmlFor="type">{t("form.type")}</FieldLabel>
@@ -319,9 +317,9 @@ export const EventFormDialog = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {EVENT_TYPE_OPTIONS.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {t(`types.${option}`)}
+                        {types.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -346,7 +344,10 @@ export const EventFormDialog = ({
                 <Field>
                   <FieldLabel>{t("form.color")}</FieldLabel>
                   <EventColorPicker
-                    type={form.watch("type")}
+                    typeDefaultColor={
+                      types.find((type) => type.id === form.watch("typeId"))
+                        ?.defaultColor ?? "slate"
+                    }
                     value={field.value}
                     onChange={field.onChange}
                   />
@@ -380,7 +381,7 @@ export const EventFormDialog = ({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Controller
                 control={form.control}
                 name="startsAt"

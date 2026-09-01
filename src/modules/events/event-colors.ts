@@ -10,15 +10,7 @@ export const EVENT_COLOR_IDS = [
 
 export type EventColorId = (typeof EVENT_COLOR_IDS)[number];
 
-export const EVENT_TYPE_DEFAULT_COLOR: Record<
-  "teatro" | "viagem" | "evangelismo" | "outro",
-  EventColorId
-> = {
-  teatro: "violet",
-  viagem: "sky",
-  evangelismo: "amber",
-  outro: "slate",
-};
+export const FALLBACK_EVENT_COLOR: EventColorId = "slate";
 
 export const EVENT_COLOR_STYLES: Record<
   EventColorId,
@@ -90,12 +82,16 @@ export const isEventColorId = (value: string | null | undefined): value is Event
   Boolean(value && EVENT_COLOR_IDS.includes(value as EventColorId));
 
 export const resolveEventColor = (event: {
-  type: "teatro" | "viagem" | "evangelismo" | "outro";
   color: string | null;
+  type: { defaultColor: string };
 }): EventColorId => {
   if (isEventColorId(event.color)) {
     return event.color;
   }
 
-  return EVENT_TYPE_DEFAULT_COLOR[event.type];
+  if (isEventColorId(event.type.defaultColor)) {
+    return event.type.defaultColor;
+  }
+
+  return FALLBACK_EVENT_COLOR;
 };

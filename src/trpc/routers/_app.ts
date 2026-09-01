@@ -4,6 +4,7 @@ import { authRouter } from "@/modules/auth/server/procedures";
 import { contactRouter } from "@/modules/contact/server/procedures";
 import { documentsRouter } from "@/modules/documents/server/procedures";
 import { eventsRouter } from "@/modules/events/server/procedures";
+import { eventTypesRouter } from "@/modules/events/server/event-types-procedures";
 import { staffRouter } from "@/modules/staff/server/procedures";
 import { socialRouter } from "@/modules/social/server/procedures";
 import { membersRouter } from "@/modules/members/server/procedures";
@@ -17,6 +18,7 @@ export const appRouter = createTRPCRouter({
   contact: contactRouter,
   documents: documentsRouter,
   events: eventsRouter,
+  eventTypes: eventTypesRouter,
   staff: staffRouter,
   social: socialRouter,
   members: membersRouter,

@@ -11,19 +11,13 @@ export const EVENT_ADMIN_SCOPES = ["active", "archived"] as const;
 export const EVENT_ADMIN_SORTS = ["manual", "dateAsc", "dateDesc"] as const;
 export const EVENT_ADMIN_VISIBILITIES = ["all", "public", "team"] as const;
 export const EVENT_ADMIN_IMPORTANT = ["all", "yes"] as const;
-export const EVENT_ADMIN_TYPES = [
-  "all",
-  "teatro",
-  "viagem",
-  "evangelismo",
-  "outro",
-] as const;
+export const EVENT_ADMIN_TYPE_ALL = "all";
 
 export type EventAdminScope = (typeof EVENT_ADMIN_SCOPES)[number];
 export type EventAdminSort = (typeof EVENT_ADMIN_SORTS)[number];
 export type EventAdminVisibility = (typeof EVENT_ADMIN_VISIBILITIES)[number];
 export type EventAdminImportant = (typeof EVENT_ADMIN_IMPORTANT)[number];
-export type EventAdminTypeFilter = (typeof EVENT_ADMIN_TYPES)[number];
+export type EventAdminTypeFilter = typeof EVENT_ADMIN_TYPE_ALL | string;
 
 export type EventAdminFilters = {
   q: string;
@@ -34,11 +28,15 @@ export type EventAdminFilters = {
   sort: EventAdminSort;
 };
 
-export const eventEffectiveEnd = (event: EventRecord) =>
-  new Date(event.endsAt ?? event.startsAt);
+export const eventEffectiveEnd = (event: {
+  startsAt: Date;
+  endsAt: Date | null;
+}) => new Date(event.endsAt ?? event.startsAt);
 
-export const isEventArchived = (event: EventRecord, now = new Date()) =>
-  eventEffectiveEnd(event).getTime() < now.getTime();
+export const isEventArchived = (
+  event: { startsAt: Date; endsAt: Date | null },
+  now = new Date(),
+) => eventEffectiveEnd(event).getTime() < now.getTime();
 
 export const splitEventsByArchive = (
   events: EventRecord[],
@@ -76,7 +74,7 @@ export const filterEvents = (
       return false;
     }
 
-    if (filters.type !== "all" && event.type !== filters.type) {
+    if (filters.type !== "all" && event.type.slug !== filters.type) {
       return false;
     }
 

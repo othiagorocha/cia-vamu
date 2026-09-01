@@ -33,7 +33,7 @@ const AdminLayout = async ({ children }: { children: React.ReactNode }) => {
                 Painel administrativo
               </span>
             </header>
-            <main className="min-w-0 flex-1 overflow-x-hidden p-6">{children}</main>
+            <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6">{children}</main>
           </SidebarInset>
           <ForcePasswordChangeDialog
             required={Boolean(session.user.mustChangePassword)}

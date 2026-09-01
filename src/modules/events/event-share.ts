@@ -1,53 +1,84 @@
 import { formatBrazilDateTime } from "@/lib/brazil-datetime";
 import { eventLocationLabel } from "@/lib/google-maps-url";
+import { eventTypeShareLine } from "@/modules/events/event-types";
 import type { EventRecord } from "@/modules/events/types";
 
 export type EventShareLabels = {
   heading: string;
-  publicVisibility: string;
-  teamVisibility: string;
   when: string;
   where: string;
 };
 
-const visibilityLine = (event: EventRecord, labels: EventShareLabels) =>
-  event.published ? labels.publicVisibility : labels.teamVisibility;
+const eventDescription = (event: EventRecord) =>
+  event.description?.trim() || "";
 
-const eventPlainBlock = (event: EventRecord, labels: EventShareLabels) => {
-  const lines = [
-    event.title,
-    `📅 ${formatBrazilDateTime(event.startsAt)}`,
-  ];
+const eventTypeLine = (event: EventRecord) =>
+  eventTypeShareLine(event.type.slug, event.type.label);
 
+const eventPlainBlock = (event: EventRecord) => {
+  const lines = [event.title];
+  const description = eventDescription(event);
+  const type = eventTypeLine(event);
   const location = eventLocationLabel(event);
+
+  if (description) {
+    lines.push(description);
+  }
+
+  lines.push(`📅 ${formatBrazilDateTime(event.startsAt)}`);
+
   if (location) {
     lines.push(`📍 ${location}`);
   }
 
-  lines.push(visibilityLine(event, labels));
-
-  if (event.description?.trim()) {
-    lines.push("", event.description.trim());
+  if (type) {
+    lines.push(type);
   }
 
   return lines.join("\n");
 };
 
 const eventMarkdownBlock = (event: EventRecord, labels: EventShareLabels) => {
-  const lines = [
-    `## ${event.title}`,
-    `- **${labels.when}:** ${formatBrazilDateTime(event.startsAt)}`,
-  ];
-
+  const lines = [`## ${event.title}`];
+  const description = eventDescription(event);
+  const type = eventTypeLine(event);
   const location = eventLocationLabel(event);
+
+  if (description) {
+    lines.push(description);
+  }
+
+  lines.push(`- **${labels.when}:** ${formatBrazilDateTime(event.startsAt)}`);
+
   if (location) {
     lines.push(`- **${labels.where}:** ${location}`);
   }
 
-  lines.push(`- ${visibilityLine(event, labels)}`);
+  if (type) {
+    lines.push(`- ${type}`);
+  }
 
-  if (event.description?.trim()) {
-    lines.push("", event.description.trim());
+  return lines.join("\n");
+};
+
+const eventWhatsAppBlock = (event: EventRecord) => {
+  const lines = [`*${event.title}*`];
+  const description = eventDescription(event);
+  const type = eventTypeLine(event);
+  const location = eventLocationLabel(event);
+
+  if (description) {
+    lines.push(description);
+  }
+
+  lines.push(`📅 ${formatBrazilDateTime(event.startsAt)}`);
+
+  if (location) {
+    lines.push(`📍 ${location}`);
+  }
+
+  if (type) {
+    lines.push(type);
   }
 
   return lines.join("\n");
@@ -57,7 +88,7 @@ export const buildEventsPlainText = (
   events: EventRecord[],
   labels: EventShareLabels,
 ) =>
-  `${labels.heading}\n\n${events.map((event) => eventPlainBlock(event, labels)).join("\n\n---\n\n")}`;
+  `${labels.heading}\n\n${events.map((event) => eventPlainBlock(event)).join("\n\n---\n\n")}`;
 
 export const buildEventsMarkdown = (
   events: EventRecord[],
@@ -68,32 +99,39 @@ export const buildEventsMarkdown = (
 export const buildEventsWhatsAppText = (
   events: EventRecord[],
   labels: EventShareLabels,
-) => {
-  const blocks = events.map((event) => {
-    const lines = [
-      `*${event.title}*`,
-      `📅 ${formatBrazilDateTime(event.startsAt)}`,
-    ];
-    const location = eventLocationLabel(event);
+) =>
+  `${labels.heading}\n\n${events.map((event) => eventWhatsAppBlock(event)).join("\n\n---\n\n")}`;
 
-    if (location) {
-      lines.push(`📍 ${location}`);
-    }
+const isLikelyMobile = () =>
+  /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    lines.push(visibilityLine(event, labels));
+export const whatsappShareUrl = (text: string) => {
+  const encoded = encodeURIComponent(text);
+  const host = isLikelyMobile()
+    ? "https://api.whatsapp.com/send"
+    : "https://web.whatsapp.com/send";
 
-    if (event.description?.trim()) {
-      lines.push("", event.description.trim());
-    }
-
-    return lines.join("\n");
-  });
-
-  return `${labels.heading}\n\n${blocks.join("\n\n---\n\n")}`;
+  return `${host}?text=${encoded}`;
 };
 
-export const whatsappShareUrl = (text: string) =>
-  `https://wa.me/?text=${encodeURIComponent(text)}`;
+export const shareTextToWhatsApp = async (text: string) => {
+  const canShare =
+    typeof navigator.share === "function" &&
+    (typeof navigator.canShare !== "function" || navigator.canShare({ text }));
+
+  if (canShare) {
+    try {
+      await navigator.share({ text });
+      return;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+    }
+  }
+
+  window.open(whatsappShareUrl(text), "_blank", "noopener,noreferrer");
+};
 
 export const copyTextToClipboard = async (text: string) => {
   await navigator.clipboard.writeText(text);

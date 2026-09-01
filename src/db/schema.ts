@@ -15,13 +15,6 @@ import {
 
 import { user } from "@/db/auth-schema";
 
-export const eventTypeEnum = pgEnum("event_type", [
-  "teatro",
-  "viagem",
-  "evangelismo",
-  "outro",
-]);
-
 export const socialPlatformEnum = pgEnum("social_platform", [
   "instagram",
   "youtube",
@@ -64,20 +57,12 @@ export const photos = pgTable("photos", {
     .defaultNow(),
 });
 
-export const events = pgTable("events", {
+export const eventTypes = pgTable("event_types", {
   id: uuid("id").primaryKey().defaultRandom(),
-  title: text("title").notNull(),
-  description: text("description"),
-  type: eventTypeEnum("type").notNull().default("outro"),
-  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
-  endsAt: timestamp("ends_at", { withTimezone: true }),
-  location: text("location"),
-  locationMapsQuery: text("location_maps_query"),
-  imageUrl: text("image_url"),
-  storagePath: text("storage_path"),
-  published: boolean("published").notNull().default(false),
-  color: text("color"),
-  important: boolean("important").notNull().default(false),
+  slug: text("slug").notNull().unique(),
+  label: text("label").notNull(),
+  defaultColor: text("default_color").notNull(),
+  isSystem: boolean("is_system").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -86,6 +71,35 @@ export const events = pgTable("events", {
     .notNull()
     .defaultNow(),
 });
+
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description"),
+    typeId: uuid("type_id")
+      .notNull()
+      .references(() => eventTypes.id, { onDelete: "restrict" }),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    location: text("location"),
+    locationMapsQuery: text("location_maps_query"),
+    imageUrl: text("image_url"),
+    storagePath: text("storage_path"),
+    published: boolean("published").notNull().default(false),
+    color: text("color"),
+    important: boolean("important").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("events_type_id_idx").on(table.typeId)],
+);
 
 export const prayerRequests = pgTable("prayer_requests", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -195,6 +209,17 @@ export const photoComments = pgTable("photo_comments", {
     .notNull()
     .defaultNow(),
 });
+
+export const eventTypesRelations = relations(eventTypes, ({ many }) => ({
+  events: many(events),
+}));
+
+export const eventsRelations = relations(events, ({ one }) => ({
+  type: one(eventTypes, {
+    fields: [events.typeId],
+    references: [eventTypes.id],
+  }),
+}));
 
 export const albumsRelations = relations(albums, ({ many, one }) => ({
   photos: many(photos),

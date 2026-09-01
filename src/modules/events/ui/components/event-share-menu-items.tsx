@@ -11,7 +11,7 @@ import {
   buildEventsPlainText,
   buildEventsWhatsAppText,
   copyTextToClipboard,
-  whatsappShareUrl,
+  shareTextToWhatsApp,
 } from "@/modules/events/event-share";
 import type { EventRecord } from "@/modules/events/types";
 
@@ -23,8 +23,6 @@ export const EventShareMenuItems = ({ events }: EventShareMenuItemsProps) => {
   const t = useTranslations("events");
   const labels = {
     heading: t("shareHeading"),
-    publicVisibility: t("visibility.public"),
-    teamVisibility: t("visibility.team"),
     when: t("shareWhen"),
     where: t("shareWhere"),
   };
@@ -34,11 +32,7 @@ export const EventShareMenuItems = ({ events }: EventShareMenuItemsProps) => {
       return;
     }
 
-    window.open(
-      whatsappShareUrl(buildEventsWhatsAppText(events, labels)),
-      "_blank",
-      "noopener,noreferrer",
-    );
+    void shareTextToWhatsApp(buildEventsWhatsAppText(events, labels));
   };
 
   const copy = async (format: "text" | "markdown") => {

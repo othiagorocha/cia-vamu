@@ -126,7 +126,7 @@ export const EventCard = ({
                     {showVisibility && !hasArt ? (
                       <EventVisibilityBadge published={event.published} />
                     ) : null}
-                    <EventTypeBadge type={event.type} color={color} />
+                    <EventTypeBadge label={event.type.label} color={color} />
                   </div>
                   <span
                     className={cn(

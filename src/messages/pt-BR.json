@@ -214,6 +214,23 @@
     "shareHeading": "CIA VAMU — Agenda",
     "shareWhen": "Quando",
     "shareWhere": "Onde",
+    "typesAdmin": {
+      "manage": "Tipos",
+      "title": "Tipos de agenda",
+      "description": "Crie tipos e defina a cor padrão. Eventos ainda podem usar outra cor.",
+      "new": "Novo tipo",
+      "createTitle": "Novo tipo",
+      "editTitle": "Editar tipo",
+      "formDescription": "O nome aparece na agenda. A cor é o padrão dos cards deste tipo.",
+      "label": "Nome",
+      "defaultColor": "Cor padrão",
+      "system": "Tipo padrão",
+      "created": "Tipo criado.",
+      "updated": "Tipo atualizado.",
+      "removed": "Tipo excluído.",
+      "deleteTitle": "Excluir tipo?",
+      "deleteDescription": "O tipo \"{label}\" será removido. Só é possível se nenhum evento o usar."
+    },
     "filters": {
       "search": "Buscar",
       "searchPlaceholder": "Título do evento",
@@ -288,12 +305,6 @@
       "startsAt": "Início",
       "status": "Status",
       "actions": "Ações"
-    },
-    "types": {
-      "teatro": "Teatro",
-      "viagem": "Viagem",
-      "evangelismo": "Evangelismo",
-      "outro": "Outro"
     }
   },
   "auth": {
@@ -589,6 +600,7 @@
       "comment": "Comentário",
       "invite": "Convite",
       "event": "Evento",
+      "eventType": "Tipo de agenda",
       "user": "Pessoa",
       "prayer": "Pedido de oração",
       "social": "Rede",
@@ -635,7 +647,12 @@
         "create": "Criou evento",
         "update": "Editou evento",
         "remove": "Excluiu evento",
-        "reorder": "Reordenou evento"
+        "reorder": "Reordenou evento",
+        "type": {
+          "create": "Criou tipo de agenda",
+          "update": "Editou tipo de agenda",
+          "remove": "Excluiu tipo de agenda"
+        }
       },
       "albums": {
         "create": "Criou álbum",
@@ -721,6 +738,7 @@
       "albumId": "Moveu de álbum",
       "body": "Alterou comentário",
       "color": "Alterou cor",
+      "defaultColor": "Alterou cor padrão",
       "important": "Alterou destaque"
     },
     "fields": {
@@ -742,6 +760,7 @@
       "albumId": "Álbum",
       "body": "Comentário",
       "color": "Cor",
+      "defaultColor": "Cor padrão",
       "important": "Importante"
     },
     "values": {
@@ -760,6 +779,7 @@
         "teatro": "Teatro",
         "viagem": "Viagem",
         "evangelismo": "Evangelismo",
+        "visita": "Visita",
         "outro": "Outro"
       },
       "platform": {

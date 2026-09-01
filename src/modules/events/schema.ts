@@ -4,13 +4,6 @@ import { parseBrazilDateTime } from "@/lib/brazil-datetime";
 import { isImageDataUrl } from "@/lib/data-url";
 import { EVENT_COLOR_IDS } from "@/modules/events/event-colors";
 
-export const eventTypeSchema = z.enum([
-  "teatro",
-  "viagem",
-  "evangelismo",
-  "outro",
-]);
-
 export const eventColorSchema = z.enum(EVENT_COLOR_IDS);
 
 const dataUrlSchema = z
@@ -31,7 +24,7 @@ const eventDateRefineConfig = {
 const eventFormFields = z.object({
   title: z.string().min(2, "Informe um título."),
   description: z.string().optional(),
-  type: eventTypeSchema,
+  typeId: z.uuid(),
   startsAt: z.string().min(1, "Informe a data de início."),
   endsAt: z.string().optional(),
   location: z.string().optional(),
@@ -83,4 +76,22 @@ export const reorderEventSchema = z.object({
 
 export const suggestLocationsSchema = z.object({
   query: z.string().trim().min(2).max(200),
+});
+
+export const eventTypeFormSchema = z.object({
+  label: z.string().trim().min(2, "Informe um nome.").max(40),
+  defaultColor: eventColorSchema,
+});
+
+export type EventTypeFormInput = z.infer<typeof eventTypeFormSchema>;
+
+export const createEventTypeSchema = eventTypeFormSchema;
+
+export const updateEventTypeSchema = z.object({
+  id: z.uuid(),
+  data: eventTypeFormSchema,
+});
+
+export const removeEventTypeSchema = z.object({
+  id: z.uuid(),
 });
