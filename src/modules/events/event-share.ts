@@ -13,7 +13,7 @@ const eventDescription = (event: EventRecord) =>
   event.description?.trim() || "";
 
 const eventTypeLine = (event: EventRecord) =>
-  eventTypeShareLine(event.type.slug, event.type.label);
+  eventTypeShareLine(event.type.emoji, event.type.label);
 
 const eventPlainBlock = (event: EventRecord) => {
   const lines = [event.title];

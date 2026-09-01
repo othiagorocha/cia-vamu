@@ -9,6 +9,7 @@ export const ensureDefaultEventTypes = async () => {
       DEFAULT_EVENT_TYPES.map((type) => ({
         slug: type.slug,
         label: type.label,
+        emoji: type.emoji,
         defaultColor: type.defaultColor,
         isSystem: type.isSystem,
         sortOrder: type.sortOrder,

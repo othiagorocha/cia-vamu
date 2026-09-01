@@ -107,7 +107,11 @@ export const EventDetailDialog = ({
           ) : null}
 
           <div className="flex flex-col items-start gap-3">
-            <EventTypeBadge label={event.type.label} color={color} />
+            <EventTypeBadge
+              label={event.type.label}
+              emoji={event.type.emoji}
+              color={color}
+            />
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
               <span className="flex items-start gap-2">
                 <CalendarIcon className="mt-0.5 size-4 shrink-0" />

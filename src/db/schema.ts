@@ -61,6 +61,7 @@ export const eventTypes = pgTable("event_types", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
   label: text("label").notNull(),
+  emoji: text("emoji").notNull().default("🏷️"),
   defaultColor: text("default_color").notNull(),
   isSystem: boolean("is_system").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),

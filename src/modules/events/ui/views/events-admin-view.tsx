@@ -50,6 +50,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -72,6 +74,7 @@ import {
   EVENT_COLOR_STYLES,
   resolveEventColor,
 } from "@/modules/events/event-colors";
+import { eventTypeShareLine } from "@/modules/events/event-types";
 import {
   filterEvents,
   groupEventsByMonth,
@@ -208,6 +211,14 @@ export const EventsAdminView = ({
     },
   });
 
+  const changeTypeMutation = trpc.events.changeType.useMutation({
+    onSuccess: () => {
+      toast.success(t("typeUpdated"));
+      invalidate();
+    },
+    onError: toastError,
+  });
+
   const handleSubmit = (values: EventFormInput) => {
     if (selectedEvent) {
       updateMutation.mutate({ id: selectedEvent.id, data: values });
@@ -294,6 +305,35 @@ export const EventsAdminView = ({
               {tCommon("actions.edit")}
             </DropdownMenuItem>
           )}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="py-2">
+              <TagsIcon />
+              {t("changeType")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="max-h-72 min-w-48 overflow-y-auto rounded-xl p-1.5 shadow-xl">
+              <DropdownMenuRadioGroup
+                value={event.typeId}
+                onValueChange={(typeId) => {
+                  if (typeId === event.typeId || changeTypeMutation.isPending) {
+                    return;
+                  }
+
+                  changeTypeMutation.mutate({ id: event.id, typeId });
+                }}
+              >
+                {types.map((type) => (
+                  <DropdownMenuRadioItem
+                    key={type.id}
+                    value={type.id}
+                    className="cursor-pointer py-2"
+                    disabled={changeTypeMutation.isPending}
+                  >
+                    {eventTypeShareLine(type.emoji, type.label)}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="py-2">
               <Share2Icon />
@@ -515,7 +555,11 @@ export const EventsAdminView = ({
                   </span>
                 </TableCell>
                 <TableCell>
-                  <EventTypeBadge label={event.type.label} color={color} />
+                  <EventTypeBadge
+                    label={event.type.label}
+                    emoji={event.type.emoji}
+                    color={color}
+                  />
                 </TableCell>
                 <TableCell>
                   <Badge variant={event.imageUrl ? "outline" : "secondary"}>
@@ -547,17 +591,13 @@ export const EventsAdminView = ({
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("adminTitle")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t("adminSubtitle", { hint: t("orderHint") })}
-          </p>
-        </div>
-        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          {t("adminTitle")}
+        </h1>
+        <p className="sr-only">{t("adminSubtitle", { hint: t("orderHint") })}</p>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
           {events.length > 0 ? (
             <AdminViewModeToggle
               value={viewMode}
@@ -569,9 +609,14 @@ export const EventsAdminView = ({
           {scope === "active" && visibleEvents.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label={t("share")}
+                >
                   <Share2Icon />
-                  {t("share")}
+                  <span className="hidden sm:inline">{t("share")}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -586,14 +631,16 @@ export const EventsAdminView = ({
             <Button
               type="button"
               variant="outline"
+              size="sm"
+              aria-label={t("typesAdmin.manage")}
               onClick={() => setTypesOpen(true)}
             >
               <TagsIcon />
-              {t("typesAdmin.manage")}
+              <span className="hidden sm:inline">{t("typesAdmin.manage")}</span>
             </Button>
           ) : null}
           {canWrite ? (
-            <Button className="max-sm:flex-1" onClick={openCreate}>
+            <Button size="sm" onClick={openCreate}>
               <PlusIcon />
               {t("new")}
             </Button>
@@ -601,8 +648,8 @@ export const EventsAdminView = ({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap items-center gap-1.5">
           <Button
             type="button"
             size="sm"
@@ -639,10 +686,8 @@ export const EventsAdminView = ({
       </div>
 
       {canDrag ? (
-        <p className="text-xs text-muted-foreground">{t("filters.dndHint")}</p>
-      ) : scope === "active" && viewMode === "grid" && canWrite ? (
-        <p className="text-xs text-muted-foreground">
-          {t("filters.dndDisabled")}
+        <p className="text-[11px] leading-none text-muted-foreground">
+          {t("filters.dndHint")}
         </p>
       ) : null}
 

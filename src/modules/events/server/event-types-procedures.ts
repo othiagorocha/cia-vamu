@@ -72,6 +72,7 @@ export const eventTypesRouter = createTRPCRouter({
         .values({
           slug: await allocateSlug(input.label),
           label: input.label,
+          emoji: input.emoji,
           defaultColor: input.defaultColor,
           isSystem: false,
           sortOrder: (last?.sortOrder ?? -1) + 1,
@@ -85,6 +86,7 @@ export const eventTypesRouter = createTRPCRouter({
         entityId: created.id,
         metadata: {
           label: created.label,
+          emoji: created.emoji,
           defaultColor: created.defaultColor,
         },
       });
@@ -112,6 +114,7 @@ export const eventTypesRouter = createTRPCRouter({
         .update(eventTypes)
         .set({
           label: input.data.label,
+          emoji: input.data.emoji,
           defaultColor: input.data.defaultColor,
           updatedAt: new Date(),
         })
@@ -122,10 +125,12 @@ export const eventTypesRouter = createTRPCRouter({
         const changes = diffFields(
           {
             label: existing.label,
+            emoji: existing.emoji,
             defaultColor: existing.defaultColor,
           },
           {
             label: updated.label,
+            emoji: updated.emoji,
             defaultColor: updated.defaultColor,
           },
         );
@@ -179,7 +184,7 @@ export const eventTypesRouter = createTRPCRouter({
       if (inUse) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "Este tipo ainda tem eventos. Edite o nome ou a cor, sem excluir.",
+          message: "Este tipo ainda tem eventos. Edite o nome, o emoji ou a cor, sem excluir.",
         });
       }
 

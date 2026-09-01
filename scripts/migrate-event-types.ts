@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import postgres from "postgres";
 
-import { DEFAULT_EVENT_TYPES } from "../src/modules/events/event-types";
+import { DEFAULT_EVENT_TYPE_EMOJI, DEFAULT_EVENT_TYPES } from "../src/modules/events/event-types";
 
 config({ path: ".env.local", override: true });
 
@@ -76,6 +76,7 @@ async function main() {
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       slug text NOT NULL,
       label text NOT NULL,
+      emoji text NOT NULL DEFAULT '🏷️',
       default_color text NOT NULL,
       is_system boolean NOT NULL DEFAULT false,
       sort_order integer NOT NULL DEFAULT 0,
@@ -85,17 +86,34 @@ async function main() {
     )
   `;
 
+  if (!(await columnExists("event_types", "emoji"))) {
+    await sql`ALTER TABLE event_types ADD COLUMN emoji text NOT NULL DEFAULT '🏷️'`;
+  }
+
   for (const type of DEFAULT_EVENT_TYPES) {
     await sql`
-      INSERT INTO event_types (slug, label, default_color, is_system, sort_order)
+      INSERT INTO event_types (slug, label, emoji, default_color, is_system, sort_order)
       VALUES (
         ${type.slug},
         ${type.label},
+        ${type.emoji},
         ${type.defaultColor},
         ${type.isSystem},
         ${type.sortOrder}
       )
       ON CONFLICT (slug) DO NOTHING
+    `;
+  }
+
+  for (const type of DEFAULT_EVENT_TYPES) {
+    if (type.emoji === DEFAULT_EVENT_TYPE_EMOJI) {
+      continue;
+    }
+
+    await sql`
+      UPDATE event_types
+      SET emoji = ${type.emoji}, updated_at = now()
+      WHERE slug = ${type.slug} AND emoji = ${DEFAULT_EVENT_TYPE_EMOJI}
     `;
   }
 

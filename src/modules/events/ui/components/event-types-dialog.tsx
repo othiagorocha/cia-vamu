@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useToastError } from "@/lib/use-toast-error";
@@ -35,8 +35,13 @@ import {
   EVENT_COLOR_STYLES,
   FALLBACK_EVENT_COLOR,
   isEventColorId,
-  type EventColorId,
 } from "@/modules/events/event-colors";
+import {
+  DEFAULT_EVENT_TYPE_EMOJI,
+  EVENT_TYPE_EMOJI_SUGGESTIONS,
+  eventTypeShareLine,
+  lastEventTypeGrapheme,
+} from "@/modules/events/event-types";
 import {
   eventTypeFormSchema,
   type EventTypeFormInput,
@@ -135,7 +140,9 @@ export const EventTypesDialog = ({
                     title={t(`colors.${color}`)}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{type.label}</p>
+                    <p className="truncate font-medium">
+                      {eventTypeShareLine(type.emoji, type.label)}
+                    </p>
                     {type.isSystem ? (
                       <p className="text-xs text-muted-foreground">
                         {t("typesAdmin.system")}
@@ -250,6 +257,7 @@ const EventTypeFormDialog = ({
     resolver: zodResolver(eventTypeFormSchema),
     defaultValues: {
       label: "",
+      emoji: DEFAULT_EVENT_TYPE_EMOJI,
       defaultColor: "emerald",
     },
   });
@@ -261,6 +269,7 @@ const EventTypeFormDialog = ({
 
     form.reset({
       label: type?.label ?? "",
+      emoji: type?.emoji?.trim() || DEFAULT_EVENT_TYPE_EMOJI,
       defaultColor: isEventColorId(type?.defaultColor)
         ? type.defaultColor
         : "emerald",
@@ -297,6 +306,58 @@ const EventTypeFormDialog = ({
                     id="event-type-label"
                     aria-invalid={fieldState.invalid}
                   />
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="emoji"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="event-type-emoji">
+                    {t("typesAdmin.emoji")}
+                  </FieldLabel>
+                  <div className="flex flex-col gap-3">
+                    <Input
+                      {...field}
+                      id="event-type-emoji"
+                      aria-invalid={fieldState.invalid}
+                      autoComplete="off"
+                      inputMode="text"
+                      className="h-12 w-16 shrink-0 text-center text-2xl leading-none"
+                      value={field.value ?? ""}
+                      onChange={(changeEvent) => {
+                        const next = lastEventTypeGrapheme(
+                          changeEvent.target.value,
+                        );
+                        field.onChange(next);
+                      }}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {EVENT_TYPE_EMOJI_SUGGESTIONS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => field.onChange(emoji)}
+                          aria-pressed={field.value === emoji}
+                          aria-label={emoji}
+                          className={cn(
+                            "flex size-11 items-center justify-center rounded-lg border text-xl transition-colors",
+                            field.value === emoji
+                              ? "border-foreground/50 ring-2 ring-foreground/20"
+                              : "border-border hover:bg-muted/60",
+                          )}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <FieldDescription>{t("typesAdmin.emojiHint")}</FieldDescription>
                   {fieldState.invalid ? (
                     <FieldError errors={[fieldState.error]} />
                   ) : null}

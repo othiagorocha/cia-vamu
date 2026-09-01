@@ -206,6 +206,8 @@
     "important": "Importante",
     "importantHint": "O card fica um pouco maior e se destaca na agenda.",
     "share": "Compartilhar",
+    "changeType": "Tipo",
+    "typeUpdated": "Tipo atualizado.",
     "shareWhatsApp": "WhatsApp",
     "shareText": "Copiar texto",
     "shareMarkdown": "Copiar Markdown",
@@ -217,12 +219,14 @@
     "typesAdmin": {
       "manage": "Tipos",
       "title": "Tipos de agenda",
-      "description": "Crie tipos e defina a cor padrão. Eventos ainda podem usar outra cor.",
+      "description": "Crie tipos, escolha o emoji e defina a cor padrão. Eventos ainda podem usar outra cor.",
       "new": "Novo tipo",
       "createTitle": "Novo tipo",
       "editTitle": "Editar tipo",
-      "formDescription": "O nome aparece na agenda. A cor é o padrão dos cards deste tipo.",
+      "formDescription": "O nome e o emoji aparecem na agenda. A cor é o padrão dos cards deste tipo.",
       "label": "Nome",
+      "emoji": "Emoji",
+      "emojiHint": "Use o teclado de emojis do sistema ou toque numa sugestão.",
       "defaultColor": "Cor padrão",
       "system": "Tipo padrão",
       "created": "Tipo criado.",
@@ -239,6 +243,7 @@
       "color": "Cor",
       "important": "Importância",
       "sort": "Ordenar",
+      "open": "Filtros",
       "all": "Todos",
       "reset": "Limpar filtros",
       "dndHint": "Arraste os cards para reordenar a agenda pública.",
@@ -739,6 +744,7 @@
       "body": "Alterou comentário",
       "color": "Alterou cor",
       "defaultColor": "Alterou cor padrão",
+      "emoji": "Alterou emoji",
       "important": "Alterou destaque"
     },
     "fields": {
@@ -761,6 +767,7 @@
       "body": "Comentário",
       "color": "Cor",
       "defaultColor": "Cor padrão",
+      "emoji": "Emoji",
       "important": "Importante"
     },
     "values": {

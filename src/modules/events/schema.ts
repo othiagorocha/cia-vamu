@@ -3,6 +3,7 @@ import { z } from "zod";
 import { parseBrazilDateTime } from "@/lib/brazil-datetime";
 import { isImageDataUrl } from "@/lib/data-url";
 import { EVENT_COLOR_IDS } from "@/modules/events/event-colors";
+import { countEventTypeGraphemes } from "@/modules/events/event-types";
 
 export const eventColorSchema = z.enum(EVENT_COLOR_IDS);
 
@@ -78,8 +79,24 @@ export const suggestLocationsSchema = z.object({
   query: z.string().trim().min(2).max(200),
 });
 
+export const changeEventTypeSchema = z.object({
+  id: z.uuid(),
+  typeId: z.uuid(),
+});
+
+export const eventTypeEmojiSchema = z
+  .string()
+  .trim()
+  .min(1, "Informe um emoji.")
+  .refine((value) => value.length <= 32, "Emoji inválido.")
+  .refine(
+    (value) => countEventTypeGraphemes(value) === 1,
+    "Use um único emoji.",
+  );
+
 export const eventTypeFormSchema = z.object({
   label: z.string().trim().min(2, "Informe um nome.").max(40),
+  emoji: eventTypeEmojiSchema,
   defaultColor: eventColorSchema,
 });
 

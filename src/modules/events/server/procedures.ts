@@ -10,6 +10,7 @@ import { diffFields } from "@/modules/audit/diff";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import { isEventArchived } from "@/modules/events/event-status";
 import {
+  changeEventTypeSchema,
   createEventSchema,
   removeEventSchema,
   reorderEventSchema,
@@ -336,6 +337,51 @@ export const eventsRouter = createTRPCRouter({
       }
 
       return (await getEventWithType(input.id)) ?? event;
+    }),
+
+  changeType: requireCapability("events:write")
+    .input(changeEventTypeSchema)
+    .mutation(async ({ ctx, input }) => {
+      const existing = await getEventWithType(input.id);
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Evento não encontrado.",
+        });
+      }
+
+      if (existing.typeId === input.typeId) {
+        return existing;
+      }
+
+      const eventType = await requireEventType(input.typeId);
+
+      await db
+        .update(events)
+        .set({
+          typeId: input.typeId,
+          updatedAt: new Date(),
+        })
+        .where(eq(events.id, input.id));
+
+      const result = await getEventWithType(input.id);
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.EVENTS_UPDATE,
+        entityType: "event",
+        entityId: input.id,
+        metadata: {
+          title: existing.title,
+          changes: diffFields(
+            { type: existing.type.label },
+            { type: eventType.label },
+          ),
+        },
+      });
+
+      return result ?? existing;
     }),
 
   remove: requireCapability("events:write")

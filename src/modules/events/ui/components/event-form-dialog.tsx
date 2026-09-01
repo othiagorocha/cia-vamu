@@ -36,6 +36,7 @@ import {
 import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { isEventColorId } from "@/modules/events/event-colors";
+import { eventTypeShareLine } from "@/modules/events/event-types";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
 import type { EventRecord, EventTypeRecord } from "@/modules/events/types";
 import { EventColorPicker } from "@/modules/events/ui/components/event-color-picker";
@@ -319,7 +320,7 @@ export const EventFormDialog = ({
                       <SelectContent>
                         {types.map((option) => (
                           <SelectItem key={option.id} value={option.id}>
-                            {option.label}
+                            {eventTypeShareLine(option.emoji, option.label)}
                           </SelectItem>
                         ))}
                       </SelectContent>

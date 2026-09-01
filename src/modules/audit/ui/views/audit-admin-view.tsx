@@ -65,6 +65,7 @@ const FIELD_KEYS = [
   "body",
   "color",
   "defaultColor",
+  "emoji",
   "important",
 ] as const;
 

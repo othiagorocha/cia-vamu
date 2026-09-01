@@ -113,7 +113,7 @@ export const sortEvents = (
     const delta =
       new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime();
 
-    return sort === "dateAsc" ? delta : -delta;
+    return sort === "dateDesc" ? delta : -delta;
   });
 };
 
