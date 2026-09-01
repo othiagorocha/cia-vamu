@@ -128,6 +128,14 @@
   html {
     @apply font-sans;
   }
+  button:not(:disabled),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [data-slot="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 @keyframes fade-up {
@@ -240,11 +248,34 @@
   --spark-y: -22px;
 }
 
+@keyframes event-card-shake {
+  0%,
+  16%,
+  100% {
+    transform: rotate(0deg);
+  }
+  4% {
+    transform: rotate(-1.25deg);
+  }
+  8% {
+    transform: rotate(1.25deg);
+  }
+  12% {
+    transform: rotate(-0.6deg);
+  }
+}
+
+.event-card-shake {
+  animation: event-card-shake 5s ease-in-out infinite;
+  transform-origin: center center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
   .photo-fade,
   .prayer-react-pop,
-  .prayer-react-spark {
+  .prayer-react-spark,
+  .event-card-shake {
     animation: none;
   }
 

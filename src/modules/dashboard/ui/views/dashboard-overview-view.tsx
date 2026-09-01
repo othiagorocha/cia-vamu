@@ -15,6 +15,7 @@ import { PiHandsPrayingBold } from "react-icons/pi";
 
 import { Button } from "@/components/ui/button";
 import { EventCard } from "@/modules/events/ui/components/event-card";
+import { isEventArchived } from "@/modules/events/event-status";
 import { trpc } from "@/trpc/client";
 
 type DashboardOverviewViewProps = {
@@ -81,14 +82,13 @@ export const DashboardOverviewView = ({
   const documentFolders = documentsQuery.data ?? [];
   const messages = messagesQuery.data ?? [];
   const staff = staffQuery.data ?? [];
-  const now = Date.now();
 
   const publishedEvents = events.filter((event) => event.published).length;
   const teamEvents = events.filter((event) => !event.published).length;
   const publishedAlbums = albums.filter((album) => album.published).length;
   const unreadMessages = messages.filter((message) => !message.readAt).length;
   const upcomingEvents = events
-    .filter((event) => new Date(event.startsAt).getTime() >= now)
+    .filter((event) => !isEventArchived(event))
     .slice(0, UPCOMING_LIMIT);
 
   const kpis: OverviewKpi[] = [

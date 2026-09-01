@@ -76,6 +76,8 @@ export const events = pgTable("events", {
   imageUrl: text("image_url"),
   storagePath: text("storage_path"),
   published: boolean("published").notNull().default(false),
+  color: text("color"),
+  important: boolean("important").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

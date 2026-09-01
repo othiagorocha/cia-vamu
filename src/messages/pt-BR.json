@@ -187,8 +187,13 @@
     "subtitle": "Confira os próximos eventos da CIA VAMU.",
     "empty": "Nenhum evento programado no momento.",
     "adminTitle": "Agenda",
-    "adminSubtitle": "Eventos da agenda pública e os encontros só da equipe. {hint}",
+    "adminSubtitle": "Eventos da agenda pública e os encontros só do ministério. {hint}",
     "adminEmpty": "Nenhum evento cadastrado ainda.",
+    "adminEmptyActive": "Nenhum evento ativo. Os que já passaram da data ficam em Arquivadas.",
+    "adminEmptyArchived": "Nenhum evento arquivado.",
+    "adminEmptyFiltered": "Nenhum evento com esses filtros.",
+    "scopeActive": "Ativas",
+    "scopeArchived": "Arquivadas",
     "new": "Novo evento",
     "created": "Evento criado com sucesso.",
     "updated": "Evento atualizado com sucesso.",
@@ -196,8 +201,47 @@
     "deleteTitle": "Excluir evento?",
     "deleteDescription": "Essa ação não pode ser desfeita. O evento \"{title}\" será removido permanentemente.",
     "orderHint": "A ordem desta lista é a mesma da agenda pública.",
-    "moveUp": "Subir na agenda",
-    "moveDown": "Descer na agenda",
+    "restore": "Restaurar",
+    "reuse": "Reaproveitar",
+    "important": "Importante",
+    "importantHint": "O card fica um pouco maior e se destaca na agenda.",
+    "share": "Compartilhar",
+    "shareWhatsApp": "WhatsApp",
+    "shareText": "Copiar texto",
+    "shareMarkdown": "Copiar Markdown",
+    "shareCopied": "Copiado para a área de transferência.",
+    "shareCopyFailed": "Não foi possível copiar. Tente de novo.",
+    "shareHeading": "CIA VAMU — Agenda",
+    "shareWhen": "Quando",
+    "shareWhere": "Onde",
+    "filters": {
+      "search": "Buscar",
+      "searchPlaceholder": "Título do evento",
+      "type": "Tipo",
+      "visibility": "Visibilidade",
+      "color": "Cor",
+      "important": "Importância",
+      "sort": "Ordenar",
+      "all": "Todos",
+      "reset": "Limpar filtros",
+      "dndHint": "Arraste os cards para reordenar a agenda pública.",
+      "dndDisabled": "Para arrastar os cards, use a ordem manual e limpe os filtros."
+    },
+    "sort": {
+      "manual": "Ordem da agenda",
+      "dateAsc": "Data (mais antiga)",
+      "dateDesc": "Data (mais recente)"
+    },
+    "colors": {
+      "useType": "Cor do tipo",
+      "amber": "Âmbar",
+      "sky": "Azul",
+      "emerald": "Verde",
+      "rose": "Rosa",
+      "violet": "Violeta",
+      "slate": "Cinza",
+      "orange": "Laranja"
+    },
     "details": "Detalhes do evento",
     "expand": "Ver detalhes de {title}",
     "openInMaps": "Abrir {location} no Google Maps",
@@ -207,13 +251,14 @@
     "noArt": "Não",
     "visibility": {
       "public": "Agenda pública",
-      "team": "Somente equipe",
+      "team": "Somente ministério",
       "publicHint": "Aparece na agenda do site.",
       "teamHint": "Visível só para quem entra no painel."
     },
     "form": {
       "createTitle": "Novo evento",
       "editTitle": "Editar evento",
+      "reuseTitle": "Reaproveitar evento",
       "description": "Preencha os dados do evento. Você pode anexar ou colar uma arte/flyer.",
       "title": "Título",
       "body": "Descrição",
@@ -232,7 +277,9 @@
       "locationNoResults": "Nenhum endereço encontrado. Você pode salvar o texto assim mesmo.",
       "locationAttribution": "Sugestões do Google Maps",
       "startsAt": "Início",
-      "endsAt": "Término (opcional)"
+      "endsAt": "Término (opcional)",
+      "color": "Cor do card",
+      "important": "Evento importante"
     },
     "columns": {
       "title": "Título",
@@ -300,7 +347,7 @@
       "title": "Painel da equipe",
       "subtitle": "Acompanhe a agenda interna e o conteúdo do site.",
       "publishedEvents": "Agenda pública",
-      "teamEvents": "Somente equipe",
+      "teamEvents": "Somente ministério",
       "publishedAlbums": "Álbuns",
       "prayers": "Oração",
       "documents": "Documentos",
@@ -672,7 +719,9 @@
       "photo": "Alterou foto",
       "read": "Alterou leitura da mensagem",
       "albumId": "Moveu de álbum",
-      "body": "Alterou comentário"
+      "body": "Alterou comentário",
+      "color": "Alterou cor",
+      "important": "Alterou destaque"
     },
     "fields": {
       "name": "Nome",
@@ -691,7 +740,9 @@
       "photo": "Foto",
       "read": "Leitura",
       "albumId": "Álbum",
-      "body": "Comentário"
+      "body": "Comentário",
+      "color": "Cor",
+      "important": "Importante"
     },
     "values": {
       "yes": "Sim",

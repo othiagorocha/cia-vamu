@@ -1,14 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
+  ArchiveRestoreIcon,
+  CopyIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
+  Share2Icon,
+  StarIcon,
   Trash2Icon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -30,6 +49,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -41,16 +64,46 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAdminViewMode } from "@/lib/admin-view-mode";
+import { cn } from "@/lib/utils";
 import { useToastError } from "@/lib/use-toast-error";
 import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
+import {
+  EVENT_COLOR_STYLES,
+  resolveEventColor,
+} from "@/modules/events/event-colors";
+import {
+  filterEvents,
+  groupEventsByMonth,
+  isEventArchived,
+  sortEvents,
+  splitEventsByArchive,
+} from "@/modules/events/event-status";
+import { EventAdminFiltersBar } from "@/modules/events/ui/components/event-admin-filters";
 import { EventCard } from "@/modules/events/ui/components/event-card";
 import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
 import { EventFormDialog } from "@/modules/events/ui/components/event-form-dialog";
+import { EventShareMenuItems } from "@/modules/events/ui/components/event-share-menu-items";
+import { EventSortableItem } from "@/modules/events/ui/components/event-sortable-item";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
+import { useEventAdminFilters } from "@/modules/events/ui/hooks/use-event-admin-filters";
 import type { EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
 import { trpc } from "@/trpc/client";
+
+const applyActiveEventOrder = (
+  orderedIds: string[],
+  events: EventRecord[],
+) => {
+  const byId = new Map(events.map((event) => [event.id, event]));
+  const nextActive = orderedIds.flatMap((id) => {
+    const event = byId.get(id);
+    return event ? [event] : [];
+  });
+  const archived = events.filter((event) => isEventArchived(event));
+
+  return [...nextActive, ...archived];
+};
 
 export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   const t = useTranslations("events");
@@ -59,10 +112,43 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   const utils = trpc.useUtils();
   const [events] = trpc.events.listAll.useSuspenseQuery();
   const [viewMode, setViewMode] = useAdminViewMode();
+  const { scope, setScope, filters, setFilters, hasListFilters, resetFilters } =
+    useEventAdminFilters();
   const [formOpen, setFormOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
+  const [prefillEvent, setPrefillEvent] = useState<EventRecord | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const { active, archived } = useMemo(
+    () => splitEventsByArchive(events),
+    [events],
+  );
+
+  const scopedEvents = scope === "active" ? active : archived;
+  const visibleEvents = useMemo(
+    () => sortEvents(filterEvents(scopedEvents, filters), filters.sort),
+    [scopedEvents, filters],
+  );
+  const archivedGroups = useMemo(
+    () => (scope === "archived" ? groupEventsByMonth(visibleEvents) : []),
+    [scope, visibleEvents],
+  );
+
+  const canDrag =
+    canWrite &&
+    scope === "active" &&
+    viewMode === "grid" &&
+    filters.sort === "manual" &&
+    !hasListFilters;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const invalidate = () => {
     utils.events.listAll.invalidate();
@@ -73,6 +159,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
     onSuccess: () => {
       toast.success(t("created"));
       setFormOpen(false);
+      setPrefillEvent(null);
       invalidate();
     },
     onError: toastError,
@@ -97,16 +184,28 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   });
 
   const reorderMutation = trpc.events.reorder.useMutation({
-    onSuccess: invalidate,
     onError: toastError,
+    onSettled: () => {
+      utils.events.listUpcoming.invalidate();
+    },
   });
 
   const handleSubmit = (values: EventFormInput) => {
     if (selectedEvent) {
       updateMutation.mutate({ id: selectedEvent.id, data: values });
-    } else {
-      createMutation.mutate(values);
+      return;
     }
+
+    createMutation.mutate({
+      ...values,
+      ...(prefillEvent ? { sourceEventId: prefillEvent.id } : {}),
+    });
+  };
+
+  const openCreate = () => {
+    setSelectedEvent(null);
+    setPrefillEvent(null);
+    setFormOpen(true);
   };
 
   const openEditor = (event: EventRecord) => {
@@ -115,11 +214,23 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
     }
 
     setDetailEvent(null);
+    setPrefillEvent(null);
     setSelectedEvent(event);
     setFormOpen(true);
   };
 
-  const eventActions = (event: EventRecord, index: number) =>
+  const openReuse = (event: EventRecord) => {
+    if (!canWrite) {
+      return;
+    }
+
+    setDetailEvent(null);
+    setSelectedEvent(null);
+    setPrefillEvent(event);
+    setFormOpen(true);
+  };
+
+  const eventActions = (event: EventRecord) =>
     canWrite ? (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -135,40 +246,49 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
+          sideOffset={8}
+          className="min-w-56 rounded-xl p-1.5 shadow-xl"
           onClick={(clickEvent) => clickEvent.stopPropagation()}
         >
-          <DropdownMenuItem
-            disabled={index === 0 || reorderMutation.isPending}
-            onClick={() =>
-              reorderMutation.mutate({
-                id: event.id,
-                direction: "up",
-              })
-            }
-          >
-            <ArrowUpIcon />
-            {t("moveUp")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={
-              index === events.length - 1 || reorderMutation.isPending
-            }
-            onClick={() =>
-              reorderMutation.mutate({
-                id: event.id,
-                direction: "down",
-              })
-            }
-          >
-            <ArrowDownIcon />
-            {t("moveDown")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => openEditor(event)}>
-            <PencilIcon />
-            {tCommon("actions.edit")}
-          </DropdownMenuItem>
+          {scope === "archived" ? (
+            <>
+              <DropdownMenuItem
+                className="py-2"
+                onClick={() => openEditor(event)}
+              >
+                <ArchiveRestoreIcon />
+                {t("restore")}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="py-2"
+                onClick={() => openReuse(event)}
+              >
+                <CopyIcon />
+                {t("reuse")}
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem
+              className="py-2"
+              onClick={() => openEditor(event)}
+            >
+              <PencilIcon />
+              {tCommon("actions.edit")}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="py-2">
+              <Share2Icon />
+              {t("share")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-48 rounded-xl p-1.5 shadow-xl">
+              <EventShareMenuItems events={[event]} />
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
+            className="py-2"
             onClick={() => setDeleteTarget(event)}
           >
             <Trash2Icon />
@@ -176,7 +296,237 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    ) : null;
+    ) : (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("share")}
+            onClick={(clickEvent) => clickEvent.stopPropagation()}
+          >
+            <Share2Icon />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          sideOffset={8}
+          className="min-w-48 rounded-xl p-1.5 shadow-xl"
+          onClick={(clickEvent) => clickEvent.stopPropagation()}
+        >
+          <EventShareMenuItems events={[event]} />
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(String(event.active.id));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active: dragged, over } = event;
+    setActiveDragId(null);
+
+    if (!over || dragged.id === over.id) {
+      return;
+    }
+
+    const oldIndex = visibleEvents.findIndex((item) => item.id === dragged.id);
+    const newIndex = visibleEvents.findIndex((item) => item.id === over.id);
+
+    if (oldIndex < 0 || newIndex < 0) {
+      return;
+    }
+
+    const nextIds = arrayMove(visibleEvents, oldIndex, newIndex).map(
+      (item) => item.id,
+    );
+    const previous = utils.events.listAll.getData();
+
+    void utils.events.listAll.cancel();
+
+    if (previous) {
+      utils.events.listAll.setData(
+        undefined,
+        applyActiveEventOrder(nextIds, previous),
+      );
+    }
+
+    reorderMutation.mutate(
+      { orderedIds: nextIds },
+      {
+        onError: () => {
+          if (previous) {
+            utils.events.listAll.setData(undefined, previous);
+          }
+        },
+      },
+    );
+  };
+
+  const handleDragCancel = () => {
+    setActiveDragId(null);
+  };
+
+  const activeDragEvent = visibleEvents.find(
+    (event) => event.id === activeDragId,
+  );
+
+  const emptyMessage =
+    events.length === 0
+      ? t("adminEmpty")
+      : visibleEvents.length === 0
+        ? hasListFilters
+          ? t("adminEmptyFiltered")
+          : scope === "archived"
+            ? t("adminEmptyArchived")
+            : t("adminEmptyActive")
+        : null;
+
+  const renderGrid = (items: EventRecord[]) => {
+    if (canDrag) {
+      return (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <SortableContext
+            items={items.map((item) => item.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
+              {items.map((event) => (
+                <EventSortableItem
+                  key={event.id}
+                  event={event}
+                  shake
+                  showVisibility
+                  onEdit={canWrite ? () => openEditor(event) : undefined}
+                  actions={eventActions(event)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay dropAnimation={null}>
+            {activeDragEvent ? (
+              <div className="pointer-events-none cursor-grabbing">
+                <EventCard event={activeDragEvent} showVisibility />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
+        {items.map((event) => (
+          <div key={event.id} className="h-full">
+            <EventCard
+              event={event}
+              showVisibility
+              shake={scope === "active" && event.important}
+              onEdit={canWrite ? () => openEditor(event) : undefined}
+              actions={eventActions(event)}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderTable = (items: EventRecord[]) => (
+    <div className="rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-8" />
+            <TableHead>{t("columns.title")}</TableHead>
+            <TableHead>{t("columns.type")}</TableHead>
+            <TableHead>{t("columns.art")}</TableHead>
+            <TableHead>{t("columns.startsAt")}</TableHead>
+            <TableHead>{t("columns.status")}</TableHead>
+            <TableHead className="w-0">{t("columns.actions")}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((event, index) => {
+            const color = resolveEventColor(event);
+
+            return (
+              <TableRow
+                key={event.id}
+                tabIndex={0}
+                className="cursor-pointer"
+                onClick={() => setDetailEvent(event)}
+                onKeyDown={(keyboardEvent) => {
+                  if (
+                    keyboardEvent.key === "Enter" ||
+                    keyboardEvent.key === " "
+                  ) {
+                    keyboardEvent.preventDefault();
+                    setDetailEvent(event);
+                  }
+                }}
+              >
+                <TableCell>
+                  <span
+                    className={cn(
+                      "inline-block size-2.5 rounded-full",
+                      EVENT_COLOR_STYLES[color].dot,
+                    )}
+                    title={t(`colors.${color}`)}
+                  />
+                </TableCell>
+                <TableCell className="font-medium">
+                  <span className="flex items-center gap-2">
+                    {event.title}
+                    {event.important ? (
+                      <span
+                        title={t("important")}
+                        className="inline-flex size-5 items-center justify-center rounded-full bg-orange-400 text-black"
+                      >
+                        <StarIcon className="size-3 fill-current" />
+                        <span className="sr-only">{t("important")}</span>
+                      </span>
+                    ) : null}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <EventTypeBadge type={event.type} color={color} />
+                </TableCell>
+                <TableCell>
+                  <Badge variant={event.imageUrl ? "outline" : "secondary"}>
+                    {event.imageUrl ? t("hasArt") : t("noArt")}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {format(new Date(event.startsAt), "dd/MM/yyyy HH:mm", {
+                    locale: ptBR,
+                  })}
+                </TableCell>
+                <TableCell>
+                  <EventVisibilityBadge published={event.published} />
+                </TableCell>
+                <TableCell>
+                  <div
+                    className="flex items-center gap-1"
+                    onClick={(clickEvent) => clickEvent.stopPropagation()}
+                  >
+                    {eventActions(event)}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -189,7 +539,7 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
             {t("adminSubtitle", { hint: t("orderHint") })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {events.length > 0 ? (
             <AdminViewModeToggle
               value={viewMode}
@@ -198,13 +548,24 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
               }}
             />
           ) : null}
+          {scope === "active" && visibleEvents.length > 0 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline">
+                  <Share2Icon />
+                  {t("share")}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="min-w-52 rounded-xl p-1.5 shadow-xl"
+              >
+                <EventShareMenuItems events={visibleEvents} />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
           {canWrite ? (
-            <Button
-              onClick={() => {
-                setSelectedEvent(null);
-                setFormOpen(true);
-              }}
-            >
+            <Button onClick={openCreate}>
               <PlusIcon />
               {t("new")}
             </Button>
@@ -212,84 +573,80 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
         </div>
       </div>
 
-      {events.length === 0 ? (
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={scope === "active" ? "default" : "outline"}
+            onClick={() => setScope("active")}
+          >
+            {t("scopeActive")}
+            <Badge variant={scope === "active" ? "secondary" : "outline"}>
+              {active.length}
+            </Badge>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={scope === "archived" ? "default" : "outline"}
+            onClick={() => setScope("archived")}
+          >
+            {t("scopeArchived")}
+            <Badge variant={scope === "archived" ? "secondary" : "outline"}>
+              {archived.length}
+            </Badge>
+          </Button>
+        </div>
+
+        <EventAdminFiltersBar
+          filters={filters}
+          hasListFilters={hasListFilters}
+          onReset={resetFilters}
+          onChange={(patch) => {
+            void setFilters(patch);
+          }}
+        />
+      </div>
+
+      {canDrag ? (
+        <p className="text-xs text-muted-foreground">{t("filters.dndHint")}</p>
+      ) : scope === "active" && viewMode === "grid" && canWrite ? (
+        <p className="text-xs text-muted-foreground">
+          {t("filters.dndDisabled")}
+        </p>
+      ) : null}
+
+      {emptyMessage ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-16 text-center text-muted-foreground">
-          <p>{t("adminEmpty")}</p>
+          <p>{emptyMessage}</p>
+        </div>
+      ) : scope === "archived" && viewMode === "grid" ? (
+        <div className="flex flex-col gap-8">
+          {archivedGroups.map((group) => (
+            <section key={group.key} className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium capitalize text-muted-foreground">
+                {group.label}
+              </h2>
+              {renderGrid(group.events)}
+            </section>
+          ))}
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
-          {events.map((event, index) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              showVisibility
-              onEdit={canWrite ? () => openEditor(event) : undefined}
-              actions={eventActions(event, index)}
-            />
+        renderGrid(visibleEvents)
+      ) : scope === "archived" ? (
+        <div className="flex flex-col gap-8">
+          {archivedGroups.map((group) => (
+            <section key={group.key} className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium capitalize text-muted-foreground">
+                {group.label}
+              </h2>
+              {renderTable(group.events)}
+            </section>
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("columns.title")}</TableHead>
-                <TableHead>{t("columns.type")}</TableHead>
-                <TableHead>{t("columns.art")}</TableHead>
-                <TableHead>{t("columns.startsAt")}</TableHead>
-                <TableHead>{t("columns.status")}</TableHead>
-                <TableHead className="w-0">{t("columns.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {events.map((event, index) => (
-                <TableRow
-                  key={event.id}
-                  tabIndex={0}
-                  className="cursor-pointer"
-                  onClick={() => setDetailEvent(event)}
-                  onKeyDown={(keyboardEvent) => {
-                    if (
-                      keyboardEvent.key === "Enter" ||
-                      keyboardEvent.key === " "
-                    ) {
-                      keyboardEvent.preventDefault();
-                      setDetailEvent(event);
-                    }
-                  }}
-                >
-                  <TableCell className="font-medium">{event.title}</TableCell>
-                  <TableCell>
-                    <EventTypeBadge type={event.type} />
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={event.imageUrl ? "outline" : "secondary"}>
-                      {event.imageUrl ? t("hasArt") : t("noArt")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(event.startsAt), "dd/MM/yyyy HH:mm", {
-                      locale: ptBR,
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    <EventVisibilityBadge published={event.published} />
-                  </TableCell>
-                  <TableCell>
-                    {canWrite ? (
-                      <div
-                        className="flex items-center gap-1"
-                        onClick={(clickEvent) => clickEvent.stopPropagation()}
-                      >
-                        {eventActions(event, index)}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        renderTable(visibleEvents)
       )}
 
       {detailEvent ? (
@@ -308,9 +665,11 @@ export const EventsAdminView = ({ canWrite }: { canWrite: boolean }) => {
           setFormOpen(open);
           if (!open) {
             setSelectedEvent(null);
+            setPrefillEvent(null);
           }
         }}
         event={selectedEvent}
+        prefill={prefillEvent}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         onSubmit={handleSubmit}
       />

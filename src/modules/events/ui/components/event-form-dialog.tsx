@@ -35,8 +35,10 @@ import {
 } from "@/lib/clipboard-image";
 import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
+import { isEventColorId } from "@/modules/events/event-colors";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
+import { EventColorPicker } from "@/modules/events/ui/components/event-color-picker";
 import { EventLocationFields } from "@/modules/events/ui/components/event-location-fields";
 import { isPlacesSuggestEvent } from "@/modules/events/ui/components/location-suggest-input";
 
@@ -51,6 +53,7 @@ type EventFormDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   event?: EventRecord | null;
+  prefill?: EventRecord | null;
   isSubmitting?: boolean;
   onSubmit: (values: EventFormInput) => void;
 };
@@ -59,6 +62,7 @@ export const EventFormDialog = ({
   open,
   onOpenChange,
   event,
+  prefill,
   isSubmitting,
   onSubmit,
 }: EventFormDialogProps) => {
@@ -80,6 +84,8 @@ export const EventFormDialog = ({
       location: "",
       locationMapsQuery: "",
       published: false,
+      color: null,
+      important: false,
       image: undefined,
       removeImage: false,
     },
@@ -103,24 +109,29 @@ export const EventFormDialog = ({
 
   useEffect(() => {
     if (open) {
+      const source = event ?? prefill;
+      const isReuse = Boolean(prefill) && !event;
+
       form.reset({
-        title: event?.title ?? "",
-        description: event?.description ?? "",
-        type: event?.type ?? "outro",
-        startsAt: toBrazilDateTimeLocal(event?.startsAt),
-        endsAt: toBrazilDateTimeLocal(event?.endsAt),
-        location: event?.location ?? "",
-        locationMapsQuery: event?.locationMapsQuery ?? "",
-        published: event?.published ?? false,
+        title: source?.title ?? "",
+        description: source?.description ?? "",
+        type: source?.type ?? "outro",
+        startsAt: isReuse ? "" : toBrazilDateTimeLocal(event?.startsAt),
+        endsAt: isReuse ? "" : toBrazilDateTimeLocal(event?.endsAt),
+        location: source?.location ?? "",
+        locationMapsQuery: source?.locationMapsQuery ?? "",
+        published: source?.published ?? false,
+        color: source && isEventColorId(source.color) ? source.color : null,
+        important: source?.important ?? false,
         image: undefined,
         removeImage: false,
       });
-      setPreview(event?.imageUrl ?? null);
+      setPreview(source?.imageUrl ?? null);
       setLocationOpen(
-        Boolean(event?.location?.trim() || event?.locationMapsQuery?.trim()),
+        Boolean(source?.location?.trim() || source?.locationMapsQuery?.trim()),
       );
     }
-  }, [open, event, form]);
+  }, [open, event, prefill, form]);
 
   useEffect(() => {
     if (!open) return;
@@ -179,7 +190,11 @@ export const EventFormDialog = ({
       >
         <DialogHeader>
           <DialogTitle>
-            {event ? t("form.editTitle") : t("form.createTitle")}
+            {event
+              ? t("form.editTitle")
+              : prefill
+                ? t("form.reuseTitle")
+                : t("form.createTitle")}
           </DialogTitle>
           <DialogDescription>{t("form.description")}</DialogDescription>
         </DialogHeader>
@@ -323,6 +338,47 @@ export const EventFormDialog = ({
                 onOpen={() => setLocationOpen(true)}
               />
             </div>
+
+            <Controller
+              control={form.control}
+              name="color"
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>{t("form.color")}</FieldLabel>
+                  <EventColorPicker
+                    type={form.watch("type")}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="important"
+              render={({ field }) => (
+                <Field orientation="horizontal">
+                  <input
+                    id="event-important"
+                    type="checkbox"
+                    className="size-4 rounded border-input"
+                    checked={field.value}
+                    onChange={(inputEvent) =>
+                      field.onChange(inputEvent.target.checked)
+                    }
+                  />
+                  <FieldLabel htmlFor="event-important" className="font-normal">
+                    <span className="flex flex-col gap-0.5">
+                      <span>{t("form.important")}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {t("importantHint")}
+                      </span>
+                    </span>
+                  </FieldLabel>
+                </Field>
+              )}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <Controller

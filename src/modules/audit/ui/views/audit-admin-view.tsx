@@ -63,6 +63,8 @@ const FIELD_KEYS = [
   "read",
   "albumId",
   "body",
+  "color",
+  "important",
 ] as const;
 
 type FieldKey = (typeof FIELD_KEYS)[number];

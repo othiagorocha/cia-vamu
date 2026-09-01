@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, gte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
@@ -8,6 +8,7 @@ import { deleteImageFromStorage, uploadImageToStorage } from "@/lib/storage";
 import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { diffFields } from "@/modules/audit/diff";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
+import { isEventArchived } from "@/modules/events/event-status";
 import {
   createEventSchema,
   removeEventSchema,
@@ -31,6 +32,30 @@ const persistEventOrder = async (orderedIds: string[]) => {
   });
 };
 
+const persistActiveOrder = async (orderedActiveIds: string[]) => {
+  const all = await db.select().from(events).orderBy(...eventListOrder);
+  const archivedIds = all
+    .filter((event) => isEventArchived(event))
+    .map((event) => event.id);
+  const activeIds = all
+    .filter((event) => !isEventArchived(event))
+    .map((event) => event.id);
+
+  const activeSet = new Set(activeIds);
+
+  if (
+    orderedActiveIds.length !== activeIds.length ||
+    orderedActiveIds.some((id) => !activeSet.has(id))
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "A ordem enviada não corresponde aos eventos ativos.",
+    });
+  }
+
+  await persistEventOrder([...orderedActiveIds, ...archivedIds]);
+};
+
 export const eventsRouter = createTRPCRouter({
   listUpcoming: baseProcedure.query(async () => {
     const now = new Date();
@@ -38,7 +63,15 @@ export const eventsRouter = createTRPCRouter({
     return db
       .select()
       .from(events)
-      .where(and(eq(events.published, true), gte(events.startsAt, now)))
+      .where(
+        and(
+          eq(events.published, true),
+          or(
+            gte(events.endsAt, now),
+            and(isNull(events.endsAt), gte(events.startsAt, now)),
+          ),
+        ),
+      )
       .orderBy(...eventListOrder);
   }),
 
@@ -67,7 +100,7 @@ export const eventsRouter = createTRPCRouter({
   create: requireCapability("events:write")
     .input(createEventSchema)
     .mutation(async ({ ctx, input }) => {
-      const { image, ...data } = input;
+      const { image, sourceEventId, ...data } = input;
       const [last] = await db
         .select({ sortOrder: events.sortOrder })
         .from(events)
@@ -85,6 +118,8 @@ export const eventsRouter = createTRPCRouter({
           location: data.location ?? null,
           locationMapsQuery: data.locationMapsQuery ?? null,
           published: data.published,
+          color: data.color,
+          important: data.important,
           sortOrder: (last?.sortOrder ?? -1) + 1,
         })
         .returning();
@@ -108,6 +143,25 @@ export const eventsRouter = createTRPCRouter({
           .returning();
 
         result = event ?? created;
+      } else if (sourceEventId) {
+        const [source] = await db
+          .select()
+          .from(events)
+          .where(eq(events.id, sourceEventId));
+
+        if (source?.imageUrl) {
+          const [event] = await db
+            .update(events)
+            .set({
+              imageUrl: source.imageUrl,
+              storagePath: source.storagePath,
+              updatedAt: new Date(),
+            })
+            .where(eq(events.id, created.id))
+            .returning();
+
+          result = event ?? created;
+        }
       }
 
       await writeAuditLog({
@@ -151,14 +205,44 @@ export const eventsRouter = createTRPCRouter({
         });
 
         if (existing.storagePath && existing.storagePath !== uploaded.storagePath) {
-          await deleteImageFromStorage(existing.storagePath).catch(() => undefined);
+          const [shared] = await db
+            .select({ id: events.id })
+            .from(events)
+            .where(
+              and(
+                eq(events.storagePath, existing.storagePath),
+                ne(events.id, existing.id),
+              ),
+            )
+            .limit(1);
+
+          if (!shared) {
+            await deleteImageFromStorage(existing.storagePath).catch(
+              () => undefined,
+            );
+          }
         }
 
         imageUrl = uploaded.imageUrl;
         storagePath = uploaded.storagePath;
       } else if (removeImage) {
         if (existing.storagePath) {
-          await deleteImageFromStorage(existing.storagePath).catch(() => undefined);
+          const [shared] = await db
+            .select({ id: events.id })
+            .from(events)
+            .where(
+              and(
+                eq(events.storagePath, existing.storagePath),
+                ne(events.id, existing.id),
+              ),
+            )
+            .limit(1);
+
+          if (!shared) {
+            await deleteImageFromStorage(existing.storagePath).catch(
+              () => undefined,
+            );
+          }
         }
 
         imageUrl = null;
@@ -176,6 +260,8 @@ export const eventsRouter = createTRPCRouter({
           location: data.location ?? null,
           locationMapsQuery: data.locationMapsQuery ?? null,
           published: data.published,
+          color: data.color,
+          important: data.important,
           imageUrl,
           storagePath,
           updatedAt: new Date(),
@@ -191,6 +277,8 @@ export const eventsRouter = createTRPCRouter({
             type: existing.type,
             location: existing.location,
             locationMapsQuery: existing.locationMapsQuery,
+            color: existing.color,
+            important: existing.important,
           },
           {
             title: event.title,
@@ -198,6 +286,8 @@ export const eventsRouter = createTRPCRouter({
             type: event.type,
             location: event.location,
             locationMapsQuery: event.locationMapsQuery,
+            color: event.color,
+            important: event.important,
           },
         );
 
@@ -234,7 +324,22 @@ export const eventsRouter = createTRPCRouter({
       }
 
       if (existing.storagePath) {
-        await deleteImageFromStorage(existing.storagePath).catch(() => undefined);
+        const [shared] = await db
+          .select({ id: events.id })
+          .from(events)
+          .where(
+            and(
+              eq(events.storagePath, existing.storagePath),
+              ne(events.id, existing.id),
+            ),
+          )
+          .limit(1);
+
+        if (!shared) {
+          await deleteImageFromStorage(existing.storagePath).catch(
+            () => undefined,
+          );
+        }
       }
 
       await db.delete(events).where(eq(events.id, input.id));
@@ -253,37 +358,15 @@ export const eventsRouter = createTRPCRouter({
   reorder: requireCapability("events:write")
     .input(reorderEventSchema)
     .mutation(async ({ ctx, input }) => {
-      const ordered = await db.select().from(events).orderBy(...eventListOrder);
-      const currentIndex = ordered.findIndex((event) => event.id === input.id);
-
-      if (currentIndex < 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Evento não encontrado.",
-        });
-      }
-
-      const targetIndex =
-        input.direction === "up" ? currentIndex - 1 : currentIndex + 1;
-
-      if (targetIndex < 0 || targetIndex >= ordered.length) {
-        return { success: true };
-      }
-
-      const reordered = [...ordered];
-      const [moved] = reordered.splice(currentIndex, 1);
-      reordered.splice(targetIndex, 0, moved);
-
-      await persistEventOrder(reordered.map((event) => event.id));
+      await persistActiveOrder(input.orderedIds);
 
       await writeAuditLog({
         actor: ctx.session.user,
         action: AUDIT_ACTIONS.EVENTS_REORDER,
         entityType: "event",
-        entityId: moved.id,
+        entityId: input.orderedIds[0],
         metadata: {
-          title: moved.title,
-          direction: input.direction,
+          count: input.orderedIds.length,
         },
       });
 

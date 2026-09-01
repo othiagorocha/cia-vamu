@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { CalendarIcon, PencilIcon } from "lucide-react";
+import { CalendarIcon, PencilIcon, StarIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 import { formatBrazilDateTime } from "@/lib/brazil-datetime";
 import { eventLocationLabel } from "@/lib/google-maps-url";
 import { cn } from "@/lib/utils";
+import { resolveEventColor } from "@/modules/events/event-colors";
 import { EventLocationLink } from "@/modules/events/ui/components/event-location-link";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
@@ -42,6 +43,7 @@ export const EventDetailDialog = ({
   const endsAtLabel = event.endsAt ? formatBrazilDateTime(event.endsAt) : null;
   const hasArt = Boolean(event.imageUrl);
   const locationLabel = eventLocationLabel(event);
+  const color = resolveEventColor(event);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -74,9 +76,20 @@ export const EventDetailDialog = ({
             >
               {event.title}
             </DialogTitle>
-            {showVisibility ? (
-              <EventVisibilityBadge published={event.published} />
-            ) : null}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {showVisibility ? (
+                <EventVisibilityBadge published={event.published} />
+              ) : null}
+              {event.important ? (
+                <span
+                  title={t("important")}
+                  className="inline-flex size-6 items-center justify-center rounded-full bg-orange-400 text-black"
+                >
+                  <StarIcon className="size-3.5 fill-current" />
+                  <span className="sr-only">{t("important")}</span>
+                </span>
+              ) : null}
+            </div>
             <DialogDescription className="sr-only">
               {t("details")}
             </DialogDescription>
@@ -94,7 +107,7 @@ export const EventDetailDialog = ({
           ) : null}
 
           <div className="flex flex-col items-start gap-3">
-            <EventTypeBadge type={event.type} />
+            <EventTypeBadge type={event.type} color={color} />
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
               <span className="flex items-start gap-2">
                 <CalendarIcon className="mt-0.5 size-4 shrink-0" />
