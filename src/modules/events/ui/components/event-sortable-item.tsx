@@ -15,6 +15,8 @@ type EventSortableItemProps = {
   showVisibility?: boolean;
   onEdit?: () => void;
   actions?: ReactNode;
+  enableSocial?: boolean;
+  canModerateSocial?: boolean;
 };
 
 export const EventSortableItem = ({
@@ -24,6 +26,8 @@ export const EventSortableItem = ({
   showVisibility,
   onEdit,
   actions,
+  enableSocial,
+  canModerateSocial,
 }: EventSortableItemProps) => {
   const {
     attributes,
@@ -59,6 +63,8 @@ export const EventSortableItem = ({
         onEdit={onEdit}
         actions={actions}
         shake={shake && !isDragging}
+        enableSocial={enableSocial}
+        canModerateSocial={canModerateSocial}
       />
     </div>
   );

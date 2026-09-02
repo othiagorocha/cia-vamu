@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
-import { CalendarIcon, StarIcon } from "lucide-react";
+import { CalendarIcon, MessageCircleIcon, StarIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Card, CardHeader } from "@/components/ui/card";
@@ -14,10 +14,64 @@ import {
   resolveEventColor,
 } from "@/modules/events/event-colors";
 import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
+import { EventLikeButton } from "@/modules/events/ui/components/event-like-button";
 import { EventLocationLink } from "@/modules/events/ui/components/event-location-link";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
 import type { EventRecord } from "@/modules/events/types";
+import { trpc } from "@/trpc/client";
+
+type EventCardSocialStatsProps = {
+  eventId: string;
+};
+
+const EventCardSocialStats = ({ eventId }: EventCardSocialStatsProps) => {
+  const t = useTranslations("events.social");
+  const { data } = trpc.events.eventSocial.useQuery(
+    { eventId },
+    { staleTime: 30_000 },
+  );
+
+  if (!data) {
+    return (
+      <div
+        aria-hidden
+        className="flex items-center gap-3"
+      >
+        <span className="h-3.5 w-10 animate-pulse rounded bg-muted/60" />
+        <span className="h-3.5 w-10 animate-pulse rounded bg-muted/60" />
+      </div>
+    );
+  }
+
+  const commentCount = data.comments.filter((comment) => !comment.deletedAt).length;
+
+  const stopCardOpen = (event: { stopPropagation: () => void }) => {
+    event.stopPropagation();
+  };
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-1 text-muted-foreground sm:gap-2"
+      onPointerDown={stopCardOpen}
+      onClick={stopCardOpen}
+    >
+      <EventLikeButton
+        eventId={eventId}
+        liked={data.liked}
+        likeCount={data.likeCount}
+        onPointerDown={stopCardOpen}
+      />
+      <span
+        className="inline-flex min-h-11 items-center gap-1 px-2 text-xs sm:text-sm"
+        title={t("comments")}
+      >
+        <MessageCircleIcon className="size-3.5 shrink-0" />
+        <span className="tabular-nums">{commentCount}</span>
+      </span>
+    </div>
+  );
+};
 
 type EventCardProps = {
   event: EventRecord;
@@ -25,6 +79,8 @@ type EventCardProps = {
   onEdit?: () => void;
   actions?: ReactNode;
   shake?: boolean;
+  enableSocial?: boolean;
+  canModerateSocial?: boolean;
 };
 
 export const EventCard = ({
@@ -33,6 +89,8 @@ export const EventCard = ({
   onEdit,
   actions,
   shake = false,
+  enableSocial = false,
+  canModerateSocial = false,
 }: EventCardProps) => {
   const t = useTranslations("events");
   const [open, setOpen] = useState(false);
@@ -144,6 +202,15 @@ export const EventCard = ({
                 </div>
               </CardHeader>
             </button>
+            {enableSocial ? (
+              <div
+                className={cn("px-4 pb-1", hasArt ? "pt-0" : "px-5 pb-2")}
+                onPointerDown={(pointerEvent) => pointerEvent.stopPropagation()}
+                onClick={(pointerEvent) => pointerEvent.stopPropagation()}
+              >
+                <EventCardSocialStats eventId={event.id} />
+              </div>
+            ) : null}
             {locationLabel ? (
               <div
                 className={cn(
@@ -176,6 +243,8 @@ export const EventCard = ({
         open={open}
         onOpenChange={setOpen}
         showVisibility={showVisibility}
+        enableSocial={enableSocial}
+        canModerateSocial={canModerateSocial}
         onEdit={
           onEdit
             ? () => {

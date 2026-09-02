@@ -277,6 +277,31 @@
       "publicHint": "Aparece na agenda do site.",
       "teamHint": "Visível só para quem entra no painel."
     },
+    "social": {
+      "like": "Curtir",
+      "unlike": "Descurtir",
+      "comment": "Comentar",
+      "comments": "Comentários",
+      "viewComments": "Ver comentários",
+      "collapseComments": "Recolher comentários",
+      "addComment": "Adicione um comentário...",
+      "post": "Postar",
+      "likeCount": "{count, plural, one {# curtida} other {# curtidas}}",
+      "likedBy": "Curtido por {name}",
+      "likedByOthers": "Curtido por {name} e outras {count} pessoas",
+      "likedByYou": "Curtido por você",
+      "likedByYouAnd": "Curtido por você e outras {count} pessoas",
+      "liked": "Curtido",
+      "beFirstLike": "Nenhuma curtida ainda — toque em Curtir",
+      "emptyComments": "Nenhum comentário ainda. Escreva o primeiro abaixo.",
+      "commentActions": "Ações do comentário",
+      "hiddenComment": "Ocultar",
+      "restore": "Restaurar",
+      "deleteForever": "Excluir de vez",
+      "commentUpdated": "Comentário atualizado.",
+      "commentDeleted": "Comentário excluído.",
+      "mentionHint": "Use @ para mencionar alguém da equipe. Após o @, Ctrl+Espaço abre ou filtra a lista."
+    },
     "form": {
       "createTitle": "Novo evento",
       "editTitle": "Editar evento",
@@ -657,6 +682,12 @@
           "create": "Criou tipo de agenda",
           "update": "Editou tipo de agenda",
           "remove": "Excluiu tipo de agenda"
+        },
+        "comment": {
+          "hide": "Ocultou comentário",
+          "restore": "Restaurou comentário",
+          "update": "Editou comentário",
+          "delete": "Excluiu comentário"
         }
       },
       "albums": {

@@ -270,12 +270,30 @@
   transform-origin: center center;
 }
 
+@keyframes event-like-count-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.event-like-count-pop {
+  display: inline-block;
+  animation: event-like-count-pop 0.38s cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
   .photo-fade,
   .prayer-react-pop,
   .prayer-react-spark,
-  .event-card-shake {
+  .event-card-shake,
+  .event-like-count-pop {
     animation: none;
   }
 

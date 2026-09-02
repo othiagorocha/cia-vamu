@@ -465,6 +465,8 @@ export const EventsAdminView = ({
                   showVisibility
                   onEdit={canWrite ? () => openEditor(event) : undefined}
                   actions={eventActions(event)}
+                  enableSocial
+                  canModerateSocial={canManageTypes}
                 />
               ))}
             </div>
@@ -472,7 +474,7 @@ export const EventsAdminView = ({
           <DragOverlay dropAnimation={null}>
             {activeDragEvent ? (
               <div className="pointer-events-none cursor-grabbing">
-                <EventCard event={activeDragEvent} showVisibility />
+                <EventCard event={activeDragEvent} showVisibility enableSocial canModerateSocial={canManageTypes} />
               </div>
             ) : null}
           </DragOverlay>
@@ -490,6 +492,8 @@ export const EventsAdminView = ({
               shake={scope === "active" && event.important}
               onEdit={canWrite ? () => openEditor(event) : undefined}
               actions={eventActions(event)}
+              enableSocial
+              canModerateSocial={canManageTypes}
             />
           </div>
         ))}
@@ -729,6 +733,8 @@ export const EventsAdminView = ({
           open
           onOpenChange={(open) => !open && setDetailEvent(null)}
           showVisibility
+          enableSocial
+          canModerateSocial={canManageTypes}
           onEdit={canWrite ? () => openEditor(detailEvent) : undefined}
         />
       ) : null}

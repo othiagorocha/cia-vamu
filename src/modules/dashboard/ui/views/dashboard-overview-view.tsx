@@ -200,7 +200,13 @@ export const DashboardOverviewView = ({
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
               {upcomingEvents.map((event) => (
-                <EventCard key={event.id} event={event} showVisibility />
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  showVisibility
+                  enableSocial
+                  canModerateSocial={canStaff}
+                />
               ))}
             </div>
           )}

@@ -94,6 +94,7 @@ const PHOTO_VALUES = ["set", "empty", "updated", "removed"] as const;
 const ENTITY_FALLBACK = {
   event: "event",
   event_type: "eventType",
+  event_comment: "comment",
   album: "album",
   photo: "photo",
   photo_comment: "comment",

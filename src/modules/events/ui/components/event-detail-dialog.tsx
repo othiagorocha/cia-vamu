@@ -21,6 +21,7 @@ import {
   resolveEventColor,
 } from "@/modules/events/event-colors";
 import { EventLocationLink } from "@/modules/events/ui/components/event-location-link";
+import { EventSocial } from "@/modules/events/ui/components/event-social";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
 import type { EventRecord } from "@/modules/events/types";
@@ -31,6 +32,8 @@ type EventDetailDialogProps = {
   onOpenChange: (open: boolean) => void;
   showVisibility?: boolean;
   onEdit?: () => void;
+  enableSocial?: boolean;
+  canModerateSocial?: boolean;
 };
 
 export const EventDetailDialog = ({
@@ -39,6 +42,8 @@ export const EventDetailDialog = ({
   onOpenChange,
   showVisibility = false,
   onEdit,
+  enableSocial = false,
+  canModerateSocial = false,
 }: EventDetailDialogProps) => {
   const t = useTranslations("events");
   const tCommon = useTranslations("common");
@@ -146,6 +151,10 @@ export const EventDetailDialog = ({
             </div>
           </div>
         </div>
+
+        {enableSocial ? (
+          <EventSocial eventId={event.id} canModerate={canModerateSocial} />
+        ) : null}
 
         {onEdit ? (
           <DialogFooter className="mx-0 mb-0 mt-5 border-t border-foreground/10 bg-transparent">

@@ -19,6 +19,10 @@ export const AUDIT_ACTIONS = {
   EVENTS_TYPE_CREATE: "events.type.create",
   EVENTS_TYPE_UPDATE: "events.type.update",
   EVENTS_TYPE_REMOVE: "events.type.remove",
+  EVENTS_COMMENT_HIDE: "events.comment.hide",
+  EVENTS_COMMENT_RESTORE: "events.comment.restore",
+  EVENTS_COMMENT_UPDATE: "events.comment.update",
+  EVENTS_COMMENT_DELETE: "events.comment.delete",
   ALBUMS_CREATE: "albums.create",
   ALBUMS_UPDATE: "albums.update",
   ALBUMS_REMOVE: "albums.remove",
@@ -66,6 +70,7 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 export const AUDIT_ENTITY_TYPES = [
   "event",
   "event_type",
+  "event_comment",
   "album",
   "photo",
   "photo_comment",

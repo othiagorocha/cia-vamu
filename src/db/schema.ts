@@ -211,15 +211,69 @@ export const photoComments = pgTable("photo_comments", {
     .defaultNow(),
 });
 
+export const eventLikes = pgTable(
+  "event_likes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [unique("event_likes_event_user").on(table.eventId, table.userId)],
+);
+
+export const eventComments = pgTable("event_comments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const eventCommentMentions = pgTable(
+  "event_comment_mentions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => eventComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("event_comment_mentions_comment_user").on(table.commentId, table.userId),
+    index("event_comment_mentions_comment_id_idx").on(table.commentId),
+  ],
+);
+
 export const eventTypesRelations = relations(eventTypes, ({ many }) => ({
   events: many(events),
 }));
 
-export const eventsRelations = relations(events, ({ one }) => ({
+export const eventsRelations = relations(events, ({ one, many }) => ({
   type: one(eventTypes, {
     fields: [events.typeId],
     references: [eventTypes.id],
   }),
+  likes: many(eventLikes),
+  comments: many(eventComments),
 }));
 
 export const albumsRelations = relations(albums, ({ many, one }) => ({
@@ -254,6 +308,35 @@ export const photoCommentsRelations = relations(photoComments, ({ one }) => ({
     references: [photos.id],
   }),
 }));
+
+export const eventLikesRelations = relations(eventLikes, ({ one }) => ({
+  event: one(events, {
+    fields: [eventLikes.eventId],
+    references: [events.id],
+  }),
+}));
+
+export const eventCommentsRelations = relations(eventComments, ({ one, many }) => ({
+  event: one(events, {
+    fields: [eventComments.eventId],
+    references: [events.id],
+  }),
+  mentions: many(eventCommentMentions),
+}));
+
+export const eventCommentMentionsRelations = relations(
+  eventCommentMentions,
+  ({ one }) => ({
+    comment: one(eventComments, {
+      fields: [eventCommentMentions.commentId],
+      references: [eventComments.id],
+    }),
+    user: one(user, {
+      fields: [eventCommentMentions.userId],
+      references: [user.id],
+    }),
+  }),
+);
 
 export const memberProfilesRelations = relations(memberProfiles, ({ one }) => ({
   user: one(user, {

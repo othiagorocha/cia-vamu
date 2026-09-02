@@ -18,6 +18,7 @@ import {
   updateEventSchema,
 } from "@/modules/events/schema";
 import { fetchPlaceSuggestions } from "@/modules/events/server/places-autocomplete";
+import { eventSocialProcedures } from "@/modules/events/server/social-procedures";
 import { toEventRecord } from "@/modules/events/server/to-event-record";
 import { baseProcedure, createTRPCRouter, protectedProcedure, requireCapability } from "@/trpc/init";
 
@@ -452,4 +453,6 @@ export const eventsRouter = createTRPCRouter({
   suggestLocations: requireCapability("events:write")
     .input(suggestLocationsSchema)
     .query(async ({ input }) => fetchPlaceSuggestions(input.query)),
+
+  ...eventSocialProcedures,
 });

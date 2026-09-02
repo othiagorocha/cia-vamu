@@ -22,3 +22,7 @@ export const updateMemberFlagsSchema = z.object({
   isMember: z.boolean(),
   showOnAbout: z.boolean(),
 });
+
+export const searchMentionableSchema = z.object({
+  query: z.string().trim().max(80),
+});

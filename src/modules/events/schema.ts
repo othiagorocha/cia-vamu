@@ -112,3 +112,29 @@ export const updateEventTypeSchema = z.object({
 export const removeEventTypeSchema = z.object({
   id: z.uuid(),
 });
+
+export const eventSocialQuerySchema = z.object({
+  eventId: z.uuid(),
+});
+
+export const toggleEventLikeSchema = z.object({
+  eventId: z.uuid(),
+});
+
+const mentionedUserIdSchema = z.string().min(1);
+
+export const addEventCommentSchema = z.object({
+  eventId: z.uuid(),
+  body: z.string().min(1).max(1000),
+  mentionedUserIds: z.array(mentionedUserIdSchema).default([]),
+});
+
+export const updateEventCommentSchema = z.object({
+  id: z.uuid(),
+  body: z.string().min(1).max(1000),
+  mentionedUserIds: z.array(mentionedUserIdSchema).default([]),
+});
+
+export const eventCommentIdSchema = z.object({
+  id: z.uuid(),
+});
