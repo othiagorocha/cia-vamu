@@ -16,7 +16,10 @@ import {
 import { formatBrazilDateTime } from "@/lib/brazil-datetime";
 import { eventLocationLabel } from "@/lib/google-maps-url";
 import { cn } from "@/lib/utils";
-import { resolveEventColor } from "@/modules/events/event-colors";
+import {
+  EVENT_COLOR_STYLES,
+  resolveEventColor,
+} from "@/modules/events/event-colors";
 import { EventLocationLink } from "@/modules/events/ui/components/event-location-link";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
@@ -44,10 +47,18 @@ export const EventDetailDialog = ({
   const hasArt = Boolean(event.imageUrl);
   const locationLabel = eventLocationLabel(event);
   const color = resolveEventColor(event);
+  const styles = EVENT_COLOR_STYLES[color];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-lg">
+      <DialogContent
+        className={cn(
+          "max-h-[90vh] overflow-y-auto p-0 sm:max-w-lg",
+          styles.dialog,
+          event.important &&
+            "ring-2 ring-orange-400 shadow-[0_0_28px_-10px_rgba(251,146,60,0.7)]",
+        )}
+      >
         {hasArt ? (
           <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-muted">
             <Image
@@ -137,7 +148,7 @@ export const EventDetailDialog = ({
         </div>
 
         {onEdit ? (
-          <DialogFooter className="mx-0 mb-0 mt-5">
+          <DialogFooter className="mx-0 mb-0 mt-5 border-t border-foreground/10 bg-transparent">
             <Button type="button" onClick={onEdit}>
               <PencilIcon />
               {tCommon("actions.edit")}
