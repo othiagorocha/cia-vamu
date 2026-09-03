@@ -96,6 +96,7 @@ type EventCardProps = {
   archivePending?: boolean;
   deletePending?: boolean;
   actions?: ReactNode;
+  dragHandle?: ReactNode;
   shake?: boolean;
   enableSocial?: boolean;
   canModerateSocial?: boolean;
@@ -114,6 +115,7 @@ export const EventCard = ({
   archivePending = false,
   deletePending = false,
   actions,
+  dragHandle,
   shake = false,
   enableSocial = false,
   canModerateSocial = false,
@@ -198,7 +200,9 @@ export const EventCard = ({
                 className={cn(
                   "flex flex-1 flex-col p-4",
                   hasArt ? "gap-3" : "gap-4 p-5",
-                  actions && !hasArt && "pr-12",
+                  (dragHandle || actions) &&
+                    !hasArt &&
+                    (dragHandle ? "pr-20" : "pr-12"),
                   locationLabel && (hasArt ? "pb-2" : "pb-3"),
                 )}
               >
@@ -287,13 +291,14 @@ export const EventCard = ({
             ) : null}
           </Card>
         </div>
-        {actions ? (
+        {dragHandle || actions ? (
           <div
             className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-lg bg-background/90 p-0.5 shadow-sm"
             onPointerDown={(pointerEvent) => pointerEvent.stopPropagation()}
             onPointerUp={(pointerEvent) => pointerEvent.stopPropagation()}
             onClick={(pointerEvent) => pointerEvent.stopPropagation()}
           >
+            {dragHandle}
             {actions}
           </div>
         ) : null}
