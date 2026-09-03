@@ -32,4 +32,4 @@ Toda edição de UI (público **e** admin) deve funcionar bem em **mobile** e **
 
 ## Verificação (obrigatória em mudança de UI)
 
-Antes de concluir: conferir **mobile (~375px)** e **tablet (~768px)**, além do desktop. Se houver ferramentas de browser, redimensionar e exercitar o fluxo; senão, revisar as classes de breakpoint no código tocado.
+Antes de concluir: conferir **mobile (~375px)** e **tablet (~768px)**, além do desktop, pelas classes de breakpoint no código tocado. Não abrir o navegador para isso sem o usuário pedir (ver `browser.mdc`).
