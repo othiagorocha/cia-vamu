@@ -77,6 +77,7 @@ import {
   filterEvents,
   groupEventsByMonth,
   isEventArchived,
+  mergeActiveScopeEvents,
   sortEvents,
   splitEventsByArchive,
 } from "@/modules/events/event-status";
@@ -91,9 +92,11 @@ import { suppressEventCardOpen } from "@/modules/events/ui/lib/suppress-event-ca
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventTypesDialog } from "@/modules/events/ui/components/event-types-dialog";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
+import { EventsIncludePastToggle } from "@/modules/events/ui/components/events-include-past-toggle";
 import { EventsViewModeToggle } from "@/modules/events/ui/components/events-view-mode-toggle";
 import { useAgendaAdminStorage } from "@/modules/events/ui/hooks/use-agenda-admin-storage";
 import { useEventAdminFilters } from "@/modules/events/ui/hooks/use-event-admin-filters";
+import { useEventsIncludePast } from "@/modules/events/ui/hooks/use-events-include-past";
 import { useEventsViewMode } from "@/modules/events/ui/hooks/use-events-view-mode";
 import type { EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
@@ -127,6 +130,7 @@ export const EventsAdminView = ({
   const [events] = trpc.events.listAll.useSuspenseQuery();
   const [types] = trpc.eventTypes.list.useSuspenseQuery();
   const [viewMode, setViewMode] = useEventsViewMode();
+  const [includePast, setIncludePast] = useEventsIncludePast();
   const { scope, setScope, filters, setFilters, hasListFilters, resetFilters } =
     useEventAdminFilters();
   useAgendaAdminStorage({
@@ -150,7 +154,10 @@ export const EventsAdminView = ({
     [events],
   );
 
-  const scopedEvents = scope === "active" ? active : archived;
+  const scopedEvents =
+    scope === "active"
+      ? mergeActiveScopeEvents(active, archived, includePast ?? false)
+      : archived;
   const visibleEvents = useMemo(
     () => sortEvents(filterEvents(scopedEvents, filters), filters.sort),
     [scopedEvents, filters],
@@ -163,6 +170,7 @@ export const EventsAdminView = ({
   const canDrag =
     canWrite &&
     scope === "active" &&
+    !includePast &&
     viewMode === "grid" &&
     filters.sort === "manual" &&
     !hasListFilters;
@@ -731,12 +739,22 @@ export const EventsAdminView = ({
         <p className="sr-only">{t("adminSubtitle", { hint: t("orderHint") })}</p>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           {events.length > 0 ? (
-            <EventsViewModeToggle
-              value={viewMode}
-              onChange={(mode) => {
-                void setViewMode(mode);
-              }}
-            />
+            <>
+              {scope === "active" ? (
+                <EventsIncludePastToggle
+                  value={includePast ?? false}
+                  onChange={(next) => {
+                    void setIncludePast(next);
+                  }}
+                />
+              ) : null}
+              <EventsViewModeToggle
+                value={viewMode}
+                onChange={(mode) => {
+                  void setViewMode(mode);
+                }}
+              />
+            </>
           ) : null}
           {scope === "active" && visibleEvents.length > 0 ? (
             <DropdownMenu>

@@ -16,6 +16,7 @@ import {
 import {
   buildCalendarDays,
   groupEventsByDay,
+  isEventArchived,
   parseMonthKey,
 } from "@/modules/events/event-status";
 import {
@@ -181,6 +182,7 @@ export const EventsCalendar = ({
                     {visibleEvents.map((event) => {
                       const color = resolveEventColor(event);
                       const styles = EVENT_COLOR_STYLES[color];
+                      const isPast = isEventArchived(event);
 
                       return (
                         <button
@@ -193,6 +195,7 @@ export const EventsCalendar = ({
                           className={cn(
                             "w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium leading-tight sm:text-[11px]",
                             styles.card,
+                            isPast && "opacity-60",
                             "hover:opacity-90",
                           )}
                           title={event.title}

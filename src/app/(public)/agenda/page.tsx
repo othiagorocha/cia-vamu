@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 const AgendaPage = async () => {
   const t = await getTranslations("events");
 
-  void trpc.events.listUpcoming.prefetch();
+  void trpc.events.listUpcoming.prefetch({ includePast: false });
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-16">

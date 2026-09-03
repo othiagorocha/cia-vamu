@@ -96,23 +96,27 @@ const persistActiveOrder = async (orderedActiveIds: string[]) => {
 };
 
 export const eventsRouter = createTRPCRouter({
-  listUpcoming: baseProcedure.query(async () => {
-    const now = new Date();
+  listUpcoming: baseProcedure
+    .input(z.object({ includePast: z.boolean().default(false) }))
+    .query(async ({ input }) => {
+      const now = new Date();
 
-    const rows = await db.query.events.findMany({
-      where: and(
-        eq(events.published, true),
-        or(
-          gte(events.endsAt, now),
-          and(isNull(events.endsAt), gte(events.startsAt, now)),
-        ),
-      ),
-      orderBy: [...eventListOrder],
-      ...eventWithType,
-    });
+      const rows = await db.query.events.findMany({
+        where: input.includePast
+          ? eq(events.published, true)
+          : and(
+              eq(events.published, true),
+              or(
+                gte(events.endsAt, now),
+                and(isNull(events.endsAt), gte(events.startsAt, now)),
+              ),
+            ),
+        orderBy: [...eventListOrder],
+        ...eventWithType,
+      });
 
-    return rows.flatMap((event) => (event.type ? [toEventRecord(event)] : []));
-  }),
+      return rows.flatMap((event) => (event.type ? [toEventRecord(event)] : []));
+    }),
 
   listAll: protectedProcedure.query(async () => {
     const rows = await db.query.events.findMany({

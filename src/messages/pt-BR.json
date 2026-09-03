@@ -187,6 +187,12 @@
     "title": "Agenda",
     "subtitle": "Confira os próximos eventos da CIA VAMU.",
     "empty": "Nenhum evento programado no momento.",
+    "emptyAll": "Nenhum evento publicado na agenda.",
+    "includePast": {
+      "label": "Período da agenda",
+      "upcoming": "Próximos",
+      "all": "Todos"
+    },
     "adminTitle": "Agenda",
     "adminSubtitle": "Eventos da agenda pública e os encontros só do ministério. {hint}",
     "adminEmpty": "Nenhum evento cadastrado ainda.",

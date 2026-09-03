@@ -13,7 +13,9 @@ const HOME_EVENTS_LIMIT = 12;
 
 export const UpcomingEvents = () => {
   const t = useTranslations("home.events");
-  const [events] = trpc.events.listUpcoming.useSuspenseQuery();
+  const [events] = trpc.events.listUpcoming.useSuspenseQuery({
+    includePast: false,
+  });
   const upcoming = events.slice(0, HOME_EVENTS_LIMIT);
 
   return (

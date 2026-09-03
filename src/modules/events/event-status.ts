@@ -109,6 +109,12 @@ export const computeArchivedEventDates = (
   };
 };
 
+export const mergeActiveScopeEvents = (
+  active: EventRecord[],
+  archived: EventRecord[],
+  includePast: boolean,
+) => (includePast ? [...active, ...archived] : active);
+
 export const splitEventsByArchive = (
   events: EventRecord[],
   now = new Date(),
