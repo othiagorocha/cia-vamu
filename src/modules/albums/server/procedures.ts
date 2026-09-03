@@ -26,11 +26,14 @@ import { createNotifications } from "@/modules/notifications/server/create-notif
 import {
   addPhotoSchema,
   addPhotoCommentSchema,
+  copyPhotosSchema,
   createAlbumSchema,
   createPhotoUploadSchema,
   movePhotoSchema,
+  movePhotosSchema,
   removeAlbumSchema,
   removePhotoSchema,
+  removePhotosSchema,
   setCoverSchema,
   clearCoverSchema,
   updateAlbumSchema,
@@ -49,6 +52,24 @@ const REMOVED_ALBUM_TITLE = "Álbum removido";
 const optionalTitle = (value: string | null | undefined) => {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
+};
+
+const deleteStorageIfUnused = async (storagePath: string | null) => {
+  if (!storagePath) {
+    return;
+  }
+
+  const [stillUsed] = await db
+    .select({ id: photos.id })
+    .from(photos)
+    .where(eq(photos.storagePath, storagePath))
+    .limit(1);
+
+  if (stillUsed) {
+    return;
+  }
+
+  await deleteImageFromStorage(storagePath).catch(() => undefined);
 };
 
 const loadPhotoAuditContext = async (photoId: string) => {
@@ -718,9 +739,7 @@ export const albumsRouter = createTRPCRouter({
 
       await db.delete(photos).where(eq(photos.id, input.id));
 
-      if (photo.storagePath) {
-        await deleteImageFromStorage(photo.storagePath).catch(() => undefined);
-      }
+      await deleteStorageIfUnused(photo.storagePath);
 
       await writeAuditLog({
         actor: ctx.session.user,
@@ -734,6 +753,56 @@ export const albumsRouter = createTRPCRouter({
       });
 
       return { success: true };
+    }),
+
+  removePhotos: requireCapability("albums:write")
+    .input(removePhotosSchema)
+    .mutation(async ({ ctx, input }) => {
+      const uniqueIds = [...new Set(input.ids)];
+      const rows = await db
+        .select({
+          id: photos.id,
+          title: photos.title,
+          storagePath: photos.storagePath,
+          albumTitle: albums.title,
+        })
+        .from(photos)
+        .innerJoin(albums, eq(albums.id, photos.albumId))
+        .where(
+          and(eq(photos.albumId, input.albumId), inArray(photos.id, uniqueIds)),
+        );
+
+      if (rows.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Foto não encontrada.",
+        });
+      }
+
+      const ids = rows.map((row) => row.id);
+      await db.delete(photos).where(inArray(photos.id, ids));
+
+      const uniquePaths = [
+        ...new Set(
+          rows
+            .map((row) => row.storagePath)
+            .filter((path): path is string => Boolean(path)),
+        ),
+      ];
+      await Promise.all(uniquePaths.map((path) => deleteStorageIfUnused(path)));
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_PHOTO_DELETE,
+        entityType: "album",
+        entityId: input.albumId,
+        metadata: {
+          count: rows.length,
+          albumTitle: rows[0]?.albumTitle,
+        },
+      });
+
+      return { success: true, count: rows.length };
     }),
 
   movePhoto: requireCapability("albums:write")
@@ -820,6 +889,138 @@ export const albumsRouter = createTRPCRouter({
       return moved;
     }),
 
+  movePhotos: requireCapability("albums:write")
+    .input(movePhotosSchema)
+    .mutation(async ({ ctx, input }) => {
+      const uniqueIds = [...new Set(input.ids)];
+      const sourcePhotos = await db
+        .select()
+        .from(photos)
+        .where(inArray(photos.id, uniqueIds));
+
+      const toMove = sourcePhotos.filter(
+        (photo) => photo.albumId !== input.albumId,
+      );
+
+      if (toMove.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "A foto já está neste álbum.",
+        });
+      }
+
+      const originIds = [...new Set(toMove.map((photo) => photo.albumId))];
+      const albumRows = await db
+        .select({ id: albums.id, title: albums.title })
+        .from(albums)
+        .where(inArray(albums.id, [...originIds, input.albumId]));
+
+      const destination = albumRows.find((row) => row.id === input.albumId);
+      if (!destination) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Álbum de destino não encontrado.",
+        });
+      }
+
+      const destinationPhotos = await db
+        .select({ id: photos.id })
+        .from(photos)
+        .where(eq(photos.albumId, input.albumId));
+
+      let sortOrder = destinationPhotos.length;
+      for (const photo of toMove) {
+        await db
+          .update(photos)
+          .set({
+            albumId: input.albumId,
+            sortOrder,
+          })
+          .where(eq(photos.id, photo.id));
+        sortOrder += 1;
+      }
+
+      const fromAlbumTitle =
+        albumRows.find((row) => row.id === toMove[0]?.albumId)?.title ??
+        REMOVED_ALBUM_TITLE;
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_PHOTO_MOVE,
+        entityType: "album",
+        entityId: input.albumId,
+        metadata: {
+          count: toMove.length,
+          albumTitle: destination.title,
+          fromAlbumTitle,
+          toAlbumTitle: destination.title,
+        },
+      });
+
+      return { success: true, count: toMove.length };
+    }),
+
+  copyPhotos: requireCapability("albums:write")
+    .input(copyPhotosSchema)
+    .mutation(async ({ ctx, input }) => {
+      const uniqueIds = [...new Set(input.ids)];
+      const sourcePhotos = await db
+        .select()
+        .from(photos)
+        .where(inArray(photos.id, uniqueIds));
+
+      if (sourcePhotos.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Foto não encontrada.",
+        });
+      }
+
+      const [destination] = await db
+        .select({ id: albums.id, title: albums.title })
+        .from(albums)
+        .where(eq(albums.id, input.albumId));
+
+      if (!destination) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Álbum de destino não encontrado.",
+        });
+      }
+
+      const destinationPhotos = await db
+        .select({ id: photos.id })
+        .from(photos)
+        .where(eq(photos.albumId, input.albumId));
+
+      const inserted = await db
+        .insert(photos)
+        .values(
+          sourcePhotos.map((photo, index) => ({
+            albumId: input.albumId,
+            imageUrl: photo.imageUrl,
+            storagePath: photo.storagePath,
+            title: photo.title,
+            caption: photo.caption,
+            sortOrder: destinationPhotos.length + index,
+          })),
+        )
+        .returning({ id: photos.id });
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.ALBUMS_PHOTO_ADD,
+        entityType: "album",
+        entityId: input.albumId,
+        metadata: {
+          count: inserted.length,
+          albumTitle: destination.title,
+        },
+      });
+
+      return { success: true, count: inserted.length };
+    }),
+
   setCover: requireCapability("albums:write")
     .input(setCoverSchema)
     .mutation(async ({ ctx, input }) => {
@@ -886,7 +1087,7 @@ export const albumsRouter = createTRPCRouter({
         .update(albums)
         .set({
           coverImageUrl: null,
-          hideCover: false,
+          hideCover: input.hideCover,
           updatedAt: new Date(),
         })
         .where(eq(albums.id, input.albumId))

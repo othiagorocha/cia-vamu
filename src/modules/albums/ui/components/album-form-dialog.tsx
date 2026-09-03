@@ -77,7 +77,9 @@ export const AlbumFormDialog = ({
     },
   });
   const hideCover = form.watch("hideCover") ?? false;
-  const hasVisibleCover = Boolean(preview) || !hideCover;
+  const showingCustomCover = Boolean(preview);
+  const showingDefaultCover = !preview && !hideCover;
+  const showingHiddenCover = !preview && hideCover;
 
   const imageErrorMessage = (error: unknown) => {
     if (error instanceof ImagePrepareError) {
@@ -271,6 +273,7 @@ export const AlbumFormDialog = ({
                           type="button"
                           variant="outline"
                           size="sm"
+                          className="min-h-11"
                           disabled={isPasting}
                           onClick={handlePasteFromClipboard}
                         >
@@ -281,26 +284,44 @@ export const AlbumFormDialog = ({
                           )}
                           Colar imagem
                         </Button>
-                        {hasVisibleCover ? (
+                        {showingCustomCover || showingHiddenCover ? (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="min-h-11"
                             onClick={() => {
-                              if (preview) {
-                                setPreview(null);
-                                onChange(undefined);
-                                form.setValue("removeCover", true, {
-                                  shouldDirty: true,
-                                });
-                                form.setValue("hideCover", false, {
-                                  shouldDirty: true,
-                                });
-                              } else {
-                                form.setValue("hideCover", true, {
-                                  shouldDirty: true,
-                                });
+                              setPreview(null);
+                              onChange(undefined);
+                              form.setValue("removeCover", true, {
+                                shouldDirty: true,
+                              });
+                              form.setValue("hideCover", false, {
+                                shouldDirty: true,
+                              });
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = "";
                               }
+                            }}
+                          >
+                            {t("useDefaultCover")}
+                          </Button>
+                        ) : null}
+                        {showingCustomCover || showingDefaultCover ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="min-h-11"
+                            onClick={() => {
+                              setPreview(null);
+                              onChange(undefined);
+                              form.setValue("removeCover", true, {
+                                shouldDirty: true,
+                              });
+                              form.setValue("hideCover", true, {
+                                shouldDirty: true,
+                              });
                               if (fileInputRef.current) {
                                 fileInputRef.current.value = "";
                               }
@@ -308,20 +329,7 @@ export const AlbumFormDialog = ({
                           >
                             {t("removeCover")}
                           </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              form.setValue("hideCover", false, {
-                                shouldDirty: true,
-                              });
-                            }}
-                          >
-                            {t("useDefaultCover")}
-                          </Button>
-                        )}
+                        ) : null}
                         <span className="text-xs text-muted-foreground">
                           ou Ctrl+V / Cmd+V com o diálogo aberto
                         </span>

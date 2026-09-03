@@ -46,9 +46,26 @@ export const removePhotoSchema = z.object({
   id: z.uuid(),
 });
 
+export const photoIdsSchema = z.array(z.uuid()).min(1).max(50);
+
+export const removePhotosSchema = z.object({
+  albumId: z.uuid(),
+  ids: photoIdsSchema,
+});
+
 export const movePhotoSchema = z.object({
   id: z.uuid(),
   albumId: z.uuid(),
+});
+
+export const movePhotosSchema = z.object({
+  albumId: z.uuid(),
+  ids: photoIdsSchema,
+});
+
+export const copyPhotosSchema = z.object({
+  albumId: z.uuid(),
+  ids: photoIdsSchema,
 });
 
 export const setCoverSchema = z.object({
@@ -58,6 +75,7 @@ export const setCoverSchema = z.object({
 
 export const clearCoverSchema = z.object({
   albumId: z.uuid(),
+  hideCover: z.boolean().default(false),
 });
 
 export const updatePhotoSchema = z.object({
