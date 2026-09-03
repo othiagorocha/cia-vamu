@@ -14,6 +14,7 @@ export const albumFormSchema = z.object({
   parentId: z.uuid().optional().or(z.literal("")),
   coverImage: dataUrlSchema.optional(),
   removeCover: z.boolean().optional(),
+  hideCover: z.boolean().optional(),
 });
 
 export type AlbumFormInput = z.infer<typeof albumFormSchema>;

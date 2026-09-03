@@ -29,6 +29,7 @@ export const albums = pgTable("albums", {
   title: text("title").notNull(),
   description: text("description"),
   coverImageUrl: text("cover_image_url"),
+  hideCover: boolean("hide_cover").notNull().default(false),
   parentId: uuid("parent_id").references((): AnyPgColumn => albums.id, {
     onDelete: "set null",
   }),

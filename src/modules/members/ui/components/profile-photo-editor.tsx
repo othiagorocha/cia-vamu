@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MoveIcon, Trash2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { PhotoExpandDialog } from "@/components/photo-expand-dialog";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,9 @@ import {
   coverScaleFor,
   type PhotoFrame,
 } from "@/lib/crop-photo";
+import { fileToDataUrl } from "@/lib/file-to-data-url";
+import { IMAGE_FILE_ACCEPT } from "@/lib/image-file";
+import { ImagePrepareError } from "@/lib/prepare-image-file";
 import { cn } from "@/lib/utils";
 
 type ProfilePhotoEditorProps = {
@@ -34,6 +38,7 @@ export const ProfilePhotoEditor = ({
   align = "start",
 }: ProfilePhotoEditorProps) => {
   const t = useTranslations("staff.profile");
+  const tCommon = useTranslations("common");
   const viewportRef = useRef<HTMLDivElement>(null);
   const pointer = useRef<{ lastX: number; lastY: number } | null>(null);
   const [natural, setNatural] = useState({ width: 0, height: 0 });
@@ -229,20 +234,24 @@ export const ProfilePhotoEditor = ({
       ) : null}
       <Input
         type="file"
-        accept="image/*"
+        accept={IMAGE_FILE_ACCEPT}
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (!file) {
             return;
           }
 
-          const reader = new FileReader();
-          reader.onload = () => {
-            if (typeof reader.result === "string") {
-              onFile(reader.result);
-            }
-          };
-          reader.readAsDataURL(file);
+          void fileToDataUrl(file)
+            .then((dataUrl) => {
+              onFile(dataUrl);
+            })
+            .catch((error: unknown) => {
+              toast.error(
+                error instanceof ImagePrepareError
+                  ? tCommon(`errors.${error.code}`)
+                  : tCommon("errors.imageType"),
+              );
+            });
         }}
       />
       <PhotoExpandDialog

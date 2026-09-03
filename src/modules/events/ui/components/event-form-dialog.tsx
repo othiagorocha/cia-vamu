@@ -34,6 +34,8 @@ import {
   readImageFileFromClipboard,
 } from "@/lib/clipboard-image";
 import { fileToDataUrl } from "@/lib/file-to-data-url";
+import { IMAGE_FILE_ACCEPT } from "@/lib/image-file";
+import { ImagePrepareError } from "@/lib/prepare-image-file";
 import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { isEventColorId } from "@/modules/events/event-colors";
 import { computeReuseEventDates } from "@/modules/events/event-status";
@@ -93,6 +95,16 @@ export const EventFormDialog = ({
     },
   });
 
+  const imageErrorMessage = (error: unknown) => {
+    if (error instanceof ImagePrepareError) {
+      return tCommon(`errors.${error.code}`);
+    }
+    if (error instanceof ClipboardImageError) {
+      return error.message;
+    }
+    return tCommon("errors.generic");
+  };
+
   const applyImageFile = async (file: File) => {
     try {
       const dataUrl = await clipboardImageToDataUrl(file);
@@ -101,11 +113,7 @@ export const EventFormDialog = ({
       form.setValue("removeImage", false, { shouldDirty: true });
       toast.success("Arte colada da área de transferência.");
     } catch (error) {
-      toast.error(
-        error instanceof ClipboardImageError
-          ? error.message
-          : "Não foi possível colar a imagem.",
-      );
+      toast.error(imageErrorMessage(error));
     }
   };
 
@@ -168,11 +176,7 @@ export const EventFormDialog = ({
       const file = await readImageFileFromClipboard();
       await applyImageFile(file);
     } catch (error) {
-      toast.error(
-        error instanceof ClipboardImageError
-          ? error.message
-          : "Não foi possível colar a imagem.",
-      );
+      toast.error(imageErrorMessage(error));
     } finally {
       setIsPasting(false);
     }
@@ -271,17 +275,21 @@ export const EventFormDialog = ({
                           ref={fileInputRef}
                           id="event-image"
                           type="file"
-                          accept="image/*"
+                          accept={IMAGE_FILE_ACCEPT}
                           value={undefined}
                           onChange={async (inputEvent) => {
                             const file = inputEvent.target.files?.[0];
                             if (!file) return;
-                            const dataUrl = await fileToDataUrl(file);
-                            setPreview(dataUrl);
-                            onChange(dataUrl);
-                            form.setValue("removeImage", false, {
-                              shouldDirty: true,
-                            });
+                            try {
+                              const dataUrl = await fileToDataUrl(file);
+                              setPreview(dataUrl);
+                              onChange(dataUrl);
+                              form.setValue("removeImage", false, {
+                                shouldDirty: true,
+                              });
+                            } catch (error) {
+                              toast.error(imageErrorMessage(error));
+                            }
                           }}
                         />
                         <div className="flex flex-wrap items-center gap-2">

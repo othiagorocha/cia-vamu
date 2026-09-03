@@ -27,7 +27,9 @@
       "tooManyRequests": "Muitas tentativas. Aguarde um pouco.",
       "sessionFailed": "Não foi possível iniciar a sessão. Tente novamente.",
       "server": "Erro no servidor. Tente novamente em instantes.",
-      "generic": "Não foi possível concluir. Tente novamente."
+      "generic": "Não foi possível concluir. Tente novamente.",
+      "imageType": "Use uma imagem PNG, JPEG, WebP, GIF ou HEIC.",
+      "heicConvert": "Não foi possível converter a foto HEIC."
     },
     "footer": {
       "tagline": "Ministério evangelístico missionário da Igreja Evangélica Batista de Ibitinga — Visão, Arte, Missão, Unção.",
@@ -114,10 +116,14 @@
     "subtitle": "Fotos dos nossos trabalhos, viagens e apresentações.",
     "empty": "Nenhum álbum publicado no momento.",
     "emptyPhotos": "Este álbum ainda não tem fotos.",
+    "photoFallback": "Foto do álbum",
+    "photoLoading": "Carregando foto",
     "backToAlbums": "Voltar aos álbuns",
     "backToParent": "Voltar para {title}",
     "previousAlbum": "Álbum anterior",
     "nextAlbum": "Próximo álbum",
+    "previousPhoto": "Foto anterior",
+    "nextPhoto": "Próxima foto",
     "photoCount": "{count, plural, one {# foto} other {# fotos}}",
     "childCount": "{count, plural, one {# álbum} other {# álbuns}}",
     "adminTitle": "Álbuns",
@@ -156,6 +162,7 @@
     "setCover": "Definir como capa",
     "coverSet": "Capa atualizada.",
     "removeCover": "Remover capa",
+    "useDefaultCover": "Usar capa padrão",
     "coverRemoved": "Capa removida.",
     "cover": "Capa",
     "photoActions": "Opções da foto",

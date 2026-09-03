@@ -244,6 +244,7 @@ export const albumsRouter = createTRPCRouter({
         title: albums.title,
         description: albums.description,
         coverImageUrl: albums.coverImageUrl,
+        hideCover: albums.hideCover,
         parentId: albums.parentId,
         published: albums.published,
         publishedAt: albums.publishedAt,
@@ -332,6 +333,7 @@ export const albumsRouter = createTRPCRouter({
             title: child.title,
             description: child.description,
             coverImageUrl: child.coverImageUrl,
+            hideCover: child.hideCover,
             parentId: child.parentId,
             published: child.published,
             publishedAt: child.publishedAt,
@@ -350,6 +352,7 @@ export const albumsRouter = createTRPCRouter({
         title: albums.title,
         description: albums.description,
         coverImageUrl: albums.coverImageUrl,
+        hideCover: albums.hideCover,
         parentId: albums.parentId,
         published: albums.published,
         publishedAt: albums.publishedAt,
@@ -406,7 +409,7 @@ export const albumsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       await assertValidParent(input.parentId);
 
-      let coverImageUrl: string | undefined;
+      const hideCover = input.coverImage ? false : Boolean(input.hideCover);
 
       const [album] = await db
         .insert(albums)
@@ -416,8 +419,11 @@ export const albumsRouter = createTRPCRouter({
           published: input.published,
           parentId: input.parentId || null,
           publishedAt: input.published ? new Date() : null,
+          hideCover,
         })
         .returning();
+
+      let coverImageUrl = album.coverImageUrl;
 
       if (input.coverImage) {
         const uploaded = await uploadImageToStorage({
@@ -435,7 +441,8 @@ export const albumsRouter = createTRPCRouter({
 
       const result = {
         ...album,
-        coverImageUrl: coverImageUrl ?? album.coverImageUrl,
+        coverImageUrl,
+        hideCover,
       };
 
       await writeAuditLog({
@@ -468,6 +475,7 @@ export const albumsRouter = createTRPCRouter({
       await assertValidParent(input.data.parentId, input.id);
 
       let coverImageUrl = existing.coverImageUrl;
+      let hideCover = existing.hideCover;
 
       if (input.data.coverImage) {
         const uploaded = await uploadImageToStorage({
@@ -476,8 +484,12 @@ export const albumsRouter = createTRPCRouter({
           fileName: "cover",
         });
         coverImageUrl = uploaded.imageUrl;
+        hideCover = false;
       } else if (input.data.removeCover) {
         coverImageUrl = null;
+        hideCover = Boolean(input.data.hideCover);
+      } else {
+        hideCover = Boolean(input.data.hideCover);
       }
 
       const wasPublished = existing.published;
@@ -491,6 +503,7 @@ export const albumsRouter = createTRPCRouter({
           published: willBePublished,
           parentId: input.data.parentId || null,
           coverImageUrl,
+          hideCover,
           publishedAt:
             !wasPublished && willBePublished
               ? new Date()
@@ -826,6 +839,7 @@ export const albumsRouter = createTRPCRouter({
         .update(albums)
         .set({
           coverImageUrl: photo.imageUrl,
+          hideCover: false,
           updatedAt: new Date(),
         })
         .where(eq(albums.id, input.albumId))
@@ -872,6 +886,7 @@ export const albumsRouter = createTRPCRouter({
         .update(albums)
         .set({
           coverImageUrl: null,
+          hideCover: false,
           updatedAt: new Date(),
         })
         .where(eq(albums.id, input.albumId))

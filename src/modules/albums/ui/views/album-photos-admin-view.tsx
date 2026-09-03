@@ -7,7 +7,6 @@ import {
   ArrowRightLeftIcon,
   ClipboardPasteIcon,
   FolderPlusIcon,
-  ImageIcon,
   Loader2Icon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -44,7 +43,11 @@ import {
   imageFileFromClipboardItems,
   readImageFileFromClipboard,
 } from "@/lib/clipboard-image";
-import { normalizeImageContentType } from "@/lib/image-file";
+import { IMAGE_FILE_ACCEPT, normalizeImageContentType } from "@/lib/image-file";
+import {
+  ImagePrepareError,
+  prepareImageFile,
+} from "@/lib/prepare-image-file";
 import { uploadFileToSignedUrl } from "@/lib/upload-to-signed-url";
 import { useToastError } from "@/lib/use-toast-error";
 import {
@@ -60,6 +63,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import type { AlbumFormInput } from "@/modules/albums/schema";
 import type { PhotoRecord } from "@/modules/albums/types";
+import { AlbumCover } from "@/modules/albums/ui/components/album-cover";
 import { AlbumFormDialog } from "@/modules/albums/ui/components/album-form-dialog";
 import { AlbumsAdminBreadcrumb } from "@/modules/albums/ui/components/albums-admin-breadcrumb";
 import { PhotoLightbox } from "@/modules/albums/ui/components/photo-lightbox";
@@ -207,22 +211,26 @@ export const AlbumPhotosAdminView = ({
 
   const isRootAlbum = !album.parentId;
 
-  const enqueueFiles = (files: File[]) => {
+  const enqueueFiles = async (files: File[]) => {
     const accepted: typeof queue = [];
 
     for (const file of files) {
-      if (!normalizeImageContentType(file.type)) {
-        toast.error("Use uma imagem PNG, JPEG, WebP ou GIF.");
-        continue;
+      try {
+        const prepared = await prepareImageFile(file);
+        accepted.push({
+          id: crypto.randomUUID(),
+          file: prepared,
+          preview: URL.createObjectURL(prepared),
+          title: "",
+          caption: "",
+        });
+      } catch (error) {
+        toast.error(
+          error instanceof ImagePrepareError
+            ? tCommon(`errors.${error.code}`)
+            : tCommon("errors.imageType"),
+        );
       }
-
-      accepted.push({
-        id: crypto.randomUUID(),
-        file,
-        preview: URL.createObjectURL(file),
-        title: "",
-        caption: "",
-      });
     }
 
     if (accepted.length === 0) {
@@ -244,13 +252,11 @@ export const AlbumPhotosAdminView = ({
 
   const handleFilesSelected = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    enqueueFiles(Array.from(files));
+    void enqueueFiles(Array.from(files));
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const pastePhoto = (file: File) => {
-    enqueueFiles([file]);
-  };
+  const pastePhoto = (file: File) => enqueueFiles([file]);
 
   const confirmQueue = async () => {
     if (queue.length === 0) return;
@@ -259,7 +265,7 @@ export const AlbumPhotosAdminView = ({
       for (const item of queue) {
         const contentType = normalizeImageContentType(item.file.type);
         if (!contentType) {
-          throw new Error("Use uma imagem PNG, JPEG, WebP ou GIF.");
+          throw new Error(tCommon("errors.imageType"));
         }
 
         const upload = await createPhotoUploadMutation.mutateAsync({
@@ -371,7 +377,7 @@ export const AlbumPhotosAdminView = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={IMAGE_FILE_ACCEPT}
             multiple
             className="hidden"
             onChange={(event) => handleFilesSelected(event.target.files)}
@@ -433,21 +439,13 @@ export const AlbumPhotosAdminView = ({
                   href={`/admin/albums/${child.id}`}
                   className="group flex overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
                 >
-                  <div className="relative size-20 shrink-0 bg-muted">
-                    {child.coverImageUrl ? (
-                      <Image
-                        src={child.coverImageUrl}
-                        alt={child.title}
-                        fill
-                        className="object-cover"
-                        sizes="80px"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                        <ImageIcon className="size-6" />
-                      </div>
-                    )}
-                  </div>
+                  <AlbumCover
+                    src={child.coverImageUrl}
+                    hideCover={child.hideCover}
+                    alt={child.title}
+                    className="size-20 shrink-0"
+                    sizes="80px"
+                  />
                   <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-3">
                     <p className="truncate font-medium">{child.title}</p>
                     <Badge

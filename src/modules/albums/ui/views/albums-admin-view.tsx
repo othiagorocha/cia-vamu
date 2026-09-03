@@ -1,10 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-  ImageIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
@@ -44,6 +42,7 @@ import { useToastError } from "@/lib/use-toast-error";
 import { cn } from "@/lib/utils";
 import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
 import { AlbumFormDialog } from "@/modules/albums/ui/components/album-form-dialog";
+import { AlbumCover } from "@/modules/albums/ui/components/album-cover";
 import type { AlbumFormInput } from "@/modules/albums/schema";
 import type { AdminAlbumCard } from "@/modules/albums/types";
 import { groupAlbumsByParent } from "@/modules/albums/group-albums";
@@ -116,39 +115,21 @@ export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   };
 
   const albumCover = (album: AdminAlbumCard) => (
-    <span className="relative aspect-4/3 w-full overflow-hidden bg-muted">
-      {album.coverImageUrl ? (
-        <Image
-          src={album.coverImageUrl}
-          alt=""
-          fill
-          className="object-cover"
-          sizes="(min-width: 1024px) 280px, (min-width: 640px) 240px, 100vw"
-        />
-      ) : (
-        <span className="flex size-full items-center justify-center text-muted-foreground">
-          <ImageIcon className="size-10" />
-        </span>
-      )}
-    </span>
+    <AlbumCover
+      src={album.coverImageUrl}
+      hideCover={album.hideCover}
+      className="aspect-4/3 w-full"
+      sizes="(min-width: 1024px) 280px, (min-width: 640px) 240px, 100vw"
+    />
   );
 
   const albumThumb = (album: AdminAlbumCard) => (
-    <span className="relative size-8 shrink-0 overflow-hidden rounded-md bg-muted">
-      {album.coverImageUrl ? (
-        <Image
-          src={album.coverImageUrl}
-          alt=""
-          fill
-          className="object-cover"
-          sizes="32px"
-        />
-      ) : (
-        <span className="flex size-full items-center justify-center text-muted-foreground">
-          <ImageIcon className="size-3.5" />
-        </span>
-      )}
-    </span>
+    <AlbumCover
+      src={album.coverImageUrl}
+      hideCover={album.hideCover}
+      className="size-8 shrink-0 rounded-md"
+      sizes="32px"
+    />
   );
 
   const albumMenu = (album: AdminAlbumCard, overlay = false) =>

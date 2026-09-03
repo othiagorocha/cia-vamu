@@ -1,18 +1,22 @@
-import Image from "next/image";
 import Link from "next/link";
-import { ImageIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { PublishedAlbumCard } from "@/modules/albums/types";
+import { AlbumCover } from "@/modules/albums/ui/components/album-cover";
 
 type AlbumCardAlbum = Pick<
   PublishedAlbumCard,
-  "id" | "title" | "coverImageUrl" | "photoCount" | "publishedChildCount"
+  | "id"
+  | "title"
+  | "coverImageUrl"
+  | "hideCover"
+  | "photoCount"
+  | "publishedChildCount"
 >;
 
 type AlbumCardChild = Pick<
   PublishedAlbumCard,
-  "id" | "title" | "coverImageUrl"
+  "id" | "title" | "coverImageUrl" | "hideCover"
 >;
 
 export const AlbumCard = ({
@@ -35,20 +39,15 @@ export const AlbumCard = ({
         className="group flex min-w-0 flex-1 flex-col"
         aria-label={t("openAlbum", { title: album.title })}
       >
-        <div className="relative aspect-4/3 w-full overflow-hidden bg-muted">
-          {album.coverImageUrl ? (
-            <Image
-              src={album.coverImageUrl}
-              alt={album.title}
-              fill
-              className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-105"
-              sizes="(min-width: 1024px) 280px, (min-width: 640px) 50vw, 100vw"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-              <ImageIcon className="size-10" />
-            </div>
-          )}
+        <div className="relative aspect-4/3 w-full overflow-hidden">
+          <AlbumCover
+            src={album.coverImageUrl}
+            hideCover={album.hideCover}
+            alt={album.title}
+            sizes="(min-width: 1024px) 280px, (min-width: 640px) 50vw, 100vw"
+            className="absolute inset-0"
+            imageClassName="transition-transform duration-500 motion-safe:group-hover:scale-105"
+          />
           <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         </div>
         <div className="flex flex-col gap-1 p-3">
@@ -80,21 +79,12 @@ export const AlbumCard = ({
                   aria-label={t("openAlbum", { title: child.title })}
                   className="flex min-h-11 min-w-0 items-center gap-2 rounded-md px-1 hover:bg-background/80"
                 >
-                  <span className="relative size-8 shrink-0 overflow-hidden rounded-md bg-muted">
-                    {child.coverImageUrl ? (
-                      <Image
-                        src={child.coverImageUrl}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="32px"
-                      />
-                    ) : (
-                      <span className="flex size-full items-center justify-center text-muted-foreground">
-                        <ImageIcon className="size-3.5" />
-                      </span>
-                    )}
-                  </span>
+                  <AlbumCover
+                    src={child.coverImageUrl}
+                    hideCover={child.hideCover}
+                    className="size-8 shrink-0 rounded-md"
+                    sizes="32px"
+                  />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">
                     {child.title}
                   </span>
