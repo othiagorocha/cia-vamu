@@ -3,7 +3,10 @@
 import { useState, type ReactNode } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { GripVerticalIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EventCard } from "@/modules/events/ui/components/event-card";
 import type { EventRecord } from "@/modules/events/types";
@@ -43,11 +46,13 @@ export const EventSortableItem = ({
   enableSocial,
   canModerateSocial,
 }: EventSortableItemProps) => {
+  const t = useTranslations("events.filters");
   const [dialogOpen, setDialogOpen] = useState(false);
   const {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -57,7 +62,7 @@ export const EventSortableItem = ({
     animateLayoutChanges: () => false,
   });
 
-  const dragProps = dialogOpen ? {} : { ...attributes, ...listeners };
+  const canActivate = !disabled && !dialogOpen;
 
   return (
     <div
@@ -66,12 +71,7 @@ export const EventSortableItem = ({
         transform: isDragging ? undefined : CSS.Transform.toString(transform),
         transition: isDragging ? undefined : transition,
       }}
-      className={cn(
-        "h-full",
-        isDragging && "opacity-40",
-        !disabled && !dialogOpen && "cursor-grab touch-none active:cursor-grabbing",
-      )}
-      {...dragProps}
+      className={cn("h-full", isDragging && "opacity-40")}
     >
       <EventCard
         event={event}
@@ -85,6 +85,22 @@ export const EventSortableItem = ({
         archivePending={archivePending}
         deletePending={deletePending}
         actions={actions}
+        dragHandle={
+          canActivate ? (
+            <Button
+              ref={setActivatorNodeRef}
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("dndHandle")}
+              className="min-h-11 min-w-11 cursor-grab touch-none sm:min-h-7 sm:min-w-7 active:cursor-grabbing"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVerticalIcon />
+            </Button>
+          ) : null
+        }
         shake={shake && !isDragging}
         enableSocial={enableSocial}
         canModerateSocial={canModerateSocial}

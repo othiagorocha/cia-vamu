@@ -292,7 +292,8 @@
       "open": "Filtros",
       "all": "Todos",
       "reset": "Limpar filtros",
-      "dndHint": "Arraste os cards para reordenar a agenda pública.",
+      "dndHint": "Use a alça para reordenar a agenda pública.",
+      "dndHandle": "Arrastar para reordenar",
       "dndDisabled": "Para arrastar os cards, use a ordem manual e limpe os filtros."
     },
     "sort": {
