@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowLeftIcon,
   ArrowRightLeftIcon,
   ClipboardPasteIcon,
   FolderPlusIcon,
@@ -62,6 +61,7 @@ import { Badge } from "@/components/ui/badge";
 import type { AlbumFormInput } from "@/modules/albums/schema";
 import type { PhotoRecord } from "@/modules/albums/types";
 import { AlbumFormDialog } from "@/modules/albums/ui/components/album-form-dialog";
+import { AlbumsAdminBreadcrumb } from "@/modules/albums/ui/components/albums-admin-breadcrumb";
 import { PhotoLightbox } from "@/modules/albums/ui/components/photo-lightbox";
 import { PhotoSocial } from "@/modules/albums/ui/components/photo-social";
 import { trpc } from "@/trpc/client";
@@ -87,6 +87,7 @@ export const AlbumPhotosAdminView = ({
   const [editCaption, setEditCaption] = useState("");
   const [destinationAlbumId, setDestinationAlbumId] = useState("");
   const [childFormOpen, setChildFormOpen] = useState(false);
+  const [editAlbumOpen, setEditAlbumOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [photoQueryId, setPhotoQueryId] = useQueryState(
     "photo",
@@ -184,8 +185,24 @@ export const AlbumPhotosAdminView = ({
     onError: toastError,
   });
 
+  const updateAlbumMutation = trpc.albums.update.useMutation({
+    onSuccess: () => {
+      toast.success(t("updated"));
+      setEditAlbumOpen(false);
+      utils.albums.getById.invalidate({ id: albumId });
+      utils.albums.listAll.invalidate();
+      utils.albums.listPublished.invalidate();
+      utils.albums.listRoots.invalidate();
+    },
+    onError: toastError,
+  });
+
   const handleCreateChild = (values: AlbumFormInput) => {
     createChildMutation.mutate({ ...values, parentId: albumId });
+  };
+
+  const handleUpdateAlbum = (values: AlbumFormInput) => {
+    updateAlbumMutation.mutate({ id: albumId, data: values });
   };
 
   const isRootAlbum = !album.parentId;
@@ -341,14 +358,9 @@ export const AlbumPhotosAdminView = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1">
-            <Link href="/admin/albums">
-              <ArrowLeftIcon />
-              Voltar para álbuns
-            </Link>
-          </Button>
+      <AlbumsAdminBreadcrumb album={album} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">{album.title}</h1>
           <p className="text-sm text-muted-foreground">
             Gerencie as fotos deste álbum. Use Ctrl+V para colar.
@@ -364,6 +376,14 @@ export const AlbumPhotosAdminView = ({
             className="hidden"
             onChange={(event) => handleFilesSelected(event.target.files)}
           />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setEditAlbumOpen(true)}
+          >
+            <PencilIcon />
+            {t("edit")}
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -771,6 +791,15 @@ export const AlbumPhotosAdminView = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlbumFormDialog
+        open={editAlbumOpen}
+        onOpenChange={setEditAlbumOpen}
+        album={album}
+        title={t("edit")}
+        isSubmitting={updateAlbumMutation.isPending}
+        onSubmit={handleUpdateAlbum}
+      />
 
       <AlbumFormDialog
         open={childFormOpen}

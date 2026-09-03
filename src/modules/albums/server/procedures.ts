@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
@@ -44,8 +43,6 @@ import {
   protectedProcedure,
   requireCapability,
 } from "@/trpc/init";
-
-const parentAlbum = alias(albums, "parent_album");
 
 const REMOVED_ALBUM_TITLE = "Álbum removido";
 
@@ -230,6 +227,15 @@ const assertValidParent = async (parentId: string | null | undefined, selfId?: s
   }
 };
 
+const photoCountByAlbum = db
+  .select({
+    albumId: photos.albumId,
+    photoCount: sql<number>`count(*)::int`.mapWith(Number).as("photo_count"),
+  })
+  .from(photos)
+  .groupBy(photos.albumId)
+  .as("photo_count_by_album");
+
 export const albumsRouter = createTRPCRouter({
   listPublished: baseProcedure.query(async () => {
     return db
@@ -243,22 +249,17 @@ export const albumsRouter = createTRPCRouter({
         publishedAt: albums.publishedAt,
         createdAt: albums.createdAt,
         updatedAt: albums.updatedAt,
-        photoCount: sql<number>`(
-          select count(*)::int from photos where photos.album_id = ${albums.id}
-        )`,
+        photoCount: sql<number>`coalesce(${photoCountByAlbum.photoCount}, 0)`.mapWith(
+          Number,
+        ),
         publishedChildCount: sql<number>`(
           select count(*)::int from albums as child
-          where child.parent_id = ${albums.id} and child.published = true
-        )`,
+          where child.parent_id = albums.id and child.published = true
+        )`.mapWith(Number),
       })
       .from(albums)
-      .leftJoin(parentAlbum, eq(albums.parentId, parentAlbum.id))
-      .where(
-        and(
-          eq(albums.published, true),
-          or(isNull(albums.parentId), eq(parentAlbum.published, false)),
-        ),
-      )
+      .leftJoin(photoCountByAlbum, eq(photoCountByAlbum.albumId, albums.id))
+      .where(eq(albums.published, true))
       .orderBy(desc(albums.publishedAt), desc(albums.createdAt));
   }),
 
@@ -354,11 +355,12 @@ export const albumsRouter = createTRPCRouter({
         publishedAt: albums.publishedAt,
         createdAt: albums.createdAt,
         updatedAt: albums.updatedAt,
-        photoCount: sql<number>`(
-          select count(*)::int from photos where photos.album_id = ${albums.id}
-        )`,
+        photoCount: sql<number>`coalesce(${photoCountByAlbum.photoCount}, 0)`.mapWith(
+          Number,
+        ),
       })
       .from(albums)
+      .leftJoin(photoCountByAlbum, eq(photoCountByAlbum.albumId, albums.id))
       .orderBy(desc(albums.createdAt));
   }),
 
@@ -378,6 +380,12 @@ export const albumsRouter = createTRPCRouter({
         with: {
           photos: {
             orderBy: (fields, { asc: ascending }) => ascending(fields.sortOrder),
+          },
+          parent: {
+            columns: {
+              id: true,
+              title: true,
+            },
           },
           children: {
             orderBy: (fields, { desc: descending }) =>

@@ -3,7 +3,13 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ImageIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  ImageIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -20,6 +26,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,7 +46,11 @@ import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-vie
 import { AlbumFormDialog } from "@/modules/albums/ui/components/album-form-dialog";
 import type { AlbumFormInput } from "@/modules/albums/schema";
 import type { AdminAlbumCard } from "@/modules/albums/types";
+import { groupAlbumsByParent } from "@/modules/albums/group-albums";
 import { trpc } from "@/trpc/client";
+
+const ALBUM_GRID_CLASS =
+  "grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(240px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]";
 
 export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
   const t = useTranslations("albums");
@@ -82,24 +98,10 @@ export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
     onError: toastError,
   });
 
-  const groupedAlbums = useMemo(() => {
-    const ids = new Set(albums.map((album) => album.id));
-    const childrenByParent = new Map<string, AdminAlbumCard[]>();
-    const roots: AdminAlbumCard[] = [];
-
-    for (const album of albums) {
-      if (!album.parentId || !ids.has(album.parentId)) {
-        roots.push(album);
-        continue;
-      }
-
-      const siblings = childrenByParent.get(album.parentId) ?? [];
-      siblings.push(album);
-      childrenByParent.set(album.parentId, siblings);
-    }
-
-    return { roots, childrenByParent };
-  }, [albums]);
+  const groupedAlbums = useMemo(
+    () => groupAlbumsByParent(albums),
+    [albums],
+  );
 
   const handleSubmit = (values: AlbumFormInput) => {
     if (selectedAlbum) {
@@ -113,33 +115,84 @@ export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
     router.push(`/admin/albums/${album.id}`);
   };
 
-  const albumCover = (
-    album: AdminAlbumCard,
-    sizeClass: string,
-    sizes: string,
-    iconClass = "size-4",
-  ) => (
-    <span
-      className={cn(
-        "relative shrink-0 overflow-hidden rounded-lg bg-muted",
-        sizeClass,
-      )}
-    >
+  const albumCover = (album: AdminAlbumCard) => (
+    <span className="relative aspect-4/3 w-full overflow-hidden bg-muted">
       {album.coverImageUrl ? (
         <Image
           src={album.coverImageUrl}
           alt=""
           fill
           className="object-cover"
-          sizes={sizes}
+          sizes="(min-width: 1024px) 280px, (min-width: 640px) 240px, 100vw"
         />
       ) : (
         <span className="flex size-full items-center justify-center text-muted-foreground">
-          <ImageIcon className={iconClass} />
+          <ImageIcon className="size-10" />
         </span>
       )}
     </span>
   );
+
+  const albumThumb = (album: AdminAlbumCard) => (
+    <span className="relative size-8 shrink-0 overflow-hidden rounded-md bg-muted">
+      {album.coverImageUrl ? (
+        <Image
+          src={album.coverImageUrl}
+          alt=""
+          fill
+          className="object-cover"
+          sizes="32px"
+        />
+      ) : (
+        <span className="flex size-full items-center justify-center text-muted-foreground">
+          <ImageIcon className="size-3.5" />
+        </span>
+      )}
+    </span>
+  );
+
+  const albumMenu = (album: AdminAlbumCard, overlay = false) =>
+    canWrite ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "size-11",
+              overlay && "bg-background/80 backdrop-blur hover:bg-background/90",
+            )}
+            aria-label={t("columns.actions")}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <MoreHorizontalIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedAlbum(album);
+              setFormOpen(true);
+            }}
+          >
+            <PencilIcon />
+            {tCommon("actions.edit")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={(event) => {
+              event.stopPropagation();
+              setDeleteTarget(album);
+            }}
+          >
+            <Trash2Icon />
+            {tCommon("actions.delete")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : null;
 
   const albumActions = (album: AdminAlbumCard) =>
     canWrite ? (
@@ -168,112 +221,85 @@ export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
       </>
     ) : null;
 
-  const renderAlbumCard = (album: AdminAlbumCard, children: AdminAlbumCard[]) => {
+  const renderAlbumCard = (
+    album: AdminAlbumCard,
+    children: AdminAlbumCard[],
+  ) => {
     const hasChildren = children.length > 0;
 
     return (
-    <article
-      key={album.id}
-      className="flex h-full flex-col overflow-hidden rounded-lg border bg-card"
-    >
-      <div className="flex items-start justify-between gap-2 p-3 pb-1">
+      <article
+        key={album.id}
+        className="relative flex h-full flex-col overflow-hidden rounded-lg border bg-card"
+      >
+        <button
+          type="button"
+          onClick={() => openAlbum(album)}
+          aria-label={t("openAlbum", { title: album.title })}
+          className="flex min-w-0 flex-1 cursor-pointer flex-col text-left transition-colors hover:bg-muted/30"
+        >
+          {albumCover(album)}
+          <span className="flex flex-col gap-1 p-3">
+            <h3 className="line-clamp-2 min-h-10 text-sm leading-5 font-semibold">
+              {album.title}
+            </h3>
+            <p className="text-xs tabular-nums text-muted-foreground">
+              {t("photoCount", { count: album.photoCount })}
+              {hasChildren
+                ? ` · ${t("childCount", { count: children.length })}`
+                : null}
+            </p>
+          </span>
+        </button>
+
         <Badge
           variant={album.published ? "default" : "secondary"}
-          className="w-fit"
+          className="pointer-events-none absolute left-2 top-2"
         >
           {album.published ? t("published") : t("draft")}
         </Badge>
         {canWrite ? (
-          <div className="flex shrink-0 items-center">{albumActions(album)}</div>
+          <div className="absolute right-1 top-1 z-10">
+            {albumMenu(album, true)}
+          </div>
         ) : null}
-      </div>
 
-      <button
-        type="button"
-        onClick={() => openAlbum(album)}
-        aria-label={t("openAlbum", { title: album.title })}
-        className={cn(
-          "flex min-w-0 flex-1 cursor-pointer rounded-md p-3 pt-2 transition-colors hover:bg-muted/30",
-          hasChildren
-            ? "flex-row items-center gap-3 text-left"
-            : "flex-col items-center justify-center gap-2 text-center",
-        )}
-      >
-        {albumCover(
-          album,
-          hasChildren ? "size-14 sm:size-16" : "size-24 sm:size-28",
-          hasChildren ? "64px" : "112px",
-          hasChildren ? "size-4" : "size-8",
-        )}
-        <div className={cn("min-w-0", hasChildren ? "flex-1" : "w-full")}>
-          <h3
-            className={cn(
-              "font-semibold",
-              hasChildren ? "truncate" : "line-clamp-2",
-            )}
-          >
-            {album.title}
-          </h3>
-          <p className="text-xs tabular-nums text-muted-foreground">
-            {t("photoCount", { count: album.photoCount })}
-          </p>
-          {album.description ? (
-            <p
-              className={cn(
-                "mt-1 line-clamp-2 text-sm text-muted-foreground",
-                !hasChildren && "mx-auto max-w-prose",
-              )}
-            >
-              {album.description}
+        {hasChildren ? (
+          <div className="mt-auto border-t border-foreground/10 bg-muted/40 px-2 py-2">
+            <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              {t("childrenTitle")}
+              <span className="ml-1 tabular-nums normal-case tracking-normal">
+                ({children.length})
+              </span>
             </p>
-          ) : null}
-        </div>
-      </button>
-
-      {hasChildren ? (
-        <div className="mt-auto border-t border-foreground/10 bg-muted/40 px-3 py-2.5">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            {t("childrenTitle")}
-            <span className="ml-1 tabular-nums normal-case tracking-normal">
-              ({children.length})
-            </span>
-          </p>
-          <ul className="mt-2 flex flex-col gap-1">
-            {children.map((child) => (
-              <li key={child.id} className="flex min-w-0 items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => openAlbum(child)}
-                  aria-label={t("openAlbum", { title: child.title })}
-                  className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-background/80"
-                >
-                  {albumCover(child, "size-9", "36px")}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
+            <ul className="mt-1 flex flex-col">
+              {children.map((child) => (
+                <li key={child.id} className="flex min-w-0 items-center">
+                  <button
+                    type="button"
+                    onClick={() => openAlbum(child)}
+                    aria-label={t("openAlbum", { title: child.title })}
+                    className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-1 text-left hover:bg-background/80"
+                  >
+                    {albumThumb(child)}
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
                       {child.title}
                     </span>
-                    <span className="block truncate text-[11px] text-muted-foreground">
-                      {t("childOf", { title: album.title })}
-                    </span>
-                  </span>
-                  <Badge
-                    variant={child.published ? "default" : "secondary"}
-                    className="shrink-0"
-                  >
-                    {child.published ? t("published") : t("draft")}
-                  </Badge>
-                </button>
-                {canWrite ? (
-                  <div className="flex shrink-0 items-center">
-                    {albumActions(child)}
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </article>
+                    {child.published ? null : (
+                      <Badge variant="secondary" className="shrink-0">
+                        {t("draft")}
+                      </Badge>
+                    )}
+                  </button>
+                  {canWrite ? (
+                    <div className="shrink-0">{albumMenu(child)}</div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </article>
     );
   };
 
@@ -314,7 +340,7 @@ export const AlbumsAdminView = ({ canWrite }: { canWrite: boolean }) => {
           <p>{t("adminEmpty")}</p>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className={ALBUM_GRID_CLASS}>
           {groupedAlbums.roots.map((album) =>
             renderAlbumCard(
               album,
@@ -462,11 +488,11 @@ export const AlbumsAdminViewSkeleton = () => {
   return (
     <div className="flex flex-col gap-4">
       <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className={ALBUM_GRID_CLASS}>
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="h-24 animate-pulse rounded-lg border bg-muted/40"
+            className="aspect-4/3 animate-pulse rounded-lg border bg-muted/40"
           />
         ))}
       </div>
