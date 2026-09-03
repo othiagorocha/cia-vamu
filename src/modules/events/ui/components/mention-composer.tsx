@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,8 @@ type MentionComposerProps = {
   className?: string;
   maxLength?: number;
   disabled?: boolean;
+  inputRef?: RefObject<HTMLTextAreaElement | null>;
+  onSubmit?: () => void;
 };
 
 const syncMentionsWithBody = (body: string, mentionedUsers: CommentMention[]) =>
@@ -79,6 +81,8 @@ export const MentionComposer = ({
   className,
   maxLength = 1000,
   disabled = false,
+  inputRef,
+  onSubmit,
 }: MentionComposerProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
@@ -200,7 +204,12 @@ export const MentionComposer = ({
           )}
         </div>
         <Textarea
-          ref={textareaRef}
+          ref={(node) => {
+            textareaRef.current = node;
+            if (inputRef) {
+              inputRef.current = node;
+            }
+          }}
           value={value}
           disabled={disabled}
           maxLength={maxLength}
@@ -218,45 +227,55 @@ export const MentionComposer = ({
             updateMentionState(nextValue, event.target.selectionStart ?? nextValue.length);
           }}
           onKeyDown={(event) => {
+            event.stopPropagation();
+
             if (event.ctrlKey && event.key === " ") {
               event.preventDefault();
               openMentionPicker();
               return;
             }
 
-            if (mentionQuery === null || suggestions.length === 0) {
-              return;
-            }
+            const mentionPickerOpen =
+              mentionQuery !== null && suggestions.length > 0;
 
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              setHighlightIndex((index) => (index + 1) % suggestions.length);
-              return;
-            }
-
-            if (event.key === "ArrowUp") {
-              event.preventDefault();
-              setHighlightIndex(
-                (index) => (index - 1 + suggestions.length) % suggestions.length,
-              );
-              return;
-            }
-
-            if (
-              (event.key === "Enter" && !event.shiftKey) ||
-              event.key === "Tab"
-            ) {
-              event.preventDefault();
-              const selected = suggestions[highlightIndex];
-              if (selected) {
-                selectMention(selected);
+            if (mentionPickerOpen) {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                setHighlightIndex((index) => (index + 1) % suggestions.length);
+                return;
               }
+
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                setHighlightIndex(
+                  (index) => (index - 1 + suggestions.length) % suggestions.length,
+                );
+                return;
+              }
+
+              if (
+                (event.key === "Enter" && !event.shiftKey) ||
+                event.key === "Tab"
+              ) {
+                event.preventDefault();
+                const selected = suggestions[highlightIndex];
+                if (selected) {
+                  selectMention(selected);
+                }
+                return;
+              }
+
+              if (event.key === "Escape") {
+                event.preventDefault();
+                closeMentions();
+              }
+
               return;
             }
 
-            if (event.key === "Escape") {
+            if (event.key === "Enter" && !event.shiftKey && onSubmit) {
               event.preventDefault();
-              closeMentions();
+              onSubmit();
             }
           }}
           onBlur={() => {

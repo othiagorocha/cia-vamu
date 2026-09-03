@@ -16,6 +16,7 @@ import {
 import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
 import { EventLikeButton } from "@/modules/events/ui/components/event-like-button";
 import { EventLocationLink } from "@/modules/events/ui/components/event-location-link";
+import { isEventCardOpenSuppressed } from "@/modules/events/ui/lib/suppress-event-card-open";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
 import type { EventRecord } from "@/modules/events/types";
@@ -23,9 +24,13 @@ import { trpc } from "@/trpc/client";
 
 type EventCardSocialStatsProps = {
   eventId: string;
+  onCommentClick: () => void;
 };
 
-const EventCardSocialStats = ({ eventId }: EventCardSocialStatsProps) => {
+const EventCardSocialStats = ({
+  eventId,
+  onCommentClick,
+}: EventCardSocialStatsProps) => {
   const t = useTranslations("events.social");
   const { data } = trpc.events.eventSocial.useQuery(
     { eventId },
@@ -62,13 +67,19 @@ const EventCardSocialStats = ({ eventId }: EventCardSocialStatsProps) => {
         likeCount={data.likeCount}
         onPointerDown={stopCardOpen}
       />
-      <span
-        className="inline-flex min-h-11 items-center gap-1 px-2 text-xs sm:text-sm"
+      <button
+        type="button"
+        aria-label={t("comment")}
         title={t("comments")}
+        onClick={onCommentClick}
+        className={cn(
+          "inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-md px-2 text-xs transition-colors sm:text-sm",
+          "hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400",
+        )}
       >
         <MessageCircleIcon className="size-3.5 shrink-0" />
         <span className="tabular-nums">{commentCount}</span>
-      </span>
+      </button>
     </div>
   );
 };
@@ -77,28 +88,63 @@ type EventCardProps = {
   event: EventRecord;
   showVisibility?: boolean;
   onEdit?: () => void;
+  onRestore?: () => void;
+  onReuse?: () => void;
+  onArchive?: () => void;
+  restorePending?: boolean;
+  archivePending?: boolean;
   actions?: ReactNode;
   shake?: boolean;
   enableSocial?: boolean;
   canModerateSocial?: boolean;
+  onDialogOpenChange?: (open: boolean) => void;
 };
 
 export const EventCard = ({
   event,
   showVisibility = false,
   onEdit,
+  onRestore,
+  onReuse,
+  onArchive,
+  restorePending = false,
+  archivePending = false,
   actions,
   shake = false,
   enableSocial = false,
   canModerateSocial = false,
+  onDialogOpenChange,
 }: EventCardProps) => {
   const t = useTranslations("events");
   const [open, setOpen] = useState(false);
+  const [focusCommentOnOpen, setFocusCommentOnOpen] = useState(false);
   const dateLabel = formatBrazilDateTime(event.startsAt);
   const hasArt = Boolean(event.imageUrl);
   const locationLabel = eventLocationLabel(event);
   const color = resolveEventColor(event);
   const styles = EVENT_COLOR_STYLES[color];
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    onDialogOpenChange?.(next);
+    if (!next) {
+      setFocusCommentOnOpen(false);
+    }
+  };
+
+  const openForComment = () => {
+    setFocusCommentOnOpen(true);
+    setOpen(true);
+  };
+
+  const runDialogAction = (action?: () => void) => {
+    if (!action) {
+      return;
+    }
+
+    setOpen(false);
+    action();
+  };
 
   return (
     <>
@@ -115,7 +161,13 @@ export const EventCard = ({
           >
             <button
               type="button"
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                if (isEventCardOpenSuppressed()) {
+                  return;
+                }
+
+                setOpen(true);
+              }}
               aria-haspopup="dialog"
               aria-expanded={open}
               aria-label={t("expand", { title: event.title })}
@@ -208,7 +260,10 @@ export const EventCard = ({
                 onPointerDown={(pointerEvent) => pointerEvent.stopPropagation()}
                 onClick={(pointerEvent) => pointerEvent.stopPropagation()}
               >
-                <EventCardSocialStats eventId={event.id} />
+                <EventCardSocialStats
+                  eventId={event.id}
+                  onCommentClick={openForComment}
+                />
               </div>
             ) : null}
             {locationLabel ? (
@@ -232,6 +287,8 @@ export const EventCard = ({
           <div
             className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-lg bg-background/90 p-0.5 shadow-sm"
             onPointerDown={(pointerEvent) => pointerEvent.stopPropagation()}
+            onPointerUp={(pointerEvent) => pointerEvent.stopPropagation()}
+            onClick={(pointerEvent) => pointerEvent.stopPropagation()}
           >
             {actions}
           </div>
@@ -241,18 +298,17 @@ export const EventCard = ({
       <EventDetailDialog
         event={event}
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={handleOpenChange}
         showVisibility={showVisibility}
         enableSocial={enableSocial}
         canModerateSocial={canModerateSocial}
-        onEdit={
-          onEdit
-            ? () => {
-                setOpen(false);
-                onEdit();
-              }
-            : undefined
-        }
+        focusCommentComposer={focusCommentOnOpen}
+        onEdit={onEdit ? () => runDialogAction(onEdit) : undefined}
+        onRestore={onRestore ? () => runDialogAction(onRestore) : undefined}
+        onReuse={onReuse ? () => runDialogAction(onReuse) : undefined}
+        onArchive={onArchive ? () => runDialogAction(onArchive) : undefined}
+        restorePending={restorePending}
+        archivePending={archivePending}
       />
     </>
   );

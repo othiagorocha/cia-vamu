@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   DndContext,
   DragOverlay,
-  KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
@@ -16,11 +15,11 @@ import {
   SortableContext,
   arrayMove,
   rectSortingStrategy,
-  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
+  ArchiveIcon,
   ArchiveRestoreIcon,
   CopyIcon,
   MoreHorizontalIcon,
@@ -66,10 +65,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAdminViewMode } from "@/lib/admin-view-mode";
-import { cn } from "@/lib/utils";
 import { useToastError } from "@/lib/use-toast-error";
-import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
+import { cn } from "@/lib/utils";
 import {
   EVENT_COLOR_STYLES,
   resolveEventColor,
@@ -84,15 +81,19 @@ import {
 } from "@/modules/events/event-status";
 import { EventAdminFiltersBar } from "@/modules/events/ui/components/event-admin-filters";
 import { EventCard } from "@/modules/events/ui/components/event-card";
+import { EventsCalendar } from "@/modules/events/ui/components/events-calendar";
 import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
 import { EventFormDialog } from "@/modules/events/ui/components/event-form-dialog";
 import { EventShareMenuItems } from "@/modules/events/ui/components/event-share-menu-items";
 import { EventSortableItem } from "@/modules/events/ui/components/event-sortable-item";
+import { suppressEventCardOpen } from "@/modules/events/ui/lib/suppress-event-card-open";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
 import { EventTypesDialog } from "@/modules/events/ui/components/event-types-dialog";
 import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
+import { EventsViewModeToggle } from "@/modules/events/ui/components/events-view-mode-toggle";
 import { useAgendaAdminStorage } from "@/modules/events/ui/hooks/use-agenda-admin-storage";
 import { useEventAdminFilters } from "@/modules/events/ui/hooks/use-event-admin-filters";
+import { useEventsViewMode } from "@/modules/events/ui/hooks/use-events-view-mode";
 import type { EventFormInput } from "@/modules/events/schema";
 import type { EventRecord } from "@/modules/events/types";
 import { trpc } from "@/trpc/client";
@@ -124,7 +125,7 @@ export const EventsAdminView = ({
   const utils = trpc.useUtils();
   const [events] = trpc.events.listAll.useSuspenseQuery();
   const [types] = trpc.eventTypes.list.useSuspenseQuery();
-  const [viewMode, setViewMode] = useAdminViewMode();
+  const [viewMode, setViewMode] = useEventsViewMode();
   const { scope, setScope, filters, setFilters, hasListFilters, resetFilters } =
     useEventAdminFilters();
   useAgendaAdminStorage({
@@ -166,9 +167,6 @@ export const EventsAdminView = ({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
   );
 
   const invalidate = () => {
@@ -219,6 +217,24 @@ export const EventsAdminView = ({
     onError: toastError,
   });
 
+  const restoreMutation = trpc.events.restore.useMutation({
+    onSuccess: () => {
+      toast.success(t("restored"));
+      setScope("active");
+      invalidate();
+    },
+    onError: toastError,
+  });
+
+  const archiveMutation = trpc.events.archive.useMutation({
+    onSuccess: () => {
+      toast.success(t("archived"));
+      setDetailEvent(null);
+      invalidate();
+    },
+    onError: toastError,
+  });
+
   const handleSubmit = (values: EventFormInput) => {
     if (selectedEvent) {
       updateMutation.mutate({ id: selectedEvent.id, data: values });
@@ -242,6 +258,7 @@ export const EventsAdminView = ({
       return;
     }
 
+    suppressEventCardOpen();
     setDetailEvent(null);
     setPrefillEvent(null);
     setSelectedEvent(event);
@@ -253,10 +270,58 @@ export const EventsAdminView = ({
       return;
     }
 
+    suppressEventCardOpen();
     setDetailEvent(null);
     setSelectedEvent(null);
     setPrefillEvent(event);
     setFormOpen(true);
+  };
+
+  const restoreEvent = (event: EventRecord) => {
+    if (!canWrite || restoreMutation.isPending) {
+      return;
+    }
+
+    suppressEventCardOpen();
+    setDetailEvent(null);
+    restoreMutation.mutate({ id: event.id });
+  };
+
+  const archiveEvent = (event: EventRecord) => {
+    if (!canWrite || archiveMutation.isPending) {
+      return;
+    }
+
+    suppressEventCardOpen();
+    setDetailEvent(null);
+    archiveMutation.mutate({ id: event.id });
+  };
+
+  const getEventDialogActions = (event: EventRecord) => {
+    if (!canWrite) {
+      return {};
+    }
+
+    if (isEventArchived(event)) {
+      return {
+        onRestore: () => restoreEvent(event),
+        onReuse: () => openReuse(event),
+        restorePending: restoreMutation.isPending,
+      };
+    }
+
+    return {
+      onEdit: () => openEditor(event),
+      onReuse: () => openReuse(event),
+      onArchive: () => archiveEvent(event),
+      archivePending: archiveMutation.isPending,
+    };
+  };
+
+  const stopMenuPointerEvent = (event: ReactPointerEvent) => {
+    suppressEventCardOpen();
+    event.preventDefault();
+    event.stopPropagation();
   };
 
   const eventActions = (event: EventRecord) =>
@@ -269,6 +334,7 @@ export const EventsAdminView = ({
             size="icon-sm"
             aria-label={t("columns.actions")}
             onClick={(clickEvent) => clickEvent.stopPropagation()}
+            onPointerDown={(pointerEvent) => pointerEvent.stopPropagation()}
           >
             <MoreHorizontalIcon className="size-4" />
           </Button>
@@ -278,35 +344,63 @@ export const EventsAdminView = ({
           sideOffset={8}
           className="min-w-56 rounded-xl p-1.5 shadow-xl"
           onClick={(clickEvent) => clickEvent.stopPropagation()}
+          onPointerDown={(pointerEvent) => pointerEvent.stopPropagation()}
+          onCloseAutoFocus={(focusEvent) => focusEvent.preventDefault()}
         >
           {scope === "archived" ? (
             <>
               <DropdownMenuItem
                 className="py-2"
-                onClick={() => openEditor(event)}
+                onPointerDown={stopMenuPointerEvent}
+                onSelect={() => restoreEvent(event)}
+                disabled={restoreMutation.isPending}
               >
                 <ArchiveRestoreIcon />
                 {t("restore")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="py-2"
-                onClick={() => openReuse(event)}
+                onPointerDown={stopMenuPointerEvent}
+                onSelect={() => openReuse(event)}
               >
                 <CopyIcon />
                 {t("reuse")}
               </DropdownMenuItem>
             </>
           ) : (
-            <DropdownMenuItem
-              className="py-2"
-              onClick={() => openEditor(event)}
-            >
-              <PencilIcon />
-              {tCommon("actions.edit")}
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem
+                className="py-2"
+                onPointerDown={stopMenuPointerEvent}
+                onSelect={() => openEditor(event)}
+              >
+                <PencilIcon />
+                {tCommon("actions.edit")}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="py-2"
+                onPointerDown={stopMenuPointerEvent}
+                onSelect={() => openReuse(event)}
+              >
+                <CopyIcon />
+                {t("reuse")}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="py-2"
+                onPointerDown={stopMenuPointerEvent}
+                onSelect={() => archiveEvent(event)}
+                disabled={archiveMutation.isPending}
+              >
+                <ArchiveIcon />
+                {t("archive")}
+              </DropdownMenuItem>
+            </>
           )}
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="py-2">
+            <DropdownMenuSubTrigger
+              className="py-2"
+              onPointerDown={stopMenuPointerEvent}
+            >
               <TagsIcon />
               {t("changeType")}
             </DropdownMenuSubTrigger>
@@ -335,7 +429,10 @@ export const EventsAdminView = ({
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="py-2">
+            <DropdownMenuSubTrigger
+              className="py-2"
+              onPointerDown={stopMenuPointerEvent}
+            >
               <Share2Icon />
               {t("share")}
             </DropdownMenuSubTrigger>
@@ -347,7 +444,11 @@ export const EventsAdminView = ({
           <DropdownMenuItem
             variant="destructive"
             className="py-2"
-            onClick={() => setDeleteTarget(event)}
+            onPointerDown={stopMenuPointerEvent}
+            onSelect={(selectEvent) => {
+              selectEvent.preventDefault();
+              setDeleteTarget(event);
+            }}
           >
             <Trash2Icon />
             {tCommon("actions.delete")}
@@ -372,6 +473,7 @@ export const EventsAdminView = ({
           sideOffset={8}
           className="min-w-48 rounded-xl p-1.5 shadow-xl"
           onClick={(clickEvent) => clickEvent.stopPropagation()}
+          onCloseAutoFocus={(focusEvent) => focusEvent.preventDefault()}
         >
           <EventShareMenuItems events={[event]} />
         </DropdownMenuContent>
@@ -463,7 +565,7 @@ export const EventsAdminView = ({
                   event={event}
                   shake
                   showVisibility
-                  onEdit={canWrite ? () => openEditor(event) : undefined}
+                  {...getEventDialogActions(event)}
                   actions={eventActions(event)}
                   enableSocial
                   canModerateSocial={canManageTypes}
@@ -490,7 +592,7 @@ export const EventsAdminView = ({
               event={event}
               showVisibility
               shake={scope === "active" && event.important}
-              onEdit={canWrite ? () => openEditor(event) : undefined}
+              {...getEventDialogActions(event)}
               actions={eventActions(event)}
               enableSocial
               canModerateSocial={canManageTypes}
@@ -582,6 +684,7 @@ export const EventsAdminView = ({
                   <div
                     className="flex items-center gap-1"
                     onClick={(clickEvent) => clickEvent.stopPropagation()}
+                    onPointerDown={(pointerEvent) => pointerEvent.stopPropagation()}
                   >
                     {eventActions(event)}
                   </div>
@@ -594,6 +697,13 @@ export const EventsAdminView = ({
     </div>
   );
 
+  const renderCalendar = (items: EventRecord[]) => (
+    <EventsCalendar
+      events={items}
+      onEventClick={(event) => setDetailEvent(event)}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -603,7 +713,7 @@ export const EventsAdminView = ({
         <p className="sr-only">{t("adminSubtitle", { hint: t("orderHint") })}</p>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           {events.length > 0 ? (
-            <AdminViewModeToggle
+            <EventsViewModeToggle
               value={viewMode}
               onChange={(mode) => {
                 void setViewMode(mode);
@@ -699,6 +809,8 @@ export const EventsAdminView = ({
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-16 text-center text-muted-foreground">
           <p>{emptyMessage}</p>
         </div>
+      ) : viewMode === "calendar" ? (
+        renderCalendar(visibleEvents)
       ) : scope === "archived" && viewMode === "grid" ? (
         <div className="flex flex-col gap-8">
           {archivedGroups.map((group) => (
@@ -735,7 +847,7 @@ export const EventsAdminView = ({
           showVisibility
           enableSocial
           canModerateSocial={canManageTypes}
-          onEdit={canWrite ? () => openEditor(detailEvent) : undefined}
+          {...getEventDialogActions(detailEvent)}
         />
       ) : null}
 
@@ -793,15 +905,15 @@ export const EventsAdminView = ({
 export const EventsAdminViewSkeleton = () => {
   return (
     <div className="flex flex-col gap-4">
-      <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div
-            key={index}
-            className="h-80 animate-pulse rounded-xl border bg-muted/40"
-          />
-        ))}
+      <div className="flex items-center justify-between gap-2">
+        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+        <div className="flex gap-1">
+          <div className="size-8 animate-pulse rounded bg-muted/60" />
+          <div className="size-8 animate-pulse rounded bg-muted/60" />
+          <div className="size-8 animate-pulse rounded bg-muted/60" />
+        </div>
       </div>
+      <div className="h-88 animate-pulse rounded-lg border bg-muted/30 sm:h-104" />
     </div>
   );
 };

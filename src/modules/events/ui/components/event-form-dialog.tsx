@@ -36,6 +36,7 @@ import {
 import { fileToDataUrl } from "@/lib/file-to-data-url";
 import { toBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { isEventColorId } from "@/modules/events/event-colors";
+import { computeReuseEventDates } from "@/modules/events/event-status";
 import { eventTypeShareLine } from "@/modules/events/event-types";
 import { eventFormSchema, type EventFormInput } from "@/modules/events/schema";
 import type { EventRecord, EventTypeRecord } from "@/modules/events/types";
@@ -110,13 +111,21 @@ export const EventFormDialog = ({
     if (open) {
       const source = event ?? prefill;
       const isReuse = Boolean(prefill) && !event;
+      const reuseDates =
+        isReuse && source
+          ? computeReuseEventDates(source)
+          : null;
 
       form.reset({
         title: source?.title ?? "",
         description: source?.description ?? "",
         typeId: source?.typeId ?? defaultTypeId(types),
-        startsAt: isReuse ? "" : toBrazilDateTimeLocal(event?.startsAt),
-        endsAt: isReuse ? "" : toBrazilDateTimeLocal(event?.endsAt),
+        startsAt: isReuse
+          ? toBrazilDateTimeLocal(reuseDates?.startsAt)
+          : toBrazilDateTimeLocal(event?.startsAt),
+        endsAt: isReuse
+          ? toBrazilDateTimeLocal(reuseDates?.endsAt)
+          : toBrazilDateTimeLocal(event?.endsAt),
         location: source?.location ?? "",
         locationMapsQuery: source?.locationMapsQuery ?? "",
         published: source?.published ?? false,

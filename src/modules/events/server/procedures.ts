@@ -8,12 +8,14 @@ import { deleteImageFromStorage, uploadImageToStorage } from "@/lib/storage";
 import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { diffFields } from "@/modules/audit/diff";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
-import { isEventArchived } from "@/modules/events/event-status";
+import { isEventArchived, computeRestoredEventDates, computeArchivedEventDates, computeReuseEventDates } from "@/modules/events/event-status";
 import {
+  archiveEventSchema,
   changeEventTypeSchema,
   createEventSchema,
   removeEventSchema,
   reorderEventSchema,
+  restoreEventSchema,
   suggestLocationsSchema,
   updateEventSchema,
 } from "@/modules/events/schema";
@@ -141,6 +143,17 @@ export const eventsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { image, sourceEventId, ...data } = input;
       const eventType = await requireEventType(data.typeId);
+
+      const reusedDates = sourceEventId
+        ? computeReuseEventDates({
+            startsAt: data.startsAt,
+            endsAt: data.endsAt ?? null,
+          })
+        : {
+            startsAt: data.startsAt,
+            endsAt: data.endsAt ?? null,
+          };
+
       const [last] = await db
         .select({ sortOrder: events.sortOrder })
         .from(events)
@@ -153,8 +166,8 @@ export const eventsRouter = createTRPCRouter({
           title: data.title,
           description: data.description,
           typeId: data.typeId,
-          startsAt: data.startsAt,
-          endsAt: data.endsAt ?? null,
+          startsAt: reusedDates.startsAt,
+          endsAt: reusedDates.endsAt,
           location: data.location ?? null,
           locationMapsQuery: data.locationMapsQuery ?? null,
           published: data.published,
@@ -378,6 +391,147 @@ export const eventsRouter = createTRPCRouter({
           changes: diffFields(
             { type: existing.type.label },
             { type: eventType.label },
+          ),
+        },
+      });
+
+      return result ?? existing;
+    }),
+
+  restore: requireCapability("events:write")
+    .input(restoreEventSchema)
+    .mutation(async ({ ctx, input }) => {
+      const existing = await getEventWithType(input.id);
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Evento não encontrado.",
+        });
+      }
+
+      const { startsAt, endsAt } = computeRestoredEventDates(existing);
+      const now = new Date();
+
+      if (isEventArchived({ startsAt, endsAt }, now)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Não foi possível restaurar as datas deste evento.",
+        });
+      }
+
+      await db
+        .update(events)
+        .set({
+          startsAt,
+          endsAt,
+          updatedAt: now,
+        })
+        .where(eq(events.id, input.id));
+
+      const all = await db.select().from(events).orderBy(...eventListOrder);
+      const activeIds = all
+        .filter((event) => !isEventArchived(event, now))
+        .map((event) => event.id);
+      const archivedIds = all
+        .filter((event) => !activeIds.includes(event.id))
+        .map((event) => event.id);
+      const orderedActiveIds = [
+        input.id,
+        ...activeIds.filter((id) => id !== input.id),
+      ];
+
+      await persistEventOrder([...orderedActiveIds, ...archivedIds]);
+
+      const result = await getEventWithType(input.id);
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.EVENTS_UPDATE,
+        entityType: "event",
+        entityId: input.id,
+        metadata: {
+          title: existing.title,
+          restored: true,
+          changes: diffFields(
+            {
+              startsAt: existing.startsAt.toISOString(),
+              endsAt: existing.endsAt?.toISOString() ?? null,
+            },
+            {
+              startsAt: startsAt.toISOString(),
+              endsAt: endsAt?.toISOString() ?? null,
+            },
+          ),
+        },
+      });
+
+      return result ?? existing;
+    }),
+
+  archive: requireCapability("events:write")
+    .input(archiveEventSchema)
+    .mutation(async ({ ctx, input }) => {
+      const existing = await getEventWithType(input.id);
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Evento não encontrado.",
+        });
+      }
+
+      const { startsAt, endsAt } = computeArchivedEventDates(existing);
+      const now = new Date();
+
+      if (!isEventArchived({ startsAt, endsAt }, now)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Não foi possível arquivar as datas deste evento.",
+        });
+      }
+
+      await db
+        .update(events)
+        .set({
+          startsAt,
+          endsAt,
+          updatedAt: now,
+        })
+        .where(eq(events.id, input.id));
+
+      const all = await db.select().from(events).orderBy(...eventListOrder);
+      const activeIds = all
+        .filter((event) => event.id !== input.id && !isEventArchived(event, now))
+        .map((event) => event.id);
+      const archivedIds = [
+        input.id,
+        ...all
+          .filter((event) => event.id !== input.id && isEventArchived(event, now))
+          .map((event) => event.id),
+      ];
+
+      await persistEventOrder([...activeIds, ...archivedIds]);
+
+      const result = await getEventWithType(input.id);
+
+      await writeAuditLog({
+        actor: ctx.session.user,
+        action: AUDIT_ACTIONS.EVENTS_UPDATE,
+        entityType: "event",
+        entityId: input.id,
+        metadata: {
+          title: existing.title,
+          archived: true,
+          changes: diffFields(
+            {
+              startsAt: existing.startsAt.toISOString(),
+              endsAt: existing.endsAt?.toISOString() ?? null,
+            },
+            {
+              startsAt: startsAt.toISOString(),
+              endsAt: endsAt?.toISOString() ?? null,
+            },
           ),
         },
       });

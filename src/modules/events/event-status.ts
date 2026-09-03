@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { getBrazilDayKey } from "@/lib/brazil-datetime";
 import {
   resolveEventColor,
   type EventColorId,
@@ -37,6 +38,76 @@ export const isEventArchived = (
   event: { startsAt: Date; endsAt: Date | null },
   now = new Date(),
 ) => eventEffectiveEnd(event).getTime() < now.getTime();
+
+export const computeRestoredEventDates = (
+  event: { startsAt: Date; endsAt: Date | null },
+  now = new Date(),
+) => {
+  const startsAt = new Date(event.startsAt);
+  const endsAt = event.endsAt ? new Date(event.endsAt) : null;
+
+  if (!isEventArchived({ startsAt, endsAt }, now)) {
+    return { startsAt, endsAt };
+  }
+
+  const shiftMs = now.getTime() - eventEffectiveEnd({ startsAt, endsAt }).getTime() + 60_000;
+
+  return {
+    startsAt: new Date(startsAt.getTime() + shiftMs),
+    endsAt: endsAt ? new Date(endsAt.getTime() + shiftMs) : null,
+  };
+};
+
+export const computeReuseEventDates = (
+  event: { startsAt: Date; endsAt: Date | null },
+  now = new Date(),
+) => {
+  const startsAt = new Date(event.startsAt);
+  const endsAt = event.endsAt ? new Date(event.endsAt) : null;
+  const minEndMs = now.getTime() + 60_000;
+
+  if (!isEventArchived({ startsAt, endsAt }, now)) {
+    return { startsAt, endsAt };
+  }
+
+  if (endsAt) {
+    const nextEndsAt = new Date(Math.max(endsAt.getTime(), minEndMs));
+
+    if (nextEndsAt.getTime() <= startsAt.getTime()) {
+      return {
+        startsAt,
+        endsAt: new Date(startsAt.getTime() + 60_000),
+      };
+    }
+
+    return { startsAt, endsAt: nextEndsAt };
+  }
+
+  return {
+    startsAt,
+    endsAt: new Date(Math.max(startsAt.getTime() + 60_000, minEndMs)),
+  };
+};
+
+export const computeArchivedEventDates = (
+  event: { startsAt: Date; endsAt: Date | null },
+  now = new Date(),
+) => {
+  const startsAt = new Date(event.startsAt);
+  const endsAt = event.endsAt ? new Date(event.endsAt) : null;
+
+  if (isEventArchived({ startsAt, endsAt }, now)) {
+    return { startsAt, endsAt };
+  }
+
+  const shiftMs =
+    eventEffectiveEnd({ startsAt, endsAt }).getTime() - now.getTime() + 60_000;
+
+  return {
+    startsAt: new Date(startsAt.getTime() - shiftMs),
+    endsAt: endsAt ? new Date(endsAt.getTime() - shiftMs) : null,
+  };
+};
 
 export const splitEventsByArchive = (
   events: EventRecord[],
@@ -144,4 +215,74 @@ export const groupEventsByMonth = (events: EventRecord[]) => {
         events: groupEvents,
       };
     });
+};
+
+export const groupEventsByDay = (events: EventRecord[]) => {
+  const groups = new Map<string, EventRecord[]>();
+
+  for (const event of events) {
+    const key = getBrazilDayKey(event.startsAt);
+    if (!key) {
+      continue;
+    }
+
+    const current = groups.get(key);
+    if (current) {
+      current.push(event);
+    } else {
+      groups.set(key, [event]);
+    }
+  }
+
+  for (const dayEvents of groups.values()) {
+    dayEvents.sort(
+      (left, right) =>
+        new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
+    );
+  }
+
+  return groups;
+};
+
+export const parseMonthKey = (monthKey: string) => {
+  const match = /^(\d{4})-(\d{2})$/.exec(monthKey);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+
+  if (month < 1 || month > 12) {
+    return null;
+  }
+
+  return { year, month };
+};
+
+export const buildCalendarDays = (monthKey: string) => {
+  const parsed = parseMonthKey(monthKey);
+  if (!parsed) {
+    return [];
+  }
+
+  const { year, month } = parsed;
+  const firstDay = new Date(Date.UTC(year, month - 1, 1, 12));
+  const daysInMonth = new Date(Date.UTC(year, month, 0, 12)).getUTCDate();
+  const startWeekday = firstDay.getUTCDay();
+  const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+
+  return Array.from({ length: totalCells }, (_, index) => {
+    const dayNumber = index - startWeekday + 1;
+    const inMonth = dayNumber >= 1 && dayNumber <= daysInMonth;
+    const dayKey = inMonth
+      ? `${monthKey}-${String(dayNumber).padStart(2, "0")}`
+      : null;
+
+    return {
+      dayNumber: inMonth ? dayNumber : null,
+      dayKey,
+      inMonth,
+    };
+  });
 };

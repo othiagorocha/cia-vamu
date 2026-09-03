@@ -1,7 +1,7 @@
 import {
-  ADMIN_VIEW_MODES,
-  type AdminViewMode,
-} from "@/lib/admin-view-mode";
+  EVENTS_VIEW_MODES,
+  type EventsViewMode,
+} from "@/modules/events/ui/hooks/use-events-view-mode";
 import { isEventColorId } from "@/modules/events/event-colors";
 import {
   EVENT_ADMIN_IMPORTANT,
@@ -27,7 +27,7 @@ export const AGENDA_ADMIN_URL_KEYS = [
 
 export type AgendaAdminStoredState = EventAdminFilters & {
   scope: EventAdminScope;
-  view: AdminViewMode;
+  view: EventsViewMode;
 };
 
 const isOneOf = <T extends string>(
@@ -76,7 +76,7 @@ export const readAgendaAdminStorage = (): AgendaAdminStoredState | null => {
       !color ||
       !isOneOf(value.important, EVENT_ADMIN_IMPORTANT) ||
       !isOneOf(value.sort, EVENT_ADMIN_SORTS) ||
-      !isOneOf(value.view, ADMIN_VIEW_MODES)
+      !isOneOf(value.view, EVENTS_VIEW_MODES)
     ) {
       return null;
     }

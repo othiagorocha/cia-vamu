@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -65,14 +65,17 @@ const Face = ({
 export const EventSocial = ({
   eventId,
   canModerate,
+  focusComposerOnMount = false,
 }: {
   eventId: string;
   canModerate: boolean;
+  focusComposerOnMount?: boolean;
 }) => {
   const t = useTranslations("events.social");
   const tCommon = useTranslations("common");
   const toastError = useToastError();
   const utils = trpc.useUtils();
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const [body, setBody] = useState("");
   const [mentionedUsers, setMentionedUsers] = useState<CommentMention[]>([]);
   const [commentsOpen, setCommentsOpen] = useState(true);
@@ -81,6 +84,23 @@ export const EventSocial = ({
   const [editMentions, setEditMentions] = useState<CommentMention[]>([]);
 
   const { data } = trpc.events.eventSocial.useQuery({ eventId });
+
+  const focusComment = () => {
+    setCommentsOpen(true);
+    requestAnimationFrame(() => {
+      composerRef.current?.focus();
+      composerRef.current?.scrollIntoView({ block: "nearest" });
+    });
+  };
+
+  useEffect(() => {
+    if (!focusComposerOnMount || !data) {
+      return;
+    }
+
+    const id = window.setTimeout(() => focusComment(), 50);
+    return () => window.clearTimeout(id);
+  }, [focusComposerOnMount, data]);
 
   const invalidate = () => {
     void utils.events.eventSocial.invalidate({ eventId });
@@ -127,6 +147,18 @@ export const EventSocial = ({
     },
     onError: toastError,
   });
+
+  const submitComment = () => {
+    if (!body.trim() || commentMutation.isPending) {
+      return;
+    }
+
+    commentMutation.mutate({
+      eventId,
+      body,
+      mentionedUserIds: mentionedUsers.map((mention) => mention.userId),
+    });
+  };
 
   if (!data) {
     return <div className="h-24 animate-pulse rounded-lg bg-muted/40" />;
@@ -198,7 +230,7 @@ export const EventSocial = ({
             size="lg"
             variant="outline"
             className="h-10 min-w-0 gap-1.5"
-            onClick={() => setCommentsOpen(true)}
+            onClick={focusComment}
           >
             <MessageCircleIcon className="size-5" />
             <span className="truncate">{t("comment")}</span>
@@ -279,6 +311,19 @@ export const EventSocial = ({
                           setEditBody(nextBody);
                           setEditMentions(nextMentions);
                         }}
+                        onSubmit={() => {
+                          if (!editBody.trim() || updateMutation.isPending) {
+                            return;
+                          }
+
+                          updateMutation.mutate({
+                            id: comment.id,
+                            body: editBody,
+                            mentionedUserIds: editMentions.map(
+                              (mention) => mention.userId,
+                            ),
+                          });
+                        }}
                       />
                       <div className="flex gap-2">
                         <Button
@@ -305,21 +350,33 @@ export const EventSocial = ({
                       </div>
                     </form>
                   ) : (
-                    <>
-                      <p className={comment.deletedAt ? "text-muted-foreground" : ""}>
-                        <span className="font-semibold">{comment.authorName} </span>
+                    <div className="space-y-1">
+                      <p
+                        className={cn(
+                          "font-semibold leading-snug",
+                          comment.deletedAt && "text-muted-foreground",
+                        )}
+                      >
+                        {comment.authorName}
+                      </p>
+                      <p
+                        className={cn(
+                          "whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground",
+                          comment.deletedAt && "italic",
+                        )}
+                      >
                         <CommentBody
                           body={comment.body}
                           mentions={comment.mentions}
                         />
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground/80">
                         {formatDistanceToNow(comment.createdAt, {
                           locale: ptBR,
                           addSuffix: true,
                         })}
                       </p>
-                    </>
+                    </div>
                   )}
                 </div>
                 {showMenu && editingId !== comment.id ? (
@@ -378,15 +435,7 @@ export const EventSocial = ({
         className="shrink-0 border-t border-foreground/10 px-5 py-3"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!body.trim()) {
-            return;
-          }
-
-          commentMutation.mutate({
-            eventId,
-            body,
-            mentionedUserIds: mentionedUsers.map((mention) => mention.userId),
-          });
+          submitComment();
         }}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -399,6 +448,8 @@ export const EventSocial = ({
             }}
             placeholder={t("addComment")}
             className="min-w-0 flex-1"
+            inputRef={composerRef}
+            onSubmit={submitComment}
           />
           <Button
             type="submit"

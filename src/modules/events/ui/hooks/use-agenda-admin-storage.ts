@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-import type { AdminViewMode } from "@/lib/admin-view-mode";
+import type { EventsViewMode } from "@/modules/events/ui/hooks/use-events-view-mode";
 import type {
   EventAdminFilters,
   EventAdminScope,
@@ -16,11 +16,11 @@ import {
 type UseAgendaAdminStorageArgs = {
   scope: EventAdminScope;
   filters: EventAdminFilters;
-  viewMode: AdminViewMode;
+  viewMode: EventsViewMode;
   setFilters: (
     patch: Partial<EventAdminFilters & { scope: EventAdminScope }>,
   ) => void;
-  setViewMode: (view: AdminViewMode) => void | Promise<URLSearchParams>;
+  setViewMode: (view: EventsViewMode) => void | Promise<URLSearchParams>;
 };
 
 export const useAgendaAdminStorage = ({

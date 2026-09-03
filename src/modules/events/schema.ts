@@ -71,6 +71,14 @@ export const removeEventSchema = z.object({
   id: z.uuid(),
 });
 
+export const restoreEventSchema = z.object({
+  id: z.uuid(),
+});
+
+export const archiveEventSchema = z.object({
+  id: z.uuid(),
+});
+
 export const reorderEventSchema = z.object({
   orderedIds: z.array(z.uuid()).min(1),
 });

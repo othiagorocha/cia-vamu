@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { CalendarIcon, PencilIcon, StarIcon } from "lucide-react";
+import { ArchiveIcon, ArchiveRestoreIcon, CalendarIcon, CopyIcon, PencilIcon, StarIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,14 @@ type EventDetailDialogProps = {
   onOpenChange: (open: boolean) => void;
   showVisibility?: boolean;
   onEdit?: () => void;
+  onRestore?: () => void;
+  onReuse?: () => void;
+  onArchive?: () => void;
+  restorePending?: boolean;
+  archivePending?: boolean;
   enableSocial?: boolean;
   canModerateSocial?: boolean;
+  focusCommentComposer?: boolean;
 };
 
 export const EventDetailDialog = ({
@@ -42,8 +48,14 @@ export const EventDetailDialog = ({
   onOpenChange,
   showVisibility = false,
   onEdit,
+  onRestore,
+  onReuse,
+  onArchive,
+  restorePending = false,
+  archivePending = false,
   enableSocial = false,
   canModerateSocial = false,
+  focusCommentComposer = false,
 }: EventDetailDialogProps) => {
   const t = useTranslations("events");
   const tCommon = useTranslations("common");
@@ -53,6 +65,7 @@ export const EventDetailDialog = ({
   const locationLabel = eventLocationLabel(event);
   const color = resolveEventColor(event);
   const styles = EVENT_COLOR_STYLES[color];
+  const hasFooter = Boolean(onEdit || onRestore || onReuse || onArchive);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,7 +93,7 @@ export const EventDetailDialog = ({
           className={cn(
             "flex flex-col px-5",
             hasArt ? "gap-5 pt-5" : "gap-6 pt-12",
-            onEdit ? "pb-0" : "pb-5"
+            hasFooter ? "pb-0" : "pb-5"
           )}
         >
           <DialogHeader className={hasArt ? "gap-3" : "gap-4"}>
@@ -153,15 +166,55 @@ export const EventDetailDialog = ({
         </div>
 
         {enableSocial ? (
-          <EventSocial eventId={event.id} canModerate={canModerateSocial} />
+          <EventSocial
+            eventId={event.id}
+            canModerate={canModerateSocial}
+            focusComposerOnMount={focusCommentComposer}
+          />
         ) : null}
 
-        {onEdit ? (
-          <DialogFooter className="mx-0 mb-0 mt-5 border-t border-foreground/10 bg-transparent">
-            <Button type="button" onClick={onEdit}>
-              <PencilIcon />
-              {tCommon("actions.edit")}
-            </Button>
+        {hasFooter ? (
+          <DialogFooter className="mx-0 mb-0 mt-5 flex-col gap-2 border-t border-foreground/10 bg-transparent sm:flex-row sm:justify-end">
+            {onRestore ? (
+              <Button
+                type="button"
+                className="w-full sm:w-auto"
+                disabled={restorePending}
+                onClick={onRestore}
+              >
+                <ArchiveRestoreIcon />
+                {t("restore")}
+              </Button>
+            ) : null}
+            {onReuse ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={onReuse}
+              >
+                <CopyIcon />
+                {t("reuse")}
+              </Button>
+            ) : null}
+            {onEdit ? (
+              <Button type="button" className="w-full sm:w-auto" onClick={onEdit}>
+                <PencilIcon />
+                {tCommon("actions.edit")}
+              </Button>
+            ) : null}
+            {onArchive ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                disabled={archivePending}
+                onClick={onArchive}
+              >
+                <ArchiveIcon />
+                {t("archive")}
+              </Button>
+            ) : null}
           </DialogFooter>
         ) : null}
       </DialogContent>

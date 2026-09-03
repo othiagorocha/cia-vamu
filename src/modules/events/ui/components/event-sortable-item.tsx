@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -14,6 +14,11 @@ type EventSortableItemProps = {
   shake: boolean;
   showVisibility?: boolean;
   onEdit?: () => void;
+  onRestore?: () => void;
+  onReuse?: () => void;
+  onArchive?: () => void;
+  restorePending?: boolean;
+  archivePending?: boolean;
   actions?: ReactNode;
   enableSocial?: boolean;
   canModerateSocial?: boolean;
@@ -25,10 +30,16 @@ export const EventSortableItem = ({
   shake,
   showVisibility,
   onEdit,
+  onRestore,
+  onReuse,
+  onArchive,
+  restorePending,
+  archivePending,
   actions,
   enableSocial,
   canModerateSocial,
 }: EventSortableItemProps) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
   const {
     attributes,
     listeners,
@@ -38,9 +49,11 @@ export const EventSortableItem = ({
     isDragging,
   } = useSortable({
     id: event.id,
-    disabled,
+    disabled: disabled || dialogOpen,
     animateLayoutChanges: () => false,
   });
+
+  const dragProps = dialogOpen ? {} : { ...attributes, ...listeners };
 
   return (
     <div
@@ -52,19 +65,24 @@ export const EventSortableItem = ({
       className={cn(
         "h-full",
         isDragging && "opacity-40",
-        !disabled && "cursor-grab touch-none active:cursor-grabbing",
+        !disabled && !dialogOpen && "cursor-grab touch-none active:cursor-grabbing",
       )}
-      {...attributes}
-      {...listeners}
+      {...dragProps}
     >
       <EventCard
         event={event}
         showVisibility={showVisibility}
         onEdit={onEdit}
+        onRestore={onRestore}
+        onReuse={onReuse}
+        onArchive={onArchive}
+        restorePending={restorePending}
+        archivePending={archivePending}
         actions={actions}
         shake={shake && !isDragging}
         enableSocial={enableSocial}
         canModerateSocial={canModerateSocial}
+        onDialogOpenChange={setDialogOpen}
       />
     </div>
   );

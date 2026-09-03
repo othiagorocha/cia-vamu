@@ -12,6 +12,7 @@
     },
     "viewGrid": "Ver em grade",
     "viewTable": "Ver em tabela",
+    "viewCalendar": "Ver em calendário",
     "actions": {
       "save": "Salvar",
       "cancel": "Cancelar",
@@ -202,6 +203,9 @@
     "deleteDescription": "Essa ação não pode ser desfeita. O evento \"{title}\" será removido permanentemente.",
     "orderHint": "A ordem desta lista é a mesma da agenda pública.",
     "restore": "Restaurar",
+    "restored": "Evento restaurado na agenda.",
+    "archive": "Arquivar",
+    "archived": "Evento arquivado.",
     "reuse": "Reaproveitar",
     "important": "Importante",
     "importantHint": "O card fica um pouco maior e se destaca na agenda.",
@@ -300,7 +304,13 @@
       "deleteForever": "Excluir de vez",
       "commentUpdated": "Comentário atualizado.",
       "commentDeleted": "Comentário excluído.",
-      "mentionHint": "Use @ para mencionar alguém da equipe. Após o @, Ctrl+Espaço abre ou filtra a lista."
+      "mentionHint": "Use @ para mencionar alguém da equipe. Após o @, Ctrl+Espaço abre ou filtra a lista. Enter envia; Shift+Enter quebra linha."
+    },
+    "calendar": {
+      "today": "Hoje",
+      "prevMonth": "Mês anterior",
+      "nextMonth": "Próximo mês",
+      "moreEvents": "+{count}"
     },
     "form": {
       "createTitle": "Novo evento",
@@ -333,6 +343,7 @@
       "type": "Tipo",
       "art": "Arte",
       "startsAt": "Início",
+      "location": "Local",
       "status": "Status",
       "actions": "Ações"
     }
