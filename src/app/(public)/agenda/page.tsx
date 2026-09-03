@@ -17,10 +17,20 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const AgendaPage = async () => {
-  const t = await getTranslations("events");
+type AgendaPageProps = {
+  searchParams: Promise<{ includePast?: string | string[] }>;
+};
 
-  void trpc.events.listUpcoming.prefetch({ includePast: false });
+const AgendaPage = async ({ searchParams }: AgendaPageProps) => {
+  const t = await getTranslations("events");
+  const params = await searchParams;
+  const includePastRaw = Array.isArray(params.includePast)
+    ? params.includePast[0]
+    : params.includePast;
+
+  void trpc.events.listUpcoming.prefetch({
+    includePast: includePastRaw === "1",
+  });
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-16">

@@ -22,6 +22,7 @@ import {
 import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { diffFields } from "@/modules/audit/diff";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
+import { createNotifications } from "@/modules/notifications/server/create-notifications";
 import {
   addPhotoSchema,
   createAlbumSchema,
@@ -796,6 +797,38 @@ export const albumsRouter = createTRPCRouter({
           body: input.body.trim(),
         })
         .returning();
+
+      const [photo] = await db
+        .select({ albumId: photos.albumId })
+        .from(photos)
+        .where(eq(photos.id, input.photoId))
+        .limit(1);
+
+      if (photo) {
+        const threadAuthors = await db
+          .selectDistinct({ authorId: photoComments.authorId })
+          .from(photoComments)
+          .where(
+            and(
+              eq(photoComments.photoId, input.photoId),
+              isNull(photoComments.deletedAt),
+            ),
+          );
+
+        await createNotifications({
+          type: "photo_comment",
+          recipientUserIds: threadAuthors.map((row) => row.authorId),
+          actorUserId: ctx.session.user.id,
+          entityType: "photo_comment",
+          entityId: comment.id,
+          href: `/admin/albums/${photo.albumId}?photo=${input.photoId}`,
+          metadata: {
+            actorName: ctx.session.user.name,
+            excerpt: input.body.trim().slice(0, 120),
+            albumId: photo.albumId,
+          },
+        });
+      }
 
       return comment;
     }),

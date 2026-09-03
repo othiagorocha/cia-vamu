@@ -209,81 +209,68 @@ export const EventSocial = ({
     <div className="flex min-h-0 flex-col border-t border-foreground/10">
       <button
         type="button"
-        className="flex w-full shrink-0 flex-col items-center pt-2 pb-1 sm:hidden"
+        className="flex w-full shrink-0 flex-col items-center pt-1.5 pb-0.5 sm:hidden"
         aria-expanded={commentsOpen}
         aria-label={commentsOpen ? t("collapseComments") : t("viewComments")}
         onClick={() => setCommentsOpen((open) => !open)}
       >
-        <span className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+        <span className="h-1 w-8 rounded-full bg-muted-foreground/30" />
       </button>
 
-      <div className="shrink-0 space-y-2 px-5 pb-3 pt-4">
-        <div className="grid grid-cols-2 gap-2">
-          <EventLikeButton
-            eventId={eventId}
-            liked={data.liked}
-            likeCount={data.likeCount}
-            variant="action"
-          />
-          <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            className="h-10 min-w-0 gap-1.5"
-            onClick={focusComment}
-          >
-            <MessageCircleIcon className="size-5" />
-            <span className="truncate">{t("comment")}</span>
-            {comments.length > 0 ? (
-              <span className="tabular-nums opacity-80">({comments.length})</span>
-            ) : null}
-          </Button>
-        </div>
-
-        <div className="flex min-w-0 items-start gap-2 text-xs sm:text-sm">
-          {data.likers.length > 0 ? (
-            <div className="flex shrink-0 -space-x-2 pt-0.5">
-              {data.likers.map((liker) => (
-                <Face
-                  key={liker.userId}
-                  name={liker.name}
-                  photoUrl={liker.photoUrl}
-                  className="size-6 ring-2 ring-background"
-                />
-              ))}
-            </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-x-1 gap-y-1 px-5 py-2">
+        <EventLikeButton
+          eventId={eventId}
+          liked={data.liked}
+          likeCount={data.likeCount}
+          variant="compact"
+          className="min-h-9 min-w-0 gap-1.5 px-2.5 text-xs"
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-9 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+          onClick={focusComment}
+        >
+          <MessageCircleIcon className="size-3.5" />
+          <span className="truncate">{t("comment")}</span>
+          {comments.length > 0 ? (
+            <span className="tabular-nums opacity-70">{comments.length}</span>
           ) : null}
-          <p className="min-w-0 flex-1 text-pretty text-muted-foreground">
+        </Button>
+        {data.likeCount > 0 ? (
+          <p className="min-w-0 flex-1 basis-full text-xs text-muted-foreground sm:basis-auto sm:pl-1">
             {likeSummary()}
           </p>
-        </div>
+        ) : null}
       </div>
 
-      <div
-        className={cn(
-          "min-h-0 space-y-3 overflow-y-auto overscroll-contain px-5 py-3 text-sm",
-          commentsOpen ? "max-h-[min(38dvh,18rem)] border-t border-foreground/10" : "hidden sm:block",
-        )}
-      >
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t("comments")}
-        </p>
-
-        {comments.length === 0 ? (
-          <p className="rounded-lg border border-dashed px-3 py-3 text-center text-muted-foreground sm:py-6">
-            {t("emptyComments")}
+      {comments.length > 0 ? (
+        <div
+          className={cn(
+            "min-h-0 space-y-2.5 overflow-y-auto overscroll-contain px-5 text-sm",
+            commentsOpen
+              ? "max-h-[min(28dvh,12rem)] border-t border-foreground/10 py-2.5"
+              : "hidden sm:block sm:max-h-[min(28dvh,12rem)] sm:border-t sm:border-foreground/10 sm:py-2.5",
+          )}
+        >
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">
+            {t("comments")}
+            <span className="ml-1 tabular-nums normal-case tracking-normal">
+              ({comments.length})
+            </span>
           </p>
-        ) : (
-          comments.map((comment) => {
+          {comments.map((comment) => {
             const isAuthor = comment.authorId === data.viewerId;
             const canEdit = isAuthor && !comment.deletedAt;
             const showMenu = canEdit || canModerate;
 
             return (
-              <div key={comment.id} className="flex gap-3">
+              <div key={comment.id} className="flex gap-2.5">
                 <Face
                   name={comment.authorName}
                   photoUrl={comment.authorPhotoUrl}
+                  className="size-7"
                 />
                 <div className="min-w-0 flex-1">
                   {editingId === comment.id ? (
@@ -350,10 +337,10 @@ export const EventSocial = ({
                       </div>
                     </form>
                   ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       <p
                         className={cn(
-                          "font-semibold leading-snug",
+                          "text-sm font-medium leading-snug",
                           comment.deletedAt && "text-muted-foreground",
                         )}
                       >
@@ -370,7 +357,7 @@ export const EventSocial = ({
                           mentions={comment.mentions}
                         />
                       </p>
-                      <p className="text-xs text-muted-foreground/80">
+                      <p className="text-[11px] text-muted-foreground/70">
                         {formatDistanceToNow(comment.createdAt, {
                           locale: ptBR,
                           addSuffix: true,
@@ -404,7 +391,9 @@ export const EventSocial = ({
                           </DropdownMenuItem>
                         ) : (
                           <DropdownMenuItem
-                            onClick={() => hideMutation.mutate({ id: comment.id })}
+                            onClick={() =>
+                              hideMutation.mutate({ id: comment.id })
+                            }
                           >
                             {t("hiddenComment")}
                           </DropdownMenuItem>
@@ -427,18 +416,18 @@ export const EventSocial = ({
                 ) : null}
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      ) : null}
 
       <form
-        className="shrink-0 border-t border-foreground/10 px-5 py-3"
+        className="shrink-0 border-t border-foreground/10 px-5 py-2.5"
         onSubmit={(event) => {
           event.preventDefault();
           submitComment();
         }}
       >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <div className="flex items-end gap-2">
           <MentionComposer
             value={body}
             mentionedUsers={mentionedUsers}
@@ -453,13 +442,16 @@ export const EventSocial = ({
           />
           <Button
             type="submit"
+            size="sm"
             disabled={!body.trim() || commentMutation.isPending}
-            className="shrink-0 sm:min-w-24"
+            className="h-9 shrink-0"
           >
             {t("post")}
           </Button>
         </div>
-        <p className="mt-1.5 text-xs text-muted-foreground">{t("mentionHint")}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground/80">
+          {t("mentionHint")}
+        </p>
       </form>
     </div>
   );

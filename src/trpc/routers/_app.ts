@@ -8,6 +8,7 @@ import { eventTypesRouter } from "@/modules/events/server/event-types-procedures
 import { staffRouter } from "@/modules/staff/server/procedures";
 import { socialRouter } from "@/modules/social/server/procedures";
 import { membersRouter } from "@/modules/members/server/procedures";
+import { notificationsRouter } from "@/modules/notifications/server/procedures";
 import { prayersRouter } from "@/modules/prayers/server/procedures";
 import { createTRPCRouter } from "@/trpc/init";
 
@@ -22,6 +23,7 @@ export const appRouter = createTRPCRouter({
   staff: staffRouter,
   social: socialRouter,
   members: membersRouter,
+  notifications: notificationsRouter,
   prayers: prayersRouter,
 });
 

@@ -91,8 +91,10 @@ type EventCardProps = {
   onRestore?: () => void;
   onReuse?: () => void;
   onArchive?: () => void;
+  onDelete?: () => void;
   restorePending?: boolean;
   archivePending?: boolean;
+  deletePending?: boolean;
   actions?: ReactNode;
   shake?: boolean;
   enableSocial?: boolean;
@@ -107,8 +109,10 @@ export const EventCard = ({
   onRestore,
   onReuse,
   onArchive,
+  onDelete,
   restorePending = false,
   archivePending = false,
+  deletePending = false,
   actions,
   shake = false,
   enableSocial = false,
@@ -307,8 +311,10 @@ export const EventCard = ({
         onRestore={onRestore ? () => runDialogAction(onRestore) : undefined}
         onReuse={onReuse ? () => runDialogAction(onReuse) : undefined}
         onArchive={onArchive ? () => runDialogAction(onArchive) : undefined}
+        onDelete={onDelete ? () => runDialogAction(onDelete) : undefined}
         restorePending={restorePending}
         archivePending={archivePending}
+        deletePending={deletePending}
       />
     </>
   );

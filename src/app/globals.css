@@ -287,14 +287,39 @@
   animation: event-like-count-pop 0.38s cubic-bezier(0.22, 1.4, 0.36, 1);
 }
 
+@keyframes prayer-focus-fade {
+  0% {
+    background-color: color-mix(in oklab, #fb923c 20%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in oklab, #fb923c 50%, transparent);
+  }
+  65% {
+    background-color: color-mix(in oklab, #fb923c 10%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in oklab, #fb923c 28%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.prayer-focus-fade {
+  animation: prayer-focus-fade 2.8s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
   .photo-fade,
   .prayer-react-pop,
   .prayer-react-spark,
   .event-card-shake,
-  .event-like-count-pop {
+  .event-like-count-pop,
+  .prayer-focus-fade {
     animation: none;
+  }
+
+  .prayer-focus-fade {
+    background-color: color-mix(in oklab, #fb923c 14%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in oklab, #fb923c 40%, transparent);
   }
 
   .prayer-react-spark {

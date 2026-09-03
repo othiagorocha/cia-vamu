@@ -9,6 +9,7 @@ import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { diffFields } from "@/modules/audit/diff";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import { isEventArchived, computeRestoredEventDates, computeArchivedEventDates, computeReuseEventDates } from "@/modules/events/event-status";
+import { createNotifications } from "@/modules/notifications/server/create-notifications";
 import {
   archiveEventSchema,
   changeEventTypeSchema,
@@ -97,12 +98,19 @@ const persistActiveOrder = async (orderedActiveIds: string[]) => {
 
 export const eventsRouter = createTRPCRouter({
   listUpcoming: baseProcedure
-    .input(z.object({ includePast: z.boolean().default(false) }))
+    .input(
+      z
+        .object({
+          includePast: z.boolean().optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       const now = new Date();
+      const includePast = input?.includePast ?? false;
 
       const rows = await db.query.events.findMany({
-        where: input.includePast
+        where: includePast
           ? eq(events.published, true)
           : and(
               eq(events.published, true),
@@ -224,6 +232,18 @@ export const eventsRouter = createTRPCRouter({
           title: created.title,
           published: created.published,
           type: eventType.label,
+        },
+      });
+
+      await createNotifications({
+        type: "event_created",
+        actorUserId: ctx.session.user.id,
+        entityType: "event",
+        entityId: created.id,
+        href: `/admin/agenda?event=${created.id}`,
+        metadata: {
+          actorName: ctx.session.user.name,
+          eventTitle: created.title,
         },
       });
 

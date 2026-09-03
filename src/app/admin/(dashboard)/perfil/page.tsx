@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 
 const AdminProfilePage = async () => {
   await trpc.members.getMe.prefetch();
+  await trpc.notifications.getPreferences.prefetch();
 
   return (
     <HydrateClient>

@@ -17,6 +17,7 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { parseAsString, useQueryState } from "nuqs";
 import { toast } from "sonner";
 
 import {
@@ -86,7 +87,10 @@ export const AlbumPhotosAdminView = ({
   const [destinationAlbumId, setDestinationAlbumId] = useState("");
   const [childFormOpen, setChildFormOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [photoQueryId, setPhotoQueryId] = useQueryState(
+    "photo",
+    parseAsString.withOptions({ history: "replace" }),
+  );
   const [queue, setQueue] = useState<
     { id: string; file: File; preview: string; title: string; caption: string }[]
   >([]);
@@ -133,7 +137,7 @@ export const AlbumPhotosAdminView = ({
       toast.success(t("moved"));
       setMoveTarget(null);
       setDestinationAlbumId("");
-      setActiveIndex(null);
+      void setPhotoQueryId(null);
       utils.albums.getById.invalidate({ id: albumId });
     },
     onError: toastError,
@@ -317,6 +321,10 @@ export const AlbumPhotosAdminView = ({
     isUploading ||
     addPhotoMutation.isPending ||
     createPhotoUploadMutation.isPending;
+  const photoIndex = photoQueryId
+    ? album.photos.findIndex((photo) => photo.id === photoQueryId)
+    : -1;
+  const activeIndex = photoIndex >= 0 ? photoIndex : null;
   const activePhoto =
     activeIndex !== null ? album.photos[activeIndex] : null;
 
@@ -489,7 +497,7 @@ export const AlbumPhotosAdminView = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {album.photos.map((photo, index) => (
+          {album.photos.map((photo) => (
             <div
               key={photo.id}
               className="group relative aspect-square overflow-hidden rounded-lg border bg-muted"
@@ -497,7 +505,9 @@ export const AlbumPhotosAdminView = ({
               <button
                 type="button"
                 className="absolute inset-0"
-                onClick={() => setActiveIndex(index)}
+                onClick={() => {
+                  void setPhotoQueryId(photo.id);
+                }}
                 aria-label={photo.title ?? photo.caption ?? album.title}
               >
                 <Image
@@ -745,7 +755,14 @@ export const AlbumPhotosAdminView = ({
       <PhotoLightbox
         photos={album.photos}
         index={activeIndex}
-        onIndexChange={setActiveIndex}
+        onIndexChange={(index) => {
+          if (index === null) {
+            void setPhotoQueryId(null);
+            return;
+          }
+
+          void setPhotoQueryId(album.photos[index]?.id ?? null);
+        }}
         footer={
           activePhoto ? (
             <PhotoSocial

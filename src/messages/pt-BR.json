@@ -302,15 +302,15 @@
       "likedByYou": "Curtido por você",
       "likedByYouAnd": "Curtido por você e outras {count} pessoas",
       "liked": "Curtido",
-      "beFirstLike": "Nenhuma curtida ainda — toque em Curtir",
-      "emptyComments": "Nenhum comentário ainda. Escreva o primeiro abaixo.",
+      "beFirstLike": "Nenhuma curtida ainda",
+      "emptyComments": "Nenhum comentário ainda.",
       "commentActions": "Ações do comentário",
       "hiddenComment": "Ocultar",
       "restore": "Restaurar",
       "deleteForever": "Excluir de vez",
       "commentUpdated": "Comentário atualizado.",
       "commentDeleted": "Comentário excluído.",
-      "mentionHint": "Use @ para mencionar alguém da equipe. Após o @, Ctrl+Espaço abre ou filtra a lista. Enter envia; Shift+Enter quebra linha."
+      "mentionHint": "Use @ para mencionar. Enter envia."
     },
     "calendar": {
       "today": "Hoje",
@@ -328,7 +328,7 @@
       "body": "Descrição",
       "image": "Arte / flyer (opcional)",
       "pasteImage": "Colar imagem",
-      "pasteHint": "ou Ctrl+V / Cmd+V com o diálogo aberto",
+      "pasteHint": "Ctrl+V / Cmd+V",
       "type": "Tipo",
       "location": "Local",
       "locationPlaceholder": "Adicionar local",
@@ -343,7 +343,14 @@
       "startsAt": "Início",
       "endsAt": "Término (opcional)",
       "color": "Cor do card",
-      "important": "Evento importante"
+      "important": "Evento importante",
+      "sections": {
+        "content": "Conteúdo",
+        "art": "Arte",
+        "details": "Detalhes",
+        "when": "Quando",
+        "visibility": "Visibilidade"
+      }
     },
     "columns": {
       "title": "Título",
@@ -385,6 +392,39 @@
       "confirmPassword": "Confirmar senha",
       "submit": "Salvar senha",
       "success": "Senha atualizada."
+    }
+  },
+  "notifications": {
+    "title": "Notificações",
+    "bellLabel": "{count, plural, =0 {Notificações} one {Notificações, # não lida} other {Notificações, # não lidas}}",
+    "empty": "Nenhuma notificação.",
+    "markAllRead": "Marcar todas como lidas",
+    "preferencesLink": "Preferências",
+    "preferencesTitle": "Notificações",
+    "preferencesSubtitle": "Escolha quais avisos aparecem no sino do painel.",
+    "preferencesSaved": "Preferências de notificação atualizadas.",
+    "groups": {
+      "personal": "Pessoal",
+      "team": "Equipe",
+      "public": "Site público"
+    },
+    "types": {
+      "mention": "Menções em comentários",
+      "contact_message": "Mensagens de contato",
+      "prayer_request": "Pedidos de oração",
+      "event_created": "Novos eventos",
+      "document_uploaded": "Novos documentos",
+      "photo_comment": "Comentários em fotos",
+      "staff_joined": "Novos membros da equipe"
+    },
+    "items": {
+      "mention": "{actor} mencionou você em {eventTitle}",
+      "contact_message": "{name} enviou uma mensagem de contato",
+      "prayer_request": "Novo pedido de oração",
+      "event_created": "{actor} criou o evento {eventTitle}",
+      "document_uploaded": "{actor} enviou o documento {documentName}",
+      "photo_comment": "{actor} comentou em uma foto",
+      "staff_joined": "{name} entrou na equipe"
     }
   },
   "dashboard": {

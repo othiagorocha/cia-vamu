@@ -23,6 +23,7 @@ export const EventsViewModeToggle = ({
         type="button"
         variant={value === "calendar" ? "secondary" : "ghost"}
         size="icon-sm"
+        className="size-11"
         aria-label={t("viewCalendar")}
         aria-pressed={value === "calendar"}
         onClick={() => onChange("calendar")}
@@ -33,6 +34,7 @@ export const EventsViewModeToggle = ({
         type="button"
         variant={value === "grid" ? "secondary" : "ghost"}
         size="icon-sm"
+        className="size-11"
         aria-label={t("viewGrid")}
         aria-pressed={value === "grid"}
         onClick={() => onChange("grid")}
@@ -43,6 +45,7 @@ export const EventsViewModeToggle = ({
         type="button"
         variant={value === "table" ? "secondary" : "ghost"}
         size="icon-sm"
+        className="size-11"
         aria-label={t("viewTable")}
         aria-pressed={value === "table"}
         onClick={() => onChange("table")}

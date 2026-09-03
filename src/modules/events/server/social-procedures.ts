@@ -14,6 +14,7 @@ import { hasCapability } from "@/lib/permissions";
 import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { diffFields } from "@/modules/audit/diff";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
+import { createNotifications } from "@/modules/notifications/server/create-notifications";
 import {
   addEventCommentSchema,
   eventCommentIdSchema,
@@ -72,6 +73,49 @@ const syncCommentMentions = async (commentId: string, userIds: string[]) => {
       userId: mentionedUserId,
     })),
   );
+};
+
+const loadMentionUserIds = async (commentId: string) => {
+  const rows = await db
+    .select({ userId: eventCommentMentions.userId })
+    .from(eventCommentMentions)
+    .where(eq(eventCommentMentions.commentId, commentId));
+
+  return rows.map((row) => row.userId);
+};
+
+const notifyEventMentions = async ({
+  recipientUserIds,
+  actor,
+  eventId,
+  commentId,
+  body,
+}: {
+  recipientUserIds: string[];
+  actor: { id: string; name: string };
+  eventId: string;
+  commentId: string;
+  body: string;
+}) => {
+  if (recipientUserIds.length === 0) {
+    return;
+  }
+
+  const meta = await eventCommentAuditMetadata(eventId);
+
+  await createNotifications({
+    type: "mention",
+    recipientUserIds,
+    actorUserId: actor.id,
+    entityType: "event_comment",
+    entityId: commentId,
+    href: `/admin/agenda?event=${eventId}`,
+    metadata: {
+      actorName: actor.name,
+      eventTitle: meta.title ?? "",
+      excerpt: body.slice(0, 120),
+    },
+  });
 };
 
 const loadCommentMentions = async (commentIds: string[]) => {
@@ -203,6 +247,13 @@ export const eventSocialProcedures = {
         .returning();
 
       await syncCommentMentions(comment.id, mentionedUserIds);
+      await notifyEventMentions({
+        recipientUserIds: mentionedUserIds,
+        actor: ctx.session.user,
+        eventId: input.eventId,
+        commentId: comment.id,
+        body: input.body.trim(),
+      });
 
       return comment;
     }),
@@ -238,10 +289,22 @@ export const eventSocialProcedures = {
 
       const body = input.body.trim();
       const mentionedUserIds = await validateMentionedUsers(input.mentionedUserIds);
+      const previousMentionIds = await loadMentionUserIds(existing.id);
+      const addedMentionIds = mentionedUserIds.filter(
+        (id) => !previousMentionIds.includes(id),
+      );
       const changes = diffFields({ body: existing.body }, { body });
 
+      await syncCommentMentions(existing.id, mentionedUserIds);
+      await notifyEventMentions({
+        recipientUserIds: addedMentionIds,
+        actor: ctx.session.user,
+        eventId: existing.eventId,
+        commentId: existing.id,
+        body,
+      });
+
       if (changes.length === 0) {
-        await syncCommentMentions(existing.id, mentionedUserIds);
         return existing;
       }
 
@@ -250,8 +313,6 @@ export const eventSocialProcedures = {
         .set({ body })
         .where(eq(eventComments.id, input.id))
         .returning();
-
-      await syncCommentMentions(existing.id, mentionedUserIds);
 
       await writeAuditLog({
         actor: ctx.session.user,

@@ -17,8 +17,10 @@ type EventSortableItemProps = {
   onRestore?: () => void;
   onReuse?: () => void;
   onArchive?: () => void;
+  onDelete?: () => void;
   restorePending?: boolean;
   archivePending?: boolean;
+  deletePending?: boolean;
   actions?: ReactNode;
   enableSocial?: boolean;
   canModerateSocial?: boolean;
@@ -33,8 +35,10 @@ export const EventSortableItem = ({
   onRestore,
   onReuse,
   onArchive,
+  onDelete,
   restorePending,
   archivePending,
+  deletePending,
   actions,
   enableSocial,
   canModerateSocial,
@@ -76,8 +80,10 @@ export const EventSortableItem = ({
         onRestore={onRestore}
         onReuse={onReuse}
         onArchive={onArchive}
+        onDelete={onDelete}
         restorePending={restorePending}
         archivePending={archivePending}
+        deletePending={deletePending}
         actions={actions}
         shake={shake && !isDragging}
         enableSocial={enableSocial}

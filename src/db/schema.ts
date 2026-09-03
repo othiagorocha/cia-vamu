@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -511,3 +511,50 @@ export const documentsRelations = relations(documents, ({ one }) => ({
     references: [documentFolders.id],
   }),
 }));
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipientUserId: text("recipient_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    actorUserId: text("actor_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    href: text("href"),
+    metadata: jsonb("metadata").$type<
+      Record<string, string | number | boolean | null>
+    >(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("notifications_recipient_created_idx").on(
+      table.recipientUserId,
+      table.createdAt,
+    ),
+    index("notifications_recipient_unread_idx").on(
+      table.recipientUserId,
+      table.readAt,
+    ),
+  ],
+);
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  disabledTypes: text("disabled_types")
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

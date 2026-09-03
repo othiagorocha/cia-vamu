@@ -7,6 +7,7 @@ import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { diffFields } from "@/modules/audit/diff";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import { contactFormSchema } from "@/modules/contact/schema";
+import { createNotifications } from "@/modules/notifications/server/create-notifications";
 import {
   baseProcedure,
   createTRPCRouter,
@@ -21,6 +22,17 @@ export const contactRouter = createTRPCRouter({
         .insert(contactMessages)
         .values(input)
         .returning();
+
+      if (message) {
+        await createNotifications({
+          type: "contact_message",
+          actorUserId: null,
+          entityType: "contact_message",
+          entityId: message.id,
+          href: "/admin/mensagens",
+          metadata: { name: message.name },
+        });
+      }
 
       return message;
     }),

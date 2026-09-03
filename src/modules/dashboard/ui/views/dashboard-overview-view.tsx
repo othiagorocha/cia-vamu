@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRightIcon,
@@ -14,8 +15,14 @@ import { useTranslations } from "next-intl";
 import { PiHandsPrayingBold } from "react-icons/pi";
 
 import { Button } from "@/components/ui/button";
-import { EventCard } from "@/modules/events/ui/components/event-card";
 import { isEventArchived } from "@/modules/events/event-status";
+import type { EventRecord } from "@/modules/events/types";
+import { EventCard } from "@/modules/events/ui/components/event-card";
+import { EventDetailDialog } from "@/modules/events/ui/components/event-detail-dialog";
+import { EventsCalendar } from "@/modules/events/ui/components/events-calendar";
+import { EventsPublicTable } from "@/modules/events/ui/components/events-public-table";
+import { EventsViewModeToggle } from "@/modules/events/ui/components/events-view-mode-toggle";
+import { useEventsViewMode } from "@/modules/events/ui/hooks/use-events-view-mode";
 import { trpc } from "@/trpc/client";
 
 type DashboardOverviewViewProps = {
@@ -32,7 +39,6 @@ type OverviewKpi = {
   icon: LucideIcon | typeof PiHandsPrayingBold;
 };
 
-const UPCOMING_LIMIT = 8;
 const MAX_KPIS = 6;
 
 const OverviewKpiCard = ({ kpi }: { kpi: OverviewKpi }) => {
@@ -61,6 +67,8 @@ export const DashboardOverviewView = ({
   canStaff,
 }: DashboardOverviewViewProps) => {
   const t = useTranslations("dashboard.overview");
+  const [upcomingView, setUpcomingView] = useEventsViewMode();
+  const [detailEvent, setDetailEvent] = useState<EventRecord | null>(null);
   const eventsQuery = trpc.events.listAll.useQuery(undefined, {
     enabled: canEvents,
   });
@@ -87,9 +95,7 @@ export const DashboardOverviewView = ({
   const teamEvents = events.filter((event) => !event.published).length;
   const publishedAlbums = albums.filter((album) => album.published).length;
   const unreadMessages = messages.filter((message) => !message.readAt).length;
-  const upcomingEvents = events
-    .filter((event) => !isEventArchived(event))
-    .slice(0, UPCOMING_LIMIT);
+  const upcomingEvents = events.filter((event) => !isEventArchived(event));
 
   const kpis: OverviewKpi[] = [
     ...(canEvents
@@ -182,21 +188,38 @@ export const DashboardOverviewView = ({
 
       {canEvents ? (
         <section className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold tracking-tight">
               {t("upcoming")}
             </h2>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/admin/agenda">
-                {t("viewAgenda")}
-                <ArrowRightIcon />
-              </Link>
-            </Button>
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 sm:justify-end">
+              <EventsViewModeToggle
+                value={upcomingView}
+                onChange={setUpcomingView}
+              />
+              <Button asChild variant="ghost" size="sm" className="min-h-11">
+                <Link href="/admin/agenda">
+                  {t("viewAgenda")}
+                  <ArrowRightIcon />
+                </Link>
+              </Button>
+            </div>
           </div>
           {upcomingEvents.length === 0 ? (
             <p className="rounded-lg border border-dashed py-12 text-center text-sm text-muted-foreground">
               {t("upcomingEmpty")}
             </p>
+          ) : upcomingView === "calendar" ? (
+            <EventsCalendar
+              events={upcomingEvents}
+              onEventClick={(event) => setDetailEvent(event)}
+            />
+          ) : upcomingView === "table" ? (
+            <EventsPublicTable
+              events={upcomingEvents}
+              onEventClick={(event) => setDetailEvent(event)}
+              showVisibility
+            />
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
               {upcomingEvents.map((event) => (
@@ -211,6 +234,17 @@ export const DashboardOverviewView = ({
             </div>
           )}
         </section>
+      ) : null}
+
+      {detailEvent ? (
+        <EventDetailDialog
+          event={detailEvent}
+          open
+          onOpenChange={(open) => !open && setDetailEvent(null)}
+          showVisibility
+          enableSocial
+          canModerateSocial={canStaff}
+        />
       ) : null}
     </div>
   );

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { parseAsString, useQueryState } from "nuqs";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -27,12 +28,15 @@ import {
 import { formatBrazilDateTimeShort } from "@/lib/brazil-datetime";
 import { useAdminViewMode } from "@/lib/admin-view-mode";
 import { useToastError } from "@/lib/use-toast-error";
+import { cn } from "@/lib/utils";
 import { AdminViewModeToggle } from "@/modules/dashboard/ui/components/admin-view-mode-toggle";
 import { PrayerReactButton } from "@/modules/prayers/ui/components/prayer-react-button";
 import { PrayerRequestDialog } from "@/modules/prayers/ui/components/prayer-request-dialog";
 import { PrayerRequestFormDialog } from "@/modules/prayers/ui/components/prayer-request-form-dialog";
 import type { PrayerRequestRecord } from "@/modules/prayers/types";
 import { trpc } from "@/trpc/client";
+
+const PRAYER_FOCUS_MS = 3000;
 
 type PrayerAdminViewProps = {
   canManage: boolean;
@@ -59,8 +63,38 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
   const [deleteTarget, setDeleteTarget] = useState<PrayerRequestRecord | null>(
     null,
   );
+  const [focusPrayerId, setFocusPrayerId] = useQueryState(
+    "prayer",
+    parseAsString.withOptions({ history: "replace" }),
+  );
 
   const openRequest = requests.find((request) => request.id === openId) ?? null;
+
+  useEffect(() => {
+    if (!focusPrayerId) {
+      return;
+    }
+
+    if (!requests.some((request) => request.id === focusPrayerId)) {
+      void setFocusPrayerId(null);
+      return;
+    }
+
+    const element = document.getElementById(`prayer-${focusPrayerId}`);
+    element?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusPrayerId, requests, setFocusPrayerId]);
+
+  useEffect(() => {
+    if (!focusPrayerId) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void setFocusPrayerId(null);
+    }, PRAYER_FOCUS_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [focusPrayerId, setFocusPrayerId]);
 
   const removeMutation = trpc.prayers.remove.useMutation({
     onSuccess: () => {
@@ -110,9 +144,13 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
           {requests.map((request) => (
             <div
               key={request.id}
+              id={`prayer-${request.id}`}
               role="button"
               tabIndex={0}
-              className="flex cursor-pointer flex-col gap-2 rounded-xl bg-card p-4 text-left ring-1 ring-foreground/10 transition-colors hover:bg-muted/40"
+              className={cn(
+                "flex cursor-pointer flex-col gap-2 rounded-xl bg-card p-4 text-left ring-1 ring-foreground/10 transition-colors hover:bg-muted/40",
+                focusPrayerId === request.id && "prayer-focus-fade",
+              )}
               onClick={() => setOpenId(request.id)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -182,8 +220,12 @@ export const PrayerAdminView = ({ canManage }: PrayerAdminViewProps) => {
               {requests.map((request) => (
                 <TableRow
                   key={request.id}
+                  id={`prayer-${request.id}`}
                   tabIndex={0}
-                  className="cursor-pointer"
+                  className={cn(
+                    "cursor-pointer",
+                    focusPrayerId === request.id && "prayer-focus-fade",
+                  )}
                   onClick={() => setOpenId(request.id)}
                 >
                   <TableCell className="font-medium">

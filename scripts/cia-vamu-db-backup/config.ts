@@ -26,6 +26,8 @@ export const TABLE_ORDER = [
   "invite_uses",
   "document_folders",
   "documents",
+  "notifications",
+  "notification_preferences",
 ] as const;
 
 export type BackupTableName = (typeof TABLE_ORDER)[number];

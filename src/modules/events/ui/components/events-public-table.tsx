@@ -14,17 +14,20 @@ import {
 } from "@/components/ui/table";
 import { eventLocationLabel } from "@/lib/google-maps-url";
 import { EventTypeBadge } from "@/modules/events/ui/components/event-type-badge";
+import { EventVisibilityBadge } from "@/modules/events/ui/components/event-visibility-badge";
 import { resolveEventColor } from "@/modules/events/event-colors";
 import type { EventRecord } from "@/modules/events/types";
 
 type EventsPublicTableProps = {
   events: EventRecord[];
   onEventClick: (event: EventRecord) => void;
+  showVisibility?: boolean;
 };
 
 export const EventsPublicTable = ({
   events,
   onEventClick,
+  showVisibility = false,
 }: EventsPublicTableProps) => {
   const t = useTranslations("events");
 
@@ -35,6 +38,9 @@ export const EventsPublicTable = ({
           <TableRow>
             <TableHead>{t("columns.title")}</TableHead>
             <TableHead>{t("columns.type")}</TableHead>
+            {showVisibility ? (
+              <TableHead>{t("columns.status")}</TableHead>
+            ) : null}
             <TableHead>{t("columns.startsAt")}</TableHead>
             <TableHead>{t("columns.location")}</TableHead>
           </TableRow>
@@ -56,6 +62,11 @@ export const EventsPublicTable = ({
                   color={resolveEventColor(event)}
                 />
               </TableCell>
+              {showVisibility ? (
+                <TableCell>
+                  <EventVisibilityBadge published={event.published} />
+                </TableCell>
+              ) : null}
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {format(new Date(event.startsAt), "dd/MM/yyyy HH:mm", {
                   locale: ptBR,

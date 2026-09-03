@@ -212,268 +212,301 @@ export const EventFormDialog = ({
         <form
           id="event-form"
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-4"
+          className="space-y-6"
           noValidate
         >
-          <FieldGroup>
-            <Controller
-              control={form.control}
-              name="title"
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="title">{t("form.title")}</FieldLabel>
-                  <Input {...field} id="title" aria-invalid={fieldState.invalid} />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
+          <section className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("form.sections.content")}
+            </h3>
+            <FieldGroup>
+              <Controller
+                control={form.control}
+                name="title"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="title">{t("form.title")}</FieldLabel>
+                    <Input {...field} id="title" aria-invalid={fieldState.invalid} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
 
-            <Controller
-              control={form.control}
-              name="description"
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="description">{t("form.body")}</FieldLabel>
-                  <Textarea {...field} id="description" rows={3} />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
+              <Controller
+                control={form.control}
+                name="description"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="description">{t("form.body")}</FieldLabel>
+                    <Textarea {...field} id="description" rows={3} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+            </FieldGroup>
+          </section>
 
-            <Controller
-              control={form.control}
-              name="image"
-              render={({ field: { onChange, ...field } }) => (
-                <Field>
-                  <FieldLabel htmlFor="event-image">{t("form.image")}</FieldLabel>
-                  <div className="flex items-start gap-3">
-                    <div className="relative flex aspect-3/4 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                      {preview ? (
-                        <Image src={preview} alt="" fill className="object-cover" />
-                      ) : (
-                        <ImageIcon className="size-6 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col gap-2">
-                      <Input
-                        {...field}
-                        ref={fileInputRef}
-                        id="event-image"
-                        type="file"
-                        accept="image/*"
-                        value={undefined}
-                        onChange={async (inputEvent) => {
-                          const file = inputEvent.target.files?.[0];
-                          if (!file) return;
-                          const dataUrl = await fileToDataUrl(file);
-                          setPreview(dataUrl);
-                          onChange(dataUrl);
-                          form.setValue("removeImage", false, {
-                            shouldDirty: true,
-                          });
-                        }}
-                      />
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={isPasting}
-                          onClick={handlePasteFromClipboard}
-                        >
-                          {isPasting ? (
-                            <Loader2Icon className="animate-spin" />
-                          ) : (
-                            <ClipboardPasteIcon />
-                          )}
-                          {t("form.pasteImage")}
-                        </Button>
+          <section className="space-y-3 border-t border-foreground/10 pt-5">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("form.sections.art")}
+            </h3>
+            <FieldGroup>
+              <Controller
+                control={form.control}
+                name="image"
+                render={({ field: { onChange, ...field } }) => (
+                  <Field>
+                    <FieldLabel htmlFor="event-image">{t("form.image")}</FieldLabel>
+                    <div className="flex items-start gap-3">
+                      <div className="relative flex aspect-3/4 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
                         {preview ? (
+                          <Image src={preview} alt="" fill className="object-cover" />
+                        ) : (
+                          <ImageIcon className="size-6 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col gap-2">
+                        <Input
+                          {...field}
+                          ref={fileInputRef}
+                          id="event-image"
+                          type="file"
+                          accept="image/*"
+                          value={undefined}
+                          onChange={async (inputEvent) => {
+                            const file = inputEvent.target.files?.[0];
+                            if (!file) return;
+                            const dataUrl = await fileToDataUrl(file);
+                            setPreview(dataUrl);
+                            onChange(dataUrl);
+                            form.setValue("removeImage", false, {
+                              shouldDirty: true,
+                            });
+                          }}
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
                           <Button
                             type="button"
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            onClick={() => {
-                              setPreview(null);
-                              onChange(undefined);
-                              form.setValue("removeImage", true, {
-                                shouldDirty: true,
-                              });
-                              if (fileInputRef.current) {
-                                fileInputRef.current.value = "";
-                              }
-                            }}
+                            disabled={isPasting}
+                            onClick={handlePasteFromClipboard}
                           >
-                            {t("removeImage")}
+                            {isPasting ? (
+                              <Loader2Icon className="animate-spin" />
+                            ) : (
+                              <ClipboardPasteIcon />
+                            )}
+                            {t("form.pasteImage")}
                           </Button>
-                        ) : null}
-                        <span className="text-xs text-muted-foreground">
-                          {t("form.pasteHint")}
-                        </span>
+                          {preview ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setPreview(null);
+                                onChange(undefined);
+                                form.setValue("removeImage", true, {
+                                  shouldDirty: true,
+                                });
+                                if (fileInputRef.current) {
+                                  fileInputRef.current.value = "";
+                                }
+                              }}
+                            >
+                              {t("removeImage")}
+                            </Button>
+                          ) : null}
+                          <span className="text-xs text-muted-foreground">
+                            {t("form.pasteHint")}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Field>
-              )}
-            />
+                  </Field>
+                )}
+              />
+            </FieldGroup>
+          </section>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <section className="space-y-3 border-t border-foreground/10 pt-5">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("form.sections.details")}
+            </h3>
+            <FieldGroup>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Controller
+                  control={form.control}
+                  name="typeId"
+                  render={({ field }) => (
+                    <Field>
+                      <FieldLabel htmlFor="type">{t("form.type")}</FieldLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="type" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {types.map((option) => (
+                            <SelectItem key={option.id} value={option.id}>
+                              {eventTypeShareLine(option.emoji, option.label)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+                />
+
+                <EventLocationFields
+                  control={form.control}
+                  getValues={form.getValues}
+                  setValue={form.setValue}
+                  open={locationOpen}
+                  onOpen={() => setLocationOpen(true)}
+                />
+              </div>
+
               <Controller
                 control={form.control}
-                name="typeId"
+                name="color"
                 render={({ field }) => (
                   <Field>
-                    <FieldLabel htmlFor="type">{t("form.type")}</FieldLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="type" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {types.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {eventTypeShareLine(option.emoji, option.label)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                )}
-              />
-
-              <EventLocationFields
-                control={form.control}
-                getValues={form.getValues}
-                setValue={form.setValue}
-                open={locationOpen}
-                onOpen={() => setLocationOpen(true)}
-              />
-            </div>
-
-            <Controller
-              control={form.control}
-              name="color"
-              render={({ field }) => (
-                <Field>
-                  <FieldLabel>{t("form.color")}</FieldLabel>
-                  <EventColorPicker
-                    typeDefaultColor={
-                      types.find((type) => type.id === form.watch("typeId"))
-                        ?.defaultColor ?? "slate"
-                    }
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                </Field>
-              )}
-            />
-
-            <Controller
-              control={form.control}
-              name="important"
-              render={({ field }) => (
-                <Field orientation="horizontal">
-                  <input
-                    id="event-important"
-                    type="checkbox"
-                    className="size-4 rounded border-input"
-                    checked={field.value}
-                    onChange={(inputEvent) =>
-                      field.onChange(inputEvent.target.checked)
-                    }
-                  />
-                  <FieldLabel htmlFor="event-important" className="font-normal">
-                    <span className="flex flex-col gap-0.5">
-                      <span>{t("form.important")}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {t("importantHint")}
-                      </span>
-                    </span>
-                  </FieldLabel>
-                </Field>
-              )}
-            />
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Controller
-                control={form.control}
-                name="startsAt"
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="startsAt">{t("form.startsAt")}</FieldLabel>
-                    <Input
-                      {...field}
-                      id="startsAt"
-                      type="datetime-local"
-                      aria-invalid={fieldState.invalid}
+                    <FieldLabel>{t("form.color")}</FieldLabel>
+                    <EventColorPicker
+                      typeDefaultColor={
+                        types.find((type) => type.id === form.watch("typeId"))
+                          ?.defaultColor ?? "slate"
+                      }
+                      value={field.value}
+                      onChange={field.onChange}
                     />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                   </Field>
                 )}
               />
 
               <Controller
                 control={form.control}
-                name="endsAt"
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="endsAt">{t("form.endsAt")}</FieldLabel>
-                    <Input
-                      {...field}
-                      id="endsAt"
-                      type="datetime-local"
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                  </Field>
-                )}
-              />
-            </div>
-
-            <Controller
-              control={form.control}
-              name="published"
-              render={({ field }) => (
-                <div className="flex flex-col gap-2">
+                name="important"
+                render={({ field }) => (
                   <Field orientation="horizontal">
                     <input
-                      id="visibility-team"
-                      type="radio"
-                      name="event-visibility"
-                      className="size-4 border-input"
-                      checked={!field.value}
-                      onChange={() => field.onChange(false)}
-                    />
-                    <FieldLabel htmlFor="visibility-team" className="font-normal">
-                      <span className="flex flex-col gap-0.5">
-                        <span>{t("visibility.team")}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {t("visibility.teamHint")}
-                        </span>
-                      </span>
-                    </FieldLabel>
-                  </Field>
-                  <Field orientation="horizontal">
-                    <input
-                      id="visibility-public"
-                      type="radio"
-                      name="event-visibility"
-                      className="size-4 border-input"
+                      id="event-important"
+                      type="checkbox"
+                      className="size-4 rounded border-input"
                       checked={field.value}
-                      onChange={() => field.onChange(true)}
+                      onChange={(inputEvent) =>
+                        field.onChange(inputEvent.target.checked)
+                      }
                     />
-                    <FieldLabel htmlFor="visibility-public" className="font-normal">
+                    <FieldLabel htmlFor="event-important" className="font-normal">
                       <span className="flex flex-col gap-0.5">
-                        <span>{t("visibility.public")}</span>
+                        <span>{t("form.important")}</span>
                         <span className="text-xs text-muted-foreground">
-                          {t("visibility.publicHint")}
+                          {t("importantHint")}
                         </span>
                       </span>
                     </FieldLabel>
                   </Field>
-                </div>
-              )}
-            />
-          </FieldGroup>
+                )}
+              />
+            </FieldGroup>
+          </section>
+
+          <section className="space-y-3 border-t border-foreground/10 pt-5">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("form.sections.when")}
+            </h3>
+            <FieldGroup>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Controller
+                  control={form.control}
+                  name="startsAt"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="startsAt">{t("form.startsAt")}</FieldLabel>
+                      <Input
+                        {...field}
+                        id="startsAt"
+                        type="datetime-local"
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )}
+                />
+
+                <Controller
+                  control={form.control}
+                  name="endsAt"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="endsAt">{t("form.endsAt")}</FieldLabel>
+                      <Input
+                        {...field}
+                        id="endsAt"
+                        type="datetime-local"
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )}
+                />
+              </div>
+            </FieldGroup>
+          </section>
+
+          <section className="space-y-3 border-t border-foreground/10 pt-5">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("form.sections.visibility")}
+            </h3>
+            <FieldGroup>
+              <Controller
+                control={form.control}
+                name="published"
+                render={({ field }) => (
+                  <div className="flex flex-col gap-2">
+                    <Field orientation="horizontal">
+                      <input
+                        id="visibility-team"
+                        type="radio"
+                        name="event-visibility"
+                        className="size-4 border-input"
+                        checked={!field.value}
+                        onChange={() => field.onChange(false)}
+                      />
+                      <FieldLabel htmlFor="visibility-team" className="font-normal">
+                        <span className="flex flex-col gap-0.5">
+                          <span>{t("visibility.team")}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {t("visibility.teamHint")}
+                          </span>
+                        </span>
+                      </FieldLabel>
+                    </Field>
+                    <Field orientation="horizontal">
+                      <input
+                        id="visibility-public"
+                        type="radio"
+                        name="event-visibility"
+                        className="size-4 border-input"
+                        checked={field.value}
+                        onChange={() => field.onChange(true)}
+                      />
+                      <FieldLabel htmlFor="visibility-public" className="font-normal">
+                        <span className="flex flex-col gap-0.5">
+                          <span>{t("visibility.public")}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {t("visibility.publicHint")}
+                          </span>
+                        </span>
+                      </FieldLabel>
+                    </Field>
+                  </div>
+                )}
+              />
+            </FieldGroup>
+          </section>
         </form>
 
         <DialogFooter>

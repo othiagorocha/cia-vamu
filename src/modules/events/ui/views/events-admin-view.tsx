@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -31,6 +31,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { parseAsString, useQueryState } from "nuqs";
 import { toast } from "sonner";
 
 import {
@@ -144,7 +145,10 @@ export const EventsAdminView = ({
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
   const [prefillEvent, setPrefillEvent] = useState<EventRecord | null>(null);
   const [createStartsAt, setCreateStartsAt] = useState<string | null>(null);
-  const [detailEvent, setDetailEvent] = useState<EventRecord | null>(null);
+  const [eventQueryId, setEventQueryId] = useQueryState(
+    "event",
+    parseAsString.withOptions({ history: "replace" }),
+  );
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
   const [typesOpen, setTypesOpen] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -153,6 +157,23 @@ export const EventsAdminView = ({
     () => splitEventsByArchive(events),
     [events],
   );
+
+  const detailEvent =
+    events.find((event) => event.id === eventQueryId) ?? null;
+
+  useEffect(() => {
+    if (eventQueryId && !events.some((event) => event.id === eventQueryId)) {
+      void setEventQueryId(null);
+    }
+  }, [eventQueryId, events, setEventQueryId]);
+
+  const openEventDetail = (event: EventRecord) => {
+    void setEventQueryId(event.id);
+  };
+
+  const closeEventDetail = () => {
+    void setEventQueryId(null);
+  };
 
   const scopedEvents =
     scope === "active"
@@ -240,7 +261,7 @@ export const EventsAdminView = ({
   const archiveMutation = trpc.events.archive.useMutation({
     onSuccess: () => {
       toast.success(t("archived"));
-      setDetailEvent(null);
+      closeEventDetail();
       invalidate();
     },
     onError: toastError,
@@ -282,7 +303,7 @@ export const EventsAdminView = ({
     }
 
     suppressEventCardOpen();
-    setDetailEvent(null);
+    closeEventDetail();
     setPrefillEvent(null);
     setCreateStartsAt(null);
     setSelectedEvent(event);
@@ -295,7 +316,7 @@ export const EventsAdminView = ({
     }
 
     suppressEventCardOpen();
-    setDetailEvent(null);
+    closeEventDetail();
     setSelectedEvent(null);
     setCreateStartsAt(null);
     setPrefillEvent(event);
@@ -308,7 +329,7 @@ export const EventsAdminView = ({
     }
 
     suppressEventCardOpen();
-    setDetailEvent(null);
+    closeEventDetail();
     restoreMutation.mutate({ id: event.id });
   };
 
@@ -318,7 +339,7 @@ export const EventsAdminView = ({
     }
 
     suppressEventCardOpen();
-    setDetailEvent(null);
+    closeEventDetail();
     archiveMutation.mutate({ id: event.id });
   };
 
@@ -327,11 +348,19 @@ export const EventsAdminView = ({
       return {};
     }
 
+    const onDelete = () => {
+      suppressEventCardOpen();
+      closeEventDetail();
+      setDeleteTarget(event);
+    };
+
     if (isEventArchived(event)) {
       return {
         onRestore: () => restoreEvent(event),
         onReuse: () => openReuse(event),
+        onDelete,
         restorePending: restoreMutation.isPending,
+        deletePending: removeMutation.isPending,
       };
     }
 
@@ -339,7 +368,9 @@ export const EventsAdminView = ({
       onEdit: () => openEditor(event),
       onReuse: () => openReuse(event),
       onArchive: () => archiveEvent(event),
+      onDelete,
       archivePending: archiveMutation.isPending,
+      deletePending: removeMutation.isPending,
     };
   };
 
@@ -651,14 +682,14 @@ export const EventsAdminView = ({
                 key={event.id}
                 tabIndex={0}
                 className="cursor-pointer"
-                onClick={() => setDetailEvent(event)}
+                onClick={() => openEventDetail(event)}
                 onKeyDown={(keyboardEvent) => {
                   if (
                     keyboardEvent.key === "Enter" ||
                     keyboardEvent.key === " "
                   ) {
                     keyboardEvent.preventDefault();
-                    setDetailEvent(event);
+                    openEventDetail(event);
                   }
                 }}
               >
@@ -725,7 +756,7 @@ export const EventsAdminView = ({
   const renderCalendar = (items: EventRecord[]) => (
     <EventsCalendar
       events={items}
-      onEventClick={(event) => setDetailEvent(event)}
+      onEventClick={(event) => openEventDetail(event)}
       onDayClick={canWrite ? openCreateForDay : undefined}
     />
   );
@@ -879,7 +910,7 @@ export const EventsAdminView = ({
         <EventDetailDialog
           event={detailEvent}
           open
-          onOpenChange={(open) => !open && setDetailEvent(null)}
+          onOpenChange={(open) => !open && closeEventDetail()}
           showVisibility
           enableSocial
           canModerateSocial={canManageTypes}
