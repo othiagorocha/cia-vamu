@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -30,12 +30,14 @@ const VISIBLE_EVENTS_PER_DAY = 3;
 type EventsCalendarProps = {
   events: EventRecord[];
   onEventClick: (event: EventRecord) => void;
+  onDayClick?: (dayKey: string) => void;
   className?: string;
 };
 
 export const EventsCalendar = ({
   events,
   onEventClick,
+  onDayClick,
   className,
 }: EventsCalendarProps) => {
   const t = useTranslations("events.calendar");
@@ -121,17 +123,47 @@ export const EventsCalendar = ({
                 );
               }
 
-              const dayEvents = eventsByDay.get(day.dayKey) ?? [];
+              const dayKey = day.dayKey;
+              const dayEvents = eventsByDay.get(dayKey) ?? [];
               const visibleEvents = dayEvents.slice(0, VISIBLE_EVENTS_PER_DAY);
               const hiddenCount = dayEvents.length - visibleEvents.length;
-              const isToday = day.dayKey === brazilNow.dayKey;
+              const isToday = dayKey === brazilNow.dayKey;
+              const dayAriaLabel = onDayClick
+                ? t("createOnDay", {
+                    date: format(parseISO(dayKey), "d 'de' MMMM", {
+                      locale: ptBR,
+                    }),
+                  })
+                : undefined;
 
               return (
                 <div
-                  key={day.dayKey}
+                  key={dayKey}
+                  role={onDayClick ? "button" : undefined}
+                  tabIndex={onDayClick ? 0 : undefined}
+                  aria-label={dayAriaLabel}
+                  onClick={
+                    onDayClick
+                      ? () => {
+                          onDayClick(dayKey);
+                        }
+                      : undefined
+                  }
+                  onKeyDown={
+                    onDayClick
+                      ? (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            onDayClick(dayKey);
+                          }
+                        }
+                      : undefined
+                  }
                   className={cn(
                     "flex min-h-20 flex-col gap-1 border-b border-r p-1 sm:min-h-24",
                     isToday && "bg-orange-400/5",
+                    onDayClick &&
+                      "cursor-pointer transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/60 focus-visible:ring-inset",
                   )}
                 >
                   <div className="flex items-center justify-between gap-1">
@@ -154,7 +186,10 @@ export const EventsCalendar = ({
                         <button
                           key={event.id}
                           type="button"
-                          onClick={() => onEventClick(event)}
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            onEventClick(event);
+                          }}
                           className={cn(
                             "w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium leading-tight sm:text-[11px]",
                             styles.card,

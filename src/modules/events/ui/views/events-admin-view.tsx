@@ -65,6 +65,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { dayKeyToBrazilDateTimeLocal } from "@/lib/brazil-datetime";
 import { useToastError } from "@/lib/use-toast-error";
 import { cn } from "@/lib/utils";
 import {
@@ -131,13 +132,14 @@ export const EventsAdminView = ({
   useAgendaAdminStorage({
     scope,
     filters,
-    viewMode: viewMode ?? "grid",
+    viewMode: viewMode ?? "calendar",
     setFilters,
     setViewMode,
   });
   const [formOpen, setFormOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
   const [prefillEvent, setPrefillEvent] = useState<EventRecord | null>(null);
+  const [createStartsAt, setCreateStartsAt] = useState<string | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
   const [typesOpen, setTypesOpen] = useState(false);
@@ -179,6 +181,7 @@ export const EventsAdminView = ({
       toast.success(t("created"));
       setFormOpen(false);
       setPrefillEvent(null);
+      setCreateStartsAt(null);
       invalidate();
     },
     onError: toastError,
@@ -250,6 +253,18 @@ export const EventsAdminView = ({
   const openCreate = () => {
     setSelectedEvent(null);
     setPrefillEvent(null);
+    setCreateStartsAt(null);
+    setFormOpen(true);
+  };
+
+  const openCreateForDay = (dayKey: string) => {
+    if (!canWrite) {
+      return;
+    }
+
+    setSelectedEvent(null);
+    setPrefillEvent(null);
+    setCreateStartsAt(dayKeyToBrazilDateTimeLocal(dayKey));
     setFormOpen(true);
   };
 
@@ -261,6 +276,7 @@ export const EventsAdminView = ({
     suppressEventCardOpen();
     setDetailEvent(null);
     setPrefillEvent(null);
+    setCreateStartsAt(null);
     setSelectedEvent(event);
     setFormOpen(true);
   };
@@ -273,6 +289,7 @@ export const EventsAdminView = ({
     suppressEventCardOpen();
     setDetailEvent(null);
     setSelectedEvent(null);
+    setCreateStartsAt(null);
     setPrefillEvent(event);
     setFormOpen(true);
   };
@@ -701,6 +718,7 @@ export const EventsAdminView = ({
     <EventsCalendar
       events={items}
       onEventClick={(event) => setDetailEvent(event)}
+      onDayClick={canWrite ? openCreateForDay : undefined}
     />
   );
 
@@ -858,10 +876,12 @@ export const EventsAdminView = ({
           if (!open) {
             setSelectedEvent(null);
             setPrefillEvent(null);
+            setCreateStartsAt(null);
           }
         }}
         event={selectedEvent}
         prefill={prefillEvent}
+        initialStartsAt={createStartsAt}
         types={types}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         onSubmit={handleSubmit}

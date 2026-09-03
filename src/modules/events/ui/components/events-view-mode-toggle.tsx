@@ -21,6 +21,16 @@ export const EventsViewModeToggle = ({
     <div className="flex items-center gap-1">
       <Button
         type="button"
+        variant={value === "calendar" ? "secondary" : "ghost"}
+        size="icon-sm"
+        aria-label={t("viewCalendar")}
+        aria-pressed={value === "calendar"}
+        onClick={() => onChange("calendar")}
+      >
+        <CalendarDaysIcon />
+      </Button>
+      <Button
+        type="button"
         variant={value === "grid" ? "secondary" : "ghost"}
         size="icon-sm"
         aria-label={t("viewGrid")}
@@ -38,16 +48,6 @@ export const EventsViewModeToggle = ({
         onClick={() => onChange("table")}
       >
         <TableIcon />
-      </Button>
-      <Button
-        type="button"
-        variant={value === "calendar" ? "secondary" : "ghost"}
-        size="icon-sm"
-        aria-label={t("viewCalendar")}
-        aria-pressed={value === "calendar"}
-        onClick={() => onChange("calendar")}
-      >
-        <CalendarDaysIcon />
       </Button>
     </div>
   );

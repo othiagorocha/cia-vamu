@@ -310,7 +310,8 @@
       "today": "Hoje",
       "prevMonth": "Mês anterior",
       "nextMonth": "Próximo mês",
-      "moreEvents": "+{count}"
+      "moreEvents": "+{count}",
+      "createOnDay": "Criar evento em {date}"
     },
     "form": {
       "createTitle": "Novo evento",

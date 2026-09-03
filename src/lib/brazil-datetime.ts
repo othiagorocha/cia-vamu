@@ -74,6 +74,19 @@ export function formatBrazilDateTimeShort(value: Date | string) {
   }).format(date);
 }
 
+/** Converte `yyyy-MM-dd` para valor de `datetime-local` em horário de Brasília. */
+export function dayKeyToBrazilDateTimeLocal(
+  dayKey: string,
+  hour = 9,
+  minute = 0,
+) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
+    return "";
+  }
+
+  return `${dayKey}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
 export function getBrazilDayKey(value: Date | string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {

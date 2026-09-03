@@ -49,6 +49,7 @@ type EventFormDialogProps = {
   onOpenChange: (open: boolean) => void;
   event?: EventRecord | null;
   prefill?: EventRecord | null;
+  initialStartsAt?: string | null;
   types: EventTypeRecord[];
   isSubmitting?: boolean;
   onSubmit: (values: EventFormInput) => void;
@@ -62,6 +63,7 @@ export const EventFormDialog = ({
   onOpenChange,
   event,
   prefill,
+  initialStartsAt,
   types,
   isSubmitting,
   onSubmit,
@@ -122,7 +124,7 @@ export const EventFormDialog = ({
         typeId: source?.typeId ?? defaultTypeId(types),
         startsAt: isReuse
           ? toBrazilDateTimeLocal(reuseDates?.startsAt)
-          : toBrazilDateTimeLocal(event?.startsAt),
+          : toBrazilDateTimeLocal(event?.startsAt) || initialStartsAt || "",
         endsAt: isReuse
           ? toBrazilDateTimeLocal(reuseDates?.endsAt)
           : toBrazilDateTimeLocal(event?.endsAt),
@@ -139,7 +141,7 @@ export const EventFormDialog = ({
         Boolean(source?.location?.trim() || source?.locationMapsQuery?.trim()),
       );
     }
-  }, [open, event, prefill, form, types]);
+  }, [open, event, prefill, initialStartsAt, form, types]);
 
   useEffect(() => {
     if (!open) return;
