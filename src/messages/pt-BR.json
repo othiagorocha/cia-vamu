@@ -134,6 +134,7 @@
     "openAlbum": "Abrir álbum {title}",
     "columns": {
       "title": "Título",
+      "photos": "Fotos",
       "status": "Status",
       "actions": "Ações"
     },
@@ -141,6 +142,7 @@
     "noParent": "Nenhum (álbum principal)",
     "newChild": "Novo subálbum",
     "childrenTitle": "Subálbuns",
+    "childOf": "Dentro de {title}",
     "childrenEmpty": "Nenhum subálbum neste álbum ainda.",
     "childCreated": "Subálbum criado com sucesso.",
     "newChildDescription": "O subálbum ficará dentro de {title}.",
@@ -151,6 +153,8 @@
     "moveEmpty": "Não há outro álbum para receber esta foto.",
     "setCover": "Definir como capa",
     "coverSet": "Capa atualizada.",
+    "removeCover": "Remover capa",
+    "coverRemoved": "Capa removida.",
     "cover": "Capa",
     "photoActions": "Opções da foto",
     "queueTitle": "Fila de envio",
@@ -176,6 +180,7 @@
     "liked": "Curtido",
     "beFirstLike": "Nenhuma curtida ainda — toque em Curtir",
     "emptyComments": "Nenhum comentário ainda. Escreva o primeiro abaixo.",
+    "mentionHint": "Use @ para mencionar. Enter envia.",
     "commentActions": "Ações do comentário",
     "hiddenComment": "Ocultar",
     "restore": "Restaurar",
@@ -759,7 +764,8 @@
           "delete": "Excluiu foto"
         },
         "cover": {
-          "set": "Definiu capa"
+          "set": "Definiu capa",
+          "remove": "Removeu capa"
         },
         "comment": {
           "hide": "Ocultou comentário",

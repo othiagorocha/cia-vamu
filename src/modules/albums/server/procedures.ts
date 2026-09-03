@@ -8,6 +8,7 @@ import { user } from "@/db/auth-schema";
 import {
   albums,
   memberProfiles,
+  photoCommentMentions,
   photoComments,
   photoLikes,
   photos,
@@ -25,12 +26,14 @@ import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import { createNotifications } from "@/modules/notifications/server/create-notifications";
 import {
   addPhotoSchema,
+  addPhotoCommentSchema,
   createAlbumSchema,
   createPhotoUploadSchema,
   movePhotoSchema,
   removeAlbumSchema,
   removePhotoSchema,
   setCoverSchema,
+  clearCoverSchema,
   updateAlbumSchema,
   updateCommentSchema,
   updatePhotoSchema,
@@ -55,6 +58,7 @@ const loadPhotoAuditContext = async (photoId: string) => {
   const [row] = await db
     .select({
       photoTitle: photos.title,
+      albumId: photos.albumId,
       albumTitle: albums.title,
     })
     .from(photos)
@@ -71,6 +75,118 @@ const photoCommentAuditMetadata = async (photoId: string) => {
     title: optionalTitle(context?.photoTitle),
     albumTitle: context?.albumTitle,
   };
+};
+
+const validateMentionedUsers = async (mentionedUserIds: string[]) => {
+  const uniqueIds = [...new Set(mentionedUserIds)];
+
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const rows = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(and(inArray(user.id, uniqueIds), eq(user.disabled, false)));
+
+  if (rows.length !== uniqueIds.length) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Uma ou mais menções são inválidas.",
+    });
+  }
+
+  return uniqueIds;
+};
+
+const syncPhotoCommentMentions = async (commentId: string, userIds: string[]) => {
+  await db
+    .delete(photoCommentMentions)
+    .where(eq(photoCommentMentions.commentId, commentId));
+
+  if (userIds.length === 0) {
+    return;
+  }
+
+  await db.insert(photoCommentMentions).values(
+    userIds.map((mentionedUserId) => ({
+      commentId,
+      userId: mentionedUserId,
+    })),
+  );
+};
+
+const loadPhotoMentionUserIds = async (commentId: string) => {
+  const rows = await db
+    .select({ userId: photoCommentMentions.userId })
+    .from(photoCommentMentions)
+    .where(eq(photoCommentMentions.commentId, commentId));
+
+  return rows.map((row) => row.userId);
+};
+
+const loadPhotoCommentMentions = async (commentIds: string[]) => {
+  if (commentIds.length === 0) {
+    return new Map<string, Array<{ userId: string; name: string }>>();
+  }
+
+  const rows = await db
+    .select({
+      commentId: photoCommentMentions.commentId,
+      userId: user.id,
+      name: user.name,
+    })
+    .from(photoCommentMentions)
+    .innerJoin(user, eq(user.id, photoCommentMentions.userId))
+    .where(inArray(photoCommentMentions.commentId, commentIds));
+
+  const byComment = new Map<string, Array<{ userId: string; name: string }>>();
+
+  for (const row of rows) {
+    const current = byComment.get(row.commentId) ?? [];
+    current.push({ userId: row.userId, name: row.name });
+    byComment.set(row.commentId, current);
+  }
+
+  return byComment;
+};
+
+const notifyPhotoMentions = async ({
+  recipientUserIds,
+  actor,
+  photoId,
+  commentId,
+  body,
+}: {
+  recipientUserIds: string[];
+  actor: { id: string; name: string };
+  photoId: string;
+  commentId: string;
+  body: string;
+}) => {
+  if (recipientUserIds.length === 0) {
+    return;
+  }
+
+  const context = await loadPhotoAuditContext(photoId);
+
+  if (!context) {
+    return;
+  }
+
+  await createNotifications({
+    type: "mention",
+    recipientUserIds,
+    actorUserId: actor.id,
+    entityType: "photo_comment",
+    entityId: commentId,
+    href: `/admin/albums/${context.albumId}?photo=${photoId}`,
+    metadata: {
+      actorName: actor.name,
+      eventTitle: context.albumTitle,
+      excerpt: body.slice(0, 120),
+    },
+  });
 };
 
 const isAlbumPhotoPath = (albumId: string, storagePath: string) => {
@@ -227,7 +343,23 @@ export const albumsRouter = createTRPCRouter({
     }),
 
   listAll: protectedProcedure.query(async () => {
-    return db.select().from(albums).orderBy(desc(albums.createdAt));
+    return db
+      .select({
+        id: albums.id,
+        title: albums.title,
+        description: albums.description,
+        coverImageUrl: albums.coverImageUrl,
+        parentId: albums.parentId,
+        published: albums.published,
+        publishedAt: albums.publishedAt,
+        createdAt: albums.createdAt,
+        updatedAt: albums.updatedAt,
+        photoCount: sql<number>`(
+          select count(*)::int from photos where photos.album_id = ${albums.id}
+        )`,
+      })
+      .from(albums)
+      .orderBy(desc(albums.createdAt));
   }),
 
   listRoots: protectedProcedure.query(async () => {
@@ -336,6 +468,8 @@ export const albumsRouter = createTRPCRouter({
           fileName: "cover",
         });
         coverImageUrl = uploaded.imageUrl;
+      } else if (input.data.removeCover) {
+        coverImageUrl = null;
       }
 
       const wasPublished = existing.published;
@@ -380,6 +514,16 @@ export const albumsRouter = createTRPCRouter({
               title: album.title,
               changes,
             },
+          });
+        }
+
+        if (existing.coverImageUrl && !album.coverImageUrl) {
+          await writeAuditLog({
+            actor: ctx.session.user,
+            action: AUDIT_ACTIONS.ALBUMS_COVER_REMOVE,
+            entityType: "album",
+            entityId: album.id,
+            metadata: { title: album.title },
           });
         }
       }
@@ -701,6 +845,50 @@ export const albumsRouter = createTRPCRouter({
       return album;
     }),
 
+  clearCover: requireCapability("albums:write")
+    .input(clearCoverSchema)
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await db
+        .select()
+        .from(albums)
+        .where(eq(albums.id, input.albumId));
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Álbum não encontrado.",
+        });
+      }
+
+      const [album] = await db
+        .update(albums)
+        .set({
+          coverImageUrl: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(albums.id, input.albumId))
+        .returning();
+
+      if (!album) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Álbum não encontrado.",
+        });
+      }
+
+      if (existing.coverImageUrl) {
+        await writeAuditLog({
+          actor: ctx.session.user,
+          action: AUDIT_ACTIONS.ALBUMS_COVER_REMOVE,
+          entityType: "album",
+          entityId: album.id,
+          metadata: { title: album.title },
+        });
+      }
+
+      return album;
+    }),
+
   photoSocial: protectedProcedure
     .input(z.object({ photoId: z.uuid() }))
     .query(async ({ ctx, input }) => {
@@ -732,6 +920,9 @@ export const albumsRouter = createTRPCRouter({
         .orderBy(asc(photoComments.createdAt));
 
       const visibleComments = comments.filter((comment) => !comment.authorDisabled);
+      const mentionsByComment = await loadPhotoCommentMentions(
+        visibleComments.map((comment) => comment.id),
+      );
 
       const likers = await db
         .select({
@@ -757,7 +948,10 @@ export const albumsRouter = createTRPCRouter({
           name: like.name,
           photoUrl: like.photoUrl,
         })),
-        comments: visibleComments,
+        comments: visibleComments.map((comment) => ({
+          ...comment,
+          mentions: mentionsByComment.get(comment.id) ?? [],
+        })),
       };
     }),
 
@@ -782,21 +976,28 @@ export const albumsRouter = createTRPCRouter({
     }),
 
   addComment: protectedProcedure
-    .input(
-      z.object({
-        photoId: z.uuid(),
-        body: z.string().min(1).max(1000),
-      }),
-    )
+    .input(addPhotoCommentSchema)
     .mutation(async ({ ctx, input }) => {
+      const mentionedUserIds = await validateMentionedUsers(input.mentionedUserIds);
+      const body = input.body.trim();
+
       const [comment] = await db
         .insert(photoComments)
         .values({
           photoId: input.photoId,
           authorId: ctx.session.user.id,
-          body: input.body.trim(),
+          body,
         })
         .returning();
+
+      await syncPhotoCommentMentions(comment.id, mentionedUserIds);
+      await notifyPhotoMentions({
+        recipientUserIds: mentionedUserIds,
+        actor: ctx.session.user,
+        photoId: input.photoId,
+        commentId: comment.id,
+        body,
+      });
 
       const [photo] = await db
         .select({ albumId: photos.albumId })
@@ -818,13 +1019,14 @@ export const albumsRouter = createTRPCRouter({
         await createNotifications({
           type: "photo_comment",
           recipientUserIds: threadAuthors.map((row) => row.authorId),
+          excludeUserIds: mentionedUserIds,
           actorUserId: ctx.session.user.id,
           entityType: "photo_comment",
           entityId: comment.id,
           href: `/admin/albums/${photo.albumId}?photo=${input.photoId}`,
           metadata: {
             actorName: ctx.session.user.name,
-            excerpt: input.body.trim().slice(0, 120),
+            excerpt: body.slice(0, 120),
             albumId: photo.albumId,
           },
         });
@@ -863,7 +1065,21 @@ export const albumsRouter = createTRPCRouter({
       }
 
       const body = input.body.trim();
+      const mentionedUserIds = await validateMentionedUsers(input.mentionedUserIds);
+      const previousMentionIds = await loadPhotoMentionUserIds(existing.id);
+      const addedMentionIds = mentionedUserIds.filter(
+        (id) => !previousMentionIds.includes(id),
+      );
       const changes = diffFields({ body: existing.body }, { body });
+
+      await syncPhotoCommentMentions(existing.id, mentionedUserIds);
+      await notifyPhotoMentions({
+        recipientUserIds: addedMentionIds,
+        actor: ctx.session.user,
+        photoId: existing.photoId,
+        commentId: existing.id,
+        body,
+      });
 
       if (changes.length === 0) {
         return existing;

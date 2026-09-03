@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ClipboardPasteIcon, ImageIcon, Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,8 @@ export const AlbumFormDialog = ({
   isSubmitting,
   onSubmit,
 }: AlbumFormDialogProps) => {
+  const t = useTranslations("albums");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isPasting, setIsPasting] = useState(false);
   const rootsQuery = trpc.albums.listRoots.useQuery(undefined, {
@@ -66,6 +69,7 @@ export const AlbumFormDialog = ({
       description: "",
       published: false,
       parentId: "",
+      removeCover: false,
     },
   });
 
@@ -77,6 +81,7 @@ export const AlbumFormDialog = ({
         shouldValidate: true,
         shouldDirty: true,
       });
+      form.setValue("removeCover", false, { shouldDirty: true });
       toast.success("Capa colada da área de transferência.");
     } catch (error) {
       toast.error(
@@ -95,6 +100,7 @@ export const AlbumFormDialog = ({
         published: album?.published ?? false,
         parentId: album?.parentId ?? defaultParentId ?? "",
         coverImage: undefined,
+        removeCover: false,
       });
       setPreview(album?.coverImageUrl ?? null);
     }
@@ -226,6 +232,7 @@ export const AlbumFormDialog = ({
                     <div className="flex min-w-0 flex-1 flex-col gap-2">
                       <Input
                         {...field}
+                        ref={fileInputRef}
                         id="album-cover"
                         type="file"
                         accept="image/*"
@@ -236,6 +243,9 @@ export const AlbumFormDialog = ({
                           const dataUrl = await fileToDataUrl(file);
                           setPreview(dataUrl);
                           onChange(dataUrl);
+                          form.setValue("removeCover", false, {
+                            shouldDirty: true,
+                          });
                         }}
                       />
                       <div className="flex flex-wrap items-center gap-2">
@@ -253,6 +263,25 @@ export const AlbumFormDialog = ({
                           )}
                           Colar imagem
                         </Button>
+                        {preview ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setPreview(null);
+                              onChange(undefined);
+                              form.setValue("removeCover", true, {
+                                shouldDirty: true,
+                              });
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = "";
+                              }
+                            }}
+                          >
+                            {t("removeCover")}
+                          </Button>
+                        ) : null}
                         <span className="text-xs text-muted-foreground">
                           ou Ctrl+V / Cmd+V com o diálogo aberto
                         </span>

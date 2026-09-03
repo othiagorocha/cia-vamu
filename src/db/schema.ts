@@ -211,6 +211,26 @@ export const photoComments = pgTable("photo_comments", {
     .defaultNow(),
 });
 
+export const photoCommentMentions = pgTable(
+  "photo_comment_mentions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => photoComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("photo_comment_mentions_comment_user").on(table.commentId, table.userId),
+    index("photo_comment_mentions_comment_id_idx").on(table.commentId),
+  ],
+);
+
 export const eventLikes = pgTable(
   "event_likes",
   {
@@ -302,12 +322,27 @@ export const photoLikesRelations = relations(photoLikes, ({ one }) => ({
   }),
 }));
 
-export const photoCommentsRelations = relations(photoComments, ({ one }) => ({
+export const photoCommentsRelations = relations(photoComments, ({ one, many }) => ({
   photo: one(photos, {
     fields: [photoComments.photoId],
     references: [photos.id],
   }),
+  mentions: many(photoCommentMentions),
 }));
+
+export const photoCommentMentionsRelations = relations(
+  photoCommentMentions,
+  ({ one }) => ({
+    comment: one(photoComments, {
+      fields: [photoCommentMentions.commentId],
+      references: [photoComments.id],
+    }),
+    user: one(user, {
+      fields: [photoCommentMentions.userId],
+      references: [user.id],
+    }),
+  }),
+);
 
 export const eventLikesRelations = relations(eventLikes, ({ one }) => ({
   event: one(events, {

@@ -13,6 +13,7 @@ import {
   MoreHorizontalIcon,
   PencilIcon,
   StarIcon,
+  StarOffIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -146,6 +147,16 @@ export const AlbumPhotosAdminView = ({
   const setCoverMutation = trpc.albums.setCover.useMutation({
     onSuccess: () => {
       toast.success(t("coverSet"));
+      utils.albums.getById.invalidate({ id: albumId });
+      utils.albums.listAll.invalidate();
+      utils.albums.listPublished.invalidate();
+    },
+    onError: toastError,
+  });
+
+  const clearCoverMutation = trpc.albums.clearCover.useMutation({
+    onSuccess: () => {
+      toast.success(t("coverRemoved"));
       utils.albums.getById.invalidate({ id: albumId });
       utils.albums.listAll.invalidate();
       utils.albums.listPublished.invalidate();
@@ -496,94 +507,114 @@ export const AlbumPhotosAdminView = ({
           <p className="text-xs">Envie arquivos ou cole com Ctrl+V / Cmd+V.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {album.photos.map((photo) => (
             <div
               key={photo.id}
-              className="group relative aspect-square overflow-hidden rounded-lg border bg-muted"
+              className="flex flex-col overflow-hidden rounded-lg border bg-card"
             >
-              <button
-                type="button"
-                className="absolute inset-0"
-                onClick={() => {
-                  void setPhotoQueryId(photo.id);
-                }}
-                aria-label={photo.title ?? photo.caption ?? album.title}
-              >
-                <Image
-                  src={photo.imageUrl}
-                  alt={photo.caption ?? album.title}
-                  fill
-                  className="object-cover"
-                  sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-                />
-              </button>
-              {canWrite ? (
-                <div
-                  className="absolute right-2 top-2 z-10"
-                  onClick={(event) => event.stopPropagation()}
-                  onPointerDown={(event) => event.stopPropagation()}
+              <div className="group relative aspect-square overflow-hidden bg-muted">
+                <button
+                  type="button"
+                  className="absolute inset-0"
+                  onClick={() => {
+                    void setPhotoQueryId(photo.id);
+                  }}
+                  aria-label={photo.title ?? photo.caption ?? album.title}
                 >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      aria-label={t("photoActions")}
-                      className="flex size-8 items-center justify-center rounded-full bg-black/70 text-white outline-none hover:bg-black/85 focus-visible:ring-2 focus-visible:ring-orange-400"
-                    >
-                      <MoreHorizontalIcon className="size-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="min-w-44">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setEditTarget(photo);
-                          setEditTitle(photo.title ?? "");
-                          setEditCaption(photo.caption ?? "");
-                        }}
+                  <Image
+                    src={photo.imageUrl}
+                    alt={photo.caption ?? album.title}
+                    fill
+                    className="object-cover"
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  />
+                </button>
+                {canWrite ? (
+                  <div
+                    className="absolute right-2 top-2 z-10"
+                    onClick={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => event.stopPropagation()}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        aria-label={t("photoActions")}
+                        className="flex size-8 items-center justify-center rounded-full bg-black/70 text-white outline-none hover:bg-black/85 focus-visible:ring-2 focus-visible:ring-orange-400"
                       >
-                        <PencilIcon />
-                        {tCommon("actions.edit")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setMoveTarget(photo)}>
-                        <ArrowRightLeftIcon />
-                        {t("move")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={
-                          setCoverMutation.isPending ||
-                          album.coverImageUrl === photo.imageUrl
-                        }
-                        onClick={() =>
-                          setCoverMutation.mutate({
-                            albumId,
-                            photoId: photo.id,
-                          })
-                        }
-                      >
-                        <StarIcon
-                          className={
+                        <MoreHorizontalIcon className="size-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="min-w-44">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditTarget(photo);
+                            setEditTitle(photo.title ?? "");
+                            setEditCaption(photo.caption ?? "");
+                          }}
+                        >
+                          <PencilIcon />
+                          {tCommon("actions.edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setMoveTarget(photo)}>
+                          <ArrowRightLeftIcon />
+                          {t("move")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={
+                            setCoverMutation.isPending ||
                             album.coverImageUrl === photo.imageUrl
-                              ? "fill-orange-400 text-orange-400"
-                              : undefined
                           }
-                        />
-                        {t("setCover")}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onClick={() => setDeleteTarget(photo)}
-                      >
-                        <Trash2Icon />
-                        {tCommon("actions.delete")}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ) : null}
-              {album.coverImageUrl === photo.imageUrl ? (
-                <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-orange-400">
-                  {t("cover")}
-                </span>
-              ) : null}
+                          onClick={() =>
+                            setCoverMutation.mutate({
+                              albumId,
+                              photoId: photo.id,
+                            })
+                          }
+                        >
+                          <StarIcon
+                            className={
+                              album.coverImageUrl === photo.imageUrl
+                                ? "fill-orange-400 text-orange-400"
+                                : undefined
+                            }
+                          />
+                          {t("setCover")}
+                        </DropdownMenuItem>
+                        {album.coverImageUrl === photo.imageUrl ? (
+                          <DropdownMenuItem
+                            disabled={clearCoverMutation.isPending}
+                            onClick={() =>
+                              clearCoverMutation.mutate({ albumId })
+                            }
+                          >
+                            <StarOffIcon />
+                            {t("removeCover")}
+                          </DropdownMenuItem>
+                        ) : null}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={() => setDeleteTarget(photo)}
+                        >
+                          <Trash2Icon />
+                          {tCommon("actions.delete")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ) : null}
+                {album.coverImageUrl === photo.imageUrl ? (
+                  <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-orange-400">
+                    {t("cover")}
+                  </span>
+                ) : null}
+              </div>
+              <PhotoSocial
+                photoId={photo.id}
+                caption={photo.caption ?? photo.title}
+                createdAt={photo.createdAt}
+                canModerate={canModerate}
+                variant="card"
+              />
             </div>
           ))}
         </div>
@@ -783,11 +814,11 @@ export const AlbumPhotosAdminViewSkeleton = () => {
   return (
     <div className="flex flex-col gap-4">
       <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, index) => (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}
-            className="aspect-square animate-pulse rounded-lg border bg-muted/40"
+            className="h-80 animate-pulse rounded-lg border bg-muted/40"
           />
         ))}
       </div>

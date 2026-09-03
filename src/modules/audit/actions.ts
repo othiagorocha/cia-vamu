@@ -31,6 +31,7 @@ export const AUDIT_ACTIONS = {
   ALBUMS_PHOTO_MOVE: "albums.photo.move",
   ALBUMS_PHOTO_DELETE: "albums.photo.delete",
   ALBUMS_COVER_SET: "albums.cover.set",
+  ALBUMS_COVER_REMOVE: "albums.cover.remove",
   ALBUMS_COMMENT_HIDE: "albums.comment.hide",
   ALBUMS_COMMENT_RESTORE: "albums.comment.restore",
   ALBUMS_COMMENT_UPDATE: "albums.comment.update",

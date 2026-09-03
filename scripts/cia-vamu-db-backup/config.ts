@@ -18,6 +18,7 @@ export const TABLE_ORDER = [
   "member_profiles",
   "photo_likes",
   "photo_comments",
+  "photo_comment_mentions",
   "prayer_requests",
   "prayer_reactions",
   "contact_messages",
