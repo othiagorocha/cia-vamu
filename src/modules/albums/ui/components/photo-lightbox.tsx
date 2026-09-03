@@ -1,13 +1,22 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { PhotoRecord } from "@/modules/albums/types";
+
+const isTypingTarget = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+};
 
 type PhotoLightboxProps = {
   photos: PhotoRecord[];
@@ -22,15 +31,39 @@ export const PhotoLightbox = ({
   onIndexChange,
   footer,
 }: PhotoLightboxProps) => {
+  const t = useTranslations("albums");
+  const [imageReady, setImageReady] = useState(false);
   const open = index !== null;
   const photo = index !== null ? photos[index] : null;
-  const caption = photo?.caption ?? photo?.title ?? "Foto do álbum";
+  const caption = photo?.caption ?? photo?.title ?? t("photoFallback");
+
+  useEffect(() => {
+    setImageReady(false);
+  }, [photo?.id]);
 
   const goTo = (delta: number) => {
-    if (index === null) return;
+    if (index === null || photos.length < 2) return;
     const next = (index + delta + photos.length) % photos.length;
     onIndexChange(next);
   };
+
+  useEffect(() => {
+    if (index === null || photos.length < 2) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      if (isTypingTarget(event.target)) return;
+
+      event.preventDefault();
+      const delta = event.key === "ArrowLeft" ? -1 : 1;
+      const next = (index + delta + photos.length) % photos.length;
+      onIndexChange(next);
+    };
+
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [index, photos.length, onIndexChange]);
 
   return (
     <Dialog open={open} onOpenChange={(value) => !value && onIndexChange(null)}>
@@ -59,20 +92,35 @@ export const PhotoLightbox = ({
                 : "relative flex max-h-[min(92dvh,100dvh)] w-auto flex-col items-center justify-center"
             }
           >
-            <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
+            <div
+              className={cn(
+                "relative flex min-h-0 flex-1 items-center justify-center bg-black",
+                !footer && !imageReady && "min-h-[min(70dvh,28rem)] w-[min(96vw,48rem)]",
+              )}
+              aria-busy={!imageReady}
+            >
+              {!imageReady ? (
+                <>
+                  <Skeleton className="absolute inset-0 size-full rounded-none bg-white/12" />
+                  <span className="sr-only">{t("photoLoading")}</span>
+                </>
+              ) : null}
               <Image
                 key={photo.id}
                 src={photo.imageUrl}
                 alt={caption}
                 width={2400}
                 height={1600}
-                className={
+                className={cn(
                   footer
-                    ? "photo-fade h-auto max-h-full w-auto max-w-full object-contain md:max-h-[min(92dvh,100dvh)]"
-                    : "photo-fade max-h-[min(88dvh,100dvh)] w-auto max-w-[min(96vw,100vw)] object-contain"
-                }
+                    ? "h-auto max-h-full w-auto max-w-full object-contain md:max-h-[min(92dvh,100dvh)]"
+                    : "max-h-[min(88dvh,100dvh)] w-auto max-w-[min(96vw,100vw)] object-contain",
+                  imageReady ? "photo-fade" : "opacity-0",
+                )}
                 sizes="100vw"
                 priority
+                onLoad={() => setImageReady(true)}
+                onError={() => setImageReady(true)}
               />
               {photos.length > 1 && (
                 <>
@@ -80,9 +128,9 @@ export const PhotoLightbox = ({
                     type="button"
                     variant="secondary"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full"
+                    className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full"
                     onClick={() => goTo(-1)}
-                    aria-label="Foto anterior"
+                    aria-label={t("previousPhoto")}
                   >
                     <ChevronLeftIcon />
                   </Button>
@@ -90,9 +138,9 @@ export const PhotoLightbox = ({
                     type="button"
                     variant="secondary"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full"
+                    className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full"
                     onClick={() => goTo(1)}
-                    aria-label="Próxima foto"
+                    aria-label={t("nextPhoto")}
                   >
                     <ChevronRightIcon />
                   </Button>

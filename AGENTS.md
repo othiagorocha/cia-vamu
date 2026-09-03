@@ -18,6 +18,8 @@ O detalhe de stack, arquitetura, design e convenções de TypeScript/i18n está 
 - `stack.mdc` — bibliotecas permitidas.
 - `architecture.mdc` — organização em módulos por domínio.
 - `design.mdc` — tema (preto/branco + acento `orange-400`).
+- `responsive.mdc` — mobile-first; validar mobile e tablet em toda edição de UI.
+- `browser.mdc` — não abrir o navegador sem o usuário pedir.
 - `typescript.mdc` — convenções de tipagem.
 - `i18n.mdc` — uso do next-intl e mensagens por namespace.
 - `agent-workflow.mdc` — scripts em `./scripts/`; **merge em `main` = produção**; typecheck; no máx. 3 commits sem push.

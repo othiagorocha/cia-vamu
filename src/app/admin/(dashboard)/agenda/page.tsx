@@ -19,14 +19,18 @@ export const metadata: Metadata = {
 const AdminAgendaPage = async () => {
   const session = await getSession();
   const canWrite = hasCapability(session, "events:write");
+  const canManageTypes = hasCapability(session, "users:manage");
 
-  await trpc.events.listAll.prefetch();
+  await Promise.all([
+    trpc.events.listAll.prefetch(),
+    trpc.eventTypes.list.prefetch(),
+  ]);
 
   return (
     <HydrateClient>
       <ErrorBoundary fallbackTitle="Não foi possível carregar os eventos.">
         <Suspense fallback={<EventsAdminViewSkeleton />}>
-          <EventsAdminView canWrite={canWrite} />
+          <EventsAdminView canWrite={canWrite} canManageTypes={canManageTypes} />
         </Suspense>
       </ErrorBoundary>
     </HydrateClient>

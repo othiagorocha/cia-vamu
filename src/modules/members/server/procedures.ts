@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, ilike } from "drizzle-orm";
 
 import { db } from "@/db";
 import { user } from "@/db/auth-schema";
@@ -11,6 +11,7 @@ import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
 import {
   updateMemberFlagsSchema,
   updateMyProfileSchema,
+  searchMentionableSchema,
 } from "@/modules/members/schema";
 import {
   baseProcedure,
@@ -42,6 +43,29 @@ export const membersRouter = createTRPCRouter({
 
     return rows;
   }),
+
+  searchMentionable: protectedProcedure
+    .input(searchMentionableSchema)
+    .query(async ({ input }) => {
+      const query = input.query.trim();
+      const filters = query
+        ? and(eq(user.disabled, false), ilike(user.name, `%${query}%`))
+        : eq(user.disabled, false);
+
+      const rows = await db
+        .select({
+          id: user.id,
+          name: user.name,
+          photoUrl: memberProfiles.photoUrl,
+        })
+        .from(user)
+        .leftJoin(memberProfiles, eq(memberProfiles.userId, user.id))
+        .where(filters)
+        .orderBy(asc(user.name))
+        .limit(8);
+
+      return rows;
+    }),
 
   getMe: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;

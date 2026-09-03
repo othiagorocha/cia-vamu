@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -15,13 +15,6 @@ import {
 
 import { user } from "@/db/auth-schema";
 
-export const eventTypeEnum = pgEnum("event_type", [
-  "teatro",
-  "viagem",
-  "evangelismo",
-  "outro",
-]);
-
 export const socialPlatformEnum = pgEnum("social_platform", [
   "instagram",
   "youtube",
@@ -36,6 +29,7 @@ export const albums = pgTable("albums", {
   title: text("title").notNull(),
   description: text("description"),
   coverImageUrl: text("cover_image_url"),
+  hideCover: boolean("hide_cover").notNull().default(false),
   parentId: uuid("parent_id").references((): AnyPgColumn => albums.id, {
     onDelete: "set null",
   }),
@@ -64,18 +58,13 @@ export const photos = pgTable("photos", {
     .defaultNow(),
 });
 
-export const events = pgTable("events", {
+export const eventTypes = pgTable("event_types", {
   id: uuid("id").primaryKey().defaultRandom(),
-  title: text("title").notNull(),
-  description: text("description"),
-  type: eventTypeEnum("type").notNull().default("outro"),
-  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
-  endsAt: timestamp("ends_at", { withTimezone: true }),
-  location: text("location"),
-  locationMapsQuery: text("location_maps_query"),
-  imageUrl: text("image_url"),
-  storagePath: text("storage_path"),
-  published: boolean("published").notNull().default(false),
+  slug: text("slug").notNull().unique(),
+  label: text("label").notNull(),
+  emoji: text("emoji").notNull().default("🏷️"),
+  defaultColor: text("default_color").notNull(),
+  isSystem: boolean("is_system").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -84,6 +73,35 @@ export const events = pgTable("events", {
     .notNull()
     .defaultNow(),
 });
+
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description"),
+    typeId: uuid("type_id")
+      .notNull()
+      .references(() => eventTypes.id, { onDelete: "restrict" }),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    location: text("location"),
+    locationMapsQuery: text("location_maps_query"),
+    imageUrl: text("image_url"),
+    storagePath: text("storage_path"),
+    published: boolean("published").notNull().default(false),
+    color: text("color"),
+    important: boolean("important").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("events_type_id_idx").on(table.typeId)],
+);
 
 export const prayerRequests = pgTable("prayer_requests", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -194,6 +212,91 @@ export const photoComments = pgTable("photo_comments", {
     .defaultNow(),
 });
 
+export const photoCommentMentions = pgTable(
+  "photo_comment_mentions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => photoComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("photo_comment_mentions_comment_user").on(table.commentId, table.userId),
+    index("photo_comment_mentions_comment_id_idx").on(table.commentId),
+  ],
+);
+
+export const eventLikes = pgTable(
+  "event_likes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [unique("event_likes_event_user").on(table.eventId, table.userId)],
+);
+
+export const eventComments = pgTable("event_comments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const eventCommentMentions = pgTable(
+  "event_comment_mentions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => eventComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("event_comment_mentions_comment_user").on(table.commentId, table.userId),
+    index("event_comment_mentions_comment_id_idx").on(table.commentId),
+  ],
+);
+
+export const eventTypesRelations = relations(eventTypes, ({ many }) => ({
+  events: many(events),
+}));
+
+export const eventsRelations = relations(events, ({ one, many }) => ({
+  type: one(eventTypes, {
+    fields: [events.typeId],
+    references: [eventTypes.id],
+  }),
+  likes: many(eventLikes),
+  comments: many(eventComments),
+}));
+
 export const albumsRelations = relations(albums, ({ many, one }) => ({
   photos: many(photos),
   parent: one(albums, {
@@ -220,12 +323,56 @@ export const photoLikesRelations = relations(photoLikes, ({ one }) => ({
   }),
 }));
 
-export const photoCommentsRelations = relations(photoComments, ({ one }) => ({
+export const photoCommentsRelations = relations(photoComments, ({ one, many }) => ({
   photo: one(photos, {
     fields: [photoComments.photoId],
     references: [photos.id],
   }),
+  mentions: many(photoCommentMentions),
 }));
+
+export const photoCommentMentionsRelations = relations(
+  photoCommentMentions,
+  ({ one }) => ({
+    comment: one(photoComments, {
+      fields: [photoCommentMentions.commentId],
+      references: [photoComments.id],
+    }),
+    user: one(user, {
+      fields: [photoCommentMentions.userId],
+      references: [user.id],
+    }),
+  }),
+);
+
+export const eventLikesRelations = relations(eventLikes, ({ one }) => ({
+  event: one(events, {
+    fields: [eventLikes.eventId],
+    references: [events.id],
+  }),
+}));
+
+export const eventCommentsRelations = relations(eventComments, ({ one, many }) => ({
+  event: one(events, {
+    fields: [eventComments.eventId],
+    references: [events.id],
+  }),
+  mentions: many(eventCommentMentions),
+}));
+
+export const eventCommentMentionsRelations = relations(
+  eventCommentMentions,
+  ({ one }) => ({
+    comment: one(eventComments, {
+      fields: [eventCommentMentions.commentId],
+      references: [eventComments.id],
+    }),
+    user: one(user, {
+      fields: [eventCommentMentions.userId],
+      references: [user.id],
+    }),
+  }),
+);
 
 export const memberProfilesRelations = relations(memberProfiles, ({ one }) => ({
   user: one(user, {
@@ -400,3 +547,50 @@ export const documentsRelations = relations(documents, ({ one }) => ({
     references: [documentFolders.id],
   }),
 }));
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipientUserId: text("recipient_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    actorUserId: text("actor_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    href: text("href"),
+    metadata: jsonb("metadata").$type<
+      Record<string, string | number | boolean | null>
+    >(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("notifications_recipient_created_idx").on(
+      table.recipientUserId,
+      table.createdAt,
+    ),
+    index("notifications_recipient_unread_idx").on(
+      table.recipientUserId,
+      table.readAt,
+    ),
+  ],
+);
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  disabledTypes: text("disabled_types")
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

@@ -7,6 +7,7 @@ import { user } from "@/db/auth-schema";
 import { prayerReactions, prayerRequests } from "@/db/schema";
 import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
+import { createNotifications } from "@/modules/notifications/server/create-notifications";
 import { prayerRequestFormSchema } from "@/modules/prayers/schema";
 import type { PrayerReactor, PrayerRequestRecord } from "@/modules/prayers/types";
 import {
@@ -64,31 +65,44 @@ export const prayersRouter = createTRPCRouter({
     .input(prayerRequestFormSchema)
     .mutation(async ({ ctx, input }) => {
       const isAnonymous = input.isAnonymous;
+      const actorUserId =
+        !isAnonymous && ctx.session?.user.id ? ctx.session.user.id : null;
+      const id = crypto.randomUUID();
+
       const [request] = await db
         .insert(prayerRequests)
         .values({
+          id,
           body: input.body,
           isAnonymous,
           name: isAnonymous ? null : input.name,
           email: isAnonymous || input.email.length === 0 ? null : input.email,
-          authorUserId:
-            !isAnonymous && ctx.session?.user.id
-              ? ctx.session.user.id
-              : null,
+          authorUserId: actorUserId,
         })
         .returning();
 
-      if (ctx.session && request) {
+      if (ctx.session) {
         await writeAuditLog({
           actor: ctx.session.user,
           action: AUDIT_ACTIONS.PRAYERS_CREATE,
           entityType: "prayer_request",
-          entityId: request.id,
+          entityId: id,
           metadata: isAnonymous
             ? { anonymous: true }
             : { name: input.name },
         });
       }
+
+      await createNotifications({
+        type: "prayer_request",
+        actorUserId,
+        entityType: "prayer_request",
+        entityId: id,
+        href: `/admin/oracao?prayer=${id}`,
+        metadata: isAnonymous
+          ? { anonymous: true }
+          : { name: input.name },
+      });
 
       return request;
     }),

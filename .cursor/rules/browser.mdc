@@ -1,0 +1,15 @@
+---
+description: Não abrir o navegador sem pedido explícito do usuário
+alwaysApply: true
+---
+
+# Navegador
+
+Não abra o browser (Playwright, ferramentas de browser do Cursor, MCP de browser, `browser_*`) **sem o usuário pedir**.
+
+```text
+❌ concluir UI abrindo localhost sozinho
+❌ “verificar no navegador” por conta própria
+✅ só abrir se o usuário pedir (ex.: “abre o browser”, “testa no navegador”)
+✅ conferir layout pelas classes mobile-first no código
+```

@@ -18,6 +18,7 @@ alwaysApply: true
 
 - Cantos arredondados (`rounded-lg` / `rounded-full` em CTAs), alinhados à logo.
 - Evitar tema roxo genérico de AI, glow excessivo e clutter.
-- Site público: marca forte no hero; uma composição limpa por seção; mobile-first.
+- Site público: marca forte no hero; uma composição limpa por seção.
 - Admin: sidebar, tabelas, empty/loading/error states.
 - Acessibilidade: contraste, labels, focus visível.
+- **Responsivo obrigatório** (público e admin): mobile-first; toda edição de UI deve funcionar em mobile e tablet — ver `responsive.mdc`.

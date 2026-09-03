@@ -16,6 +16,7 @@ import {
 } from "@/lib/storage";
 import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
+import { createNotifications } from "@/modules/notifications/server/create-notifications";
 import { renderMarkdownToHtml } from "@/modules/documents/render-markdown";
 import { sanitizePreviewHtml } from "@/modules/documents/sanitize-html";
 import {
@@ -510,6 +511,18 @@ export const documentsRouter = createTRPCRouter({
         entityType: "document",
         entityId: created.id,
         metadata: { name: created.name },
+      });
+
+      await createNotifications({
+        type: "document_uploaded",
+        actorUserId: ctx.session.user.id,
+        entityType: "document",
+        entityId: created.id,
+        href: "/admin/documentos",
+        metadata: {
+          actorName: ctx.session.user.name,
+          documentName: created.name,
+        },
       });
 
       return created;

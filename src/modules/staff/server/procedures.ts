@@ -24,6 +24,7 @@ import { isSuperAdminEmail } from "@/lib/super-admin";
 import { AUDIT_ACTIONS } from "@/modules/audit/actions";
 import { diffFields } from "@/modules/audit/diff";
 import { writeAuditLog } from "@/modules/audit/server/write-audit-log";
+import { createNotifications } from "@/modules/notifications/server/create-notifications";
 import {
   createStaffUser,
   setStaffPassword,
@@ -162,6 +163,18 @@ export const staffRouter = createTRPCRouter({
             name: created.name,
             email: created.email,
             capabilities: input.capabilities,
+          },
+        });
+        await createNotifications({
+          type: "staff_joined",
+          actorUserId: ctx.session.user.id,
+          excludeUserIds: [created.id],
+          entityType: "user",
+          entityId: created.id,
+          href: "/admin/equipe",
+          metadata: {
+            actorName: ctx.session.user.name,
+            name: created.name,
           },
         });
         return toStaffRecord({
@@ -807,6 +820,18 @@ export const staffRouter = createTRPCRouter({
           metadata: {
             name: input.name,
             hasPhoto: Boolean(input.photo),
+          },
+        });
+        await createNotifications({
+          type: "staff_joined",
+          actorUserId: createdUserId,
+          excludeUserIds: [createdUserId],
+          entityType: "user",
+          entityId: createdUserId,
+          href: "/admin/equipe",
+          metadata: {
+            actorName: input.name,
+            name: input.name,
           },
         });
       }

@@ -20,6 +20,10 @@ import {
   PROFILE_PHOTO_VIEWPORT,
   ProfilePhotoEditor,
 } from "@/modules/members/ui/components/profile-photo-editor";
+import {
+  NotificationPreferencesForm,
+  NotificationPreferencesFormSkeleton,
+} from "@/modules/notifications/ui/components/notification-preferences-form";
 import { trpc } from "@/trpc/client";
 
 const DEFAULT_FRAME: PhotoFrame = { offsetX: 0, offsetY: 0, zoom: 1 };
@@ -145,10 +149,16 @@ export const ProfileView = () => {
           {tCommon("actions.save")}
         </Button>
       </form>
+      <NotificationPreferencesForm />
     </div>
   );
 };
 
 export const ProfileViewSkeleton = () => {
-  return <div className="h-64 animate-pulse rounded-lg border bg-muted/40" />;
+  return (
+    <div className="mx-auto flex max-w-xl flex-col gap-6">
+      <div className="h-64 animate-pulse rounded-lg border bg-muted/40" />
+      <NotificationPreferencesFormSkeleton />
+    </div>
+  );
 };

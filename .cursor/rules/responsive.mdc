@@ -1,0 +1,35 @@
+---
+description: Mobile-first obrigatório; validar mobile e tablet em toda edição de UI
+alwaysApply: true
+---
+
+# Responsivo (mobile e tablet)
+
+Toda edição de UI (público **e** admin) deve funcionar bem em **mobile** e **tablet**, não só em desktop. Layout pensado só para tela larga é incompleto.
+
+## Abordagem
+
+- **Mobile-first**: classes base = viewport estreito (~375px). `sm:` / `md:` / `lg:` só para telas maiores.
+- Breakpoints Tailwind padrão: `sm` 640px, `md` 768px (tablet), `lg` 1024px, `xl` 1280px.
+- Empilhar no mobile (`flex-col`, `grid-cols-1`); lado a lado só a partir de `md`/`lg`.
+- Evitar larguras fixas (`w-[800px]`, `min-w-[40rem]`) que geram scroll horizontal. Preferir `w-full`, `max-w-*`, `min-w-0`.
+- Tabelas, toolbars, filtros e dialogs: no mobile, empilhar, scroll interno ou sheet — não espremer colunas.
+- Alvos de toque ≥ ~44px; não depender de hover para ação essencial.
+
+```tsx
+// ❌ desktop-only
+<div className="flex items-center gap-4">
+  <aside className="w-72">…</aside>
+  <main className="flex-1">…</main>
+</div>
+
+// ✅ mobile-first
+<div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+  <aside className="w-full lg:w-72 lg:shrink-0">…</aside>
+  <main className="min-w-0 flex-1">…</main>
+</div>
+```
+
+## Verificação (obrigatória em mudança de UI)
+
+Antes de concluir: conferir **mobile (~375px)** e **tablet (~768px)**, além do desktop, pelas classes de breakpoint no código tocado. Não abrir o navegador para isso sem o usuário pedir (ver `browser.mdc`).

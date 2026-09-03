@@ -7,6 +7,7 @@ import { getCapabilities } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
 import { ForcePasswordChangeDialog } from "@/modules/auth/ui/components/force-password-change-dialog";
 import { DashboardSidebar } from "@/modules/dashboard/ui/components/dashboard-sidebar";
+import { NotificationsBell } from "@/modules/notifications/ui/components/notifications-bell";
 
 const AdminLayout = async ({ children }: { children: React.ReactNode }) => {
   const session = await getSession();
@@ -27,13 +28,16 @@ const AdminLayout = async ({ children }: { children: React.ReactNode }) => {
             capabilities={getCapabilities(session)}
           />
           <SidebarInset className="min-w-0">
-            <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+            <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
               <SidebarTrigger />
-              <span className="text-sm font-medium text-muted-foreground">
+              <span className="min-w-0 truncate text-sm font-medium text-muted-foreground">
                 Painel administrativo
               </span>
+              <div className="ml-auto">
+                <NotificationsBell />
+              </div>
             </header>
-            <main className="min-w-0 flex-1 overflow-x-hidden p-6">{children}</main>
+            <main className="min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 lg:p-6">{children}</main>
           </SidebarInset>
           <ForcePasswordChangeDialog
             required={Boolean(session.user.mustChangePassword)}

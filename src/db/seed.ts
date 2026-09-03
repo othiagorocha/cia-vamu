@@ -20,6 +20,11 @@ async function main() {
   const { ALL_CAPABILITIES } = await import("@/lib/permissions");
   const { createStaffUser, ensureGestorCapabilities, setStaffPassword } =
     await import("@/lib/staff-user");
+  const { ensureDefaultEventTypes } = await import(
+    "@/modules/events/server/ensure-event-types"
+  );
+
+  await ensureDefaultEventTypes();
 
   const normalizedEmail = email.toLowerCase().trim();
   const [existing] = await db

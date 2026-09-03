@@ -1,4 +1,7 @@
-import type { events } from "@/db/schema";
+import type { eventTypes, events } from "@/db/schema";
 
-export type EventRecord = typeof events.$inferSelect;
-export type EventType = EventRecord["type"];
+export type EventTypeRecord = typeof eventTypes.$inferSelect;
+
+export type EventRecord = typeof events.$inferSelect & {
+  type: EventTypeRecord;
+};

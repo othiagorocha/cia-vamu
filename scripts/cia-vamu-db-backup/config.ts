@@ -10,10 +10,15 @@ export const TABLE_ORDER = [
   "verification",
   "albums",
   "photos",
+  "event_types",
   "events",
+  "event_likes",
+  "event_comments",
+  "event_comment_mentions",
   "member_profiles",
   "photo_likes",
   "photo_comments",
+  "photo_comment_mentions",
   "prayer_requests",
   "prayer_reactions",
   "contact_messages",
@@ -22,6 +27,8 @@ export const TABLE_ORDER = [
   "invite_uses",
   "document_folders",
   "documents",
+  "notifications",
+  "notification_preferences",
 ] as const;
 
 export type BackupTableName = (typeof TABLE_ORDER)[number];

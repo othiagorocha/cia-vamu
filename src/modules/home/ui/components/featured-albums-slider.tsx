@@ -14,9 +14,13 @@ import type { PublishedAlbumCard } from "@/modules/albums/types";
 
 type FeaturedAlbumsSliderProps = {
   albums: PublishedAlbumCard[];
+  childrenByParent: Map<string, PublishedAlbumCard[]>;
 };
 
-export const FeaturedAlbumsSlider = ({ albums }: FeaturedAlbumsSliderProps) => {
+export const FeaturedAlbumsSlider = ({
+  albums,
+  childrenByParent,
+}: FeaturedAlbumsSliderProps) => {
   const t = useTranslations("home.albums");
   const showControls = albums.length > 1;
 
@@ -40,7 +44,10 @@ export const FeaturedAlbumsSlider = ({ albums }: FeaturedAlbumsSliderProps) => {
               key={album.id}
               className="basis-[85%] sm:basis-1/2 lg:basis-1/3"
             >
-              <AlbumCard album={album} />
+              <AlbumCard
+                album={album}
+                childAlbums={childrenByParent.get(album.id) ?? []}
+              />
             </CarouselItem>
           ))}
         </CarouselContent>

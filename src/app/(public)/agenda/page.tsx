@@ -17,17 +17,29 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const AgendaPage = async () => {
-  const t = await getTranslations("events");
+type AgendaPageProps = {
+  searchParams: Promise<{ includePast?: string | string[] }>;
+};
 
-  void trpc.events.listUpcoming.prefetch();
+const AgendaPage = async ({ searchParams }: AgendaPageProps) => {
+  const t = await getTranslations("events");
+  const params = await searchParams;
+  const includePastRaw = Array.isArray(params.includePast)
+    ? params.includePast[0]
+    : params.includePast;
+
+  void trpc.events.listUpcoming.prefetch({
+    includePast: includePastRaw === "1",
+  });
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-16">
       <Reveal>
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+            <p className="text-muted-foreground">{t("subtitle")}</p>
+          </div>
         </div>
       </Reveal>
       <HydrateClient>

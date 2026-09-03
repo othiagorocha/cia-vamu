@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { FeaturedAlbumsSlider } from "@/modules/home/ui/components/featured-albums-slider";
+import { groupAlbumsByParent } from "@/modules/albums/group-albums";
 import { trpc } from "@/trpc/client";
 
 const HOME_ALBUMS_LIMIT = 12;
@@ -15,7 +16,8 @@ export const FeaturedAlbums = () => {
   const t = useTranslations("home.albums");
   const tCommon = useTranslations("common");
   const [albums] = trpc.albums.listPublished.useSuspenseQuery();
-  const featured = albums.slice(0, HOME_ALBUMS_LIMIT);
+  const { roots, childrenByParent } = groupAlbumsByParent(albums);
+  const featured = roots.slice(0, HOME_ALBUMS_LIMIT);
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-16">
@@ -43,7 +45,10 @@ export const FeaturedAlbums = () => {
         </Reveal>
       ) : (
         <Reveal>
-          <FeaturedAlbumsSlider albums={featured} />
+          <FeaturedAlbumsSlider
+            albums={featured}
+            childrenByParent={childrenByParent}
+          />
         </Reveal>
       )}
     </section>

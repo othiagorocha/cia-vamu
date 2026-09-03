@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ClipboardPasteIcon, ImageIcon, Loader2Icon } from "lucide-react";
+import { ClipboardPasteIcon, Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,9 @@ import {
   readImageFileFromClipboard,
 } from "@/lib/clipboard-image";
 import { fileToDataUrl } from "@/lib/file-to-data-url";
+import { IMAGE_FILE_ACCEPT } from "@/lib/image-file";
+import { ImagePrepareError } from "@/lib/prepare-image-file";
+import { AlbumCover } from "@/modules/albums/ui/components/album-cover";
 import { albumFormSchema, type AlbumFormInput } from "@/modules/albums/schema";
 import type { AlbumRecord } from "@/modules/albums/types";
 import { trpc } from "@/trpc/client";
@@ -53,6 +56,9 @@ export const AlbumFormDialog = ({
   isSubmitting,
   onSubmit,
 }: AlbumFormDialogProps) => {
+  const t = useTranslations("albums");
+  const tCommon = useTranslations("common");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isPasting, setIsPasting] = useState(false);
   const rootsQuery = trpc.albums.listRoots.useQuery(undefined, {
@@ -66,8 +72,24 @@ export const AlbumFormDialog = ({
       description: "",
       published: false,
       parentId: "",
+      removeCover: false,
+      hideCover: false,
     },
   });
+  const hideCover = form.watch("hideCover") ?? false;
+  const showingCustomCover = Boolean(preview);
+  const showingDefaultCover = !preview && !hideCover;
+  const showingHiddenCover = !preview && hideCover;
+
+  const imageErrorMessage = (error: unknown) => {
+    if (error instanceof ImagePrepareError) {
+      return tCommon(`errors.${error.code}`);
+    }
+    if (error instanceof ClipboardImageError) {
+      return error.message;
+    }
+    return tCommon("errors.generic");
+  };
 
   const applyCoverFile = async (file: File) => {
     try {
@@ -77,13 +99,11 @@ export const AlbumFormDialog = ({
         shouldValidate: true,
         shouldDirty: true,
       });
+      form.setValue("removeCover", false, { shouldDirty: true });
+      form.setValue("hideCover", false, { shouldDirty: true });
       toast.success("Capa colada da área de transferência.");
     } catch (error) {
-      toast.error(
-        error instanceof ClipboardImageError
-          ? error.message
-          : "Não foi possível colar a imagem.",
-      );
+      toast.error(imageErrorMessage(error));
     }
   };
 
@@ -95,6 +115,8 @@ export const AlbumFormDialog = ({
         published: album?.published ?? false,
         parentId: album?.parentId ?? defaultParentId ?? "",
         coverImage: undefined,
+        removeCover: false,
+        hideCover: album?.hideCover ?? false,
       });
       setPreview(album?.coverImageUrl ?? null);
     }
@@ -125,11 +147,7 @@ export const AlbumFormDialog = ({
       const file = await readImageFileFromClipboard();
       await applyCoverFile(file);
     } catch (error) {
-      toast.error(
-        error instanceof ClipboardImageError
-          ? error.message
-          : "Não foi possível colar a imagem.",
-      );
+      toast.error(imageErrorMessage(error));
     } finally {
       setIsPasting(false);
     }
@@ -216,26 +234,38 @@ export const AlbumFormDialog = ({
                 <Field>
                   <FieldLabel htmlFor="album-cover">Capa</FieldLabel>
                   <div className="flex items-start gap-3">
-                    <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                      {preview ? (
-                        <Image src={preview} alt="" fill className="object-cover" />
-                      ) : (
-                        <ImageIcon className="size-6 text-muted-foreground" />
-                      )}
+                    <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border">
+                      <AlbumCover
+                        src={preview}
+                        hideCover={hideCover}
+                        className="absolute inset-0 rounded-md"
+                        sizes="64px"
+                      />
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-2">
                       <Input
                         {...field}
+                        ref={fileInputRef}
                         id="album-cover"
                         type="file"
-                        accept="image/*"
+                        accept={IMAGE_FILE_ACCEPT}
                         value={undefined}
                         onChange={async (inputEvent) => {
                           const file = inputEvent.target.files?.[0];
                           if (!file) return;
-                          const dataUrl = await fileToDataUrl(file);
-                          setPreview(dataUrl);
-                          onChange(dataUrl);
+                          try {
+                            const dataUrl = await fileToDataUrl(file);
+                            setPreview(dataUrl);
+                            onChange(dataUrl);
+                            form.setValue("removeCover", false, {
+                              shouldDirty: true,
+                            });
+                            form.setValue("hideCover", false, {
+                              shouldDirty: true,
+                            });
+                          } catch (error) {
+                            toast.error(imageErrorMessage(error));
+                          }
                         }}
                       />
                       <div className="flex flex-wrap items-center gap-2">
@@ -243,6 +273,7 @@ export const AlbumFormDialog = ({
                           type="button"
                           variant="outline"
                           size="sm"
+                          className="min-h-11"
                           disabled={isPasting}
                           onClick={handlePasteFromClipboard}
                         >
@@ -253,6 +284,52 @@ export const AlbumFormDialog = ({
                           )}
                           Colar imagem
                         </Button>
+                        {showingCustomCover || showingHiddenCover ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="min-h-11"
+                            onClick={() => {
+                              setPreview(null);
+                              onChange(undefined);
+                              form.setValue("removeCover", true, {
+                                shouldDirty: true,
+                              });
+                              form.setValue("hideCover", false, {
+                                shouldDirty: true,
+                              });
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = "";
+                              }
+                            }}
+                          >
+                            {t("useDefaultCover")}
+                          </Button>
+                        ) : null}
+                        {showingCustomCover || showingDefaultCover ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="min-h-11"
+                            onClick={() => {
+                              setPreview(null);
+                              onChange(undefined);
+                              form.setValue("removeCover", true, {
+                                shouldDirty: true,
+                              });
+                              form.setValue("hideCover", true, {
+                                shouldDirty: true,
+                              });
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = "";
+                              }
+                            }}
+                          >
+                            {t("removeCover")}
+                          </Button>
+                        ) : null}
                         <span className="text-xs text-muted-foreground">
                           ou Ctrl+V / Cmd+V com o diálogo aberto
                         </span>

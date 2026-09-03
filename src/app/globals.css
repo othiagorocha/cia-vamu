@@ -128,6 +128,14 @@
   html {
     @apply font-sans;
   }
+  button:not(:disabled),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [data-slot="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 @keyframes fade-up {
@@ -240,12 +248,78 @@
   --spark-y: -22px;
 }
 
+@keyframes event-card-shake {
+  0%,
+  16%,
+  100% {
+    transform: rotate(0deg);
+  }
+  4% {
+    transform: rotate(-1.25deg);
+  }
+  8% {
+    transform: rotate(1.25deg);
+  }
+  12% {
+    transform: rotate(-0.6deg);
+  }
+}
+
+.event-card-shake {
+  animation: event-card-shake 5s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes event-like-count-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.event-like-count-pop {
+  display: inline-block;
+  animation: event-like-count-pop 0.38s cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+
+@keyframes prayer-focus-fade {
+  0% {
+    background-color: color-mix(in oklab, #fb923c 20%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in oklab, #fb923c 50%, transparent);
+  }
+  65% {
+    background-color: color-mix(in oklab, #fb923c 10%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in oklab, #fb923c 28%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.prayer-focus-fade {
+  animation: prayer-focus-fade 2.8s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
   .photo-fade,
   .prayer-react-pop,
-  .prayer-react-spark {
+  .prayer-react-spark,
+  .event-card-shake,
+  .event-like-count-pop,
+  .prayer-focus-fade {
     animation: none;
+  }
+
+  .prayer-focus-fade {
+    background-color: color-mix(in oklab, #fb923c 14%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in oklab, #fb923c 40%, transparent);
   }
 
   .prayer-react-spark {
